@@ -38,7 +38,7 @@
     #newMatchBtn{ display:none; background:#22c55e; color:#06210f; font-weight:900 }
     .final #newMatchBtn{ display:inline-block }
 
-    #measure{ position:absolute; left:-9999px; top:-9999px; visibility:hidden; white-space:nowrap; font-weight:900; line-height:0.92; font-variant-numeric:tabular-nums }
+    #measure{ position:absolute; left:-9999px; top:-9999px; visibility:hidden; white-space:nowrap; font-weight:900; line-height:0.92; font-variant-numeric:tabular-nums; font-feature-settings:'tnum' 1, 'lnum' 1; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace }
     #version{ position:absolute; top:.3rem; right:.5rem; font-size:.75rem; color:#9ca3af; pointer-events:none }
   </style>
 </head>
@@ -270,6 +270,25 @@
     // Init
     update();
     resizeScores(true);
+    // Ekstra tester for tegnbredde-stabilitet (kan kjøres i konsollen)
+    function runMoreTests(){
+      const log=(ok,msg)=>console[ok?'log':'error']((ok?'✅':'❌')+' '+msg);
+      try{
+        const onesA=document.getElementById('A_ones');
+        const tensA=document.getElementById('A_tens');
+        const onesB=document.getElementById('B_ones');
+        const tensB=document.getElementById('B_tens');
+        const save={a1:onesA.textContent, a2:tensA.textContent, b1:onesB.textContent, b2:tensB.textContent};
+        // sammenlikn bredde for '1' og '8' i alle fire rutene
+        function widthOf(el, ch){ const prev=el.textContent; el.textContent=ch; const w=el.getBoundingClientRect().width; el.textContent=prev; return w; }
+        const wA1=widthOf(onesA,'1'), wA8=widthOf(onesA,'8');
+        const wAT1=widthOf(tensA,'1'), wAT8=widthOf(tensA,'8');
+        const wB1=widthOf(onesB,'1'), wB8=widthOf(onesB,'8');
+        const wBT1=widthOf(tensB,'1'), wBT8=widthOf(tensB,'8');
+        log(Math.abs(wA1-wA8)<1 && Math.abs(wAT1-wAT8)<1 && Math.abs(wB1-wB8)<1 && Math.abs(wBT1-wBT8)<1,
+            'Monospace aktiv: "1" og "8" har lik bredde i alle ruter');
+      }catch(e){ console.error('runMoreTests feilet:', e); }
+    }
   </script>
 </body>
 </html>
