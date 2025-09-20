@@ -6,66 +6,69 @@
   <title>Badminton Poengteller</title>
   <style>
     :root{ --vh: 1vh; }
-    *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
-    body{margin:0;font-family:system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";background:#0f172a;color:#fff;display:flex;flex-direction:column;height:100%;}
-    header{background:#1f2937;padding:.5rem 1rem;display:flex;align-items:center;gap:1rem;justify-content:space-between}
-    header h1{font-size:1rem;margin:0}
-    .wrap{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:1rem;padding:1rem}
-    .side{background:#111827;border-radius:.8rem;padding:1rem;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative}
-    .name{font-size:1.2rem;margin-bottom:.5rem}
-    .name input{font:inherit;color:#e5e7eb;background:#1f2937;border:1px solid #0008;border-radius:.4rem;padding:.25rem .5rem;text-align:center;width:100%}
+    *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+    body{ margin:0; font-family:system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background:#0f172a; color:#fff; display:flex; flex-direction:column; height:100%; max-width:100vw; overflow-x:hidden; }
+    header{ background:#1f2937; padding:.5rem 1rem; display:flex; align-items:center; gap:1rem; justify-content:space-between; position:relative }
+    header h1{ font-size:1rem; margin:0 }
+    .wrap{ flex:1; display:grid; grid-template-columns:1fr 1fr; gap:1rem; padding:1rem }
+    .side{ background:#111827; border-radius:.8rem; padding:1rem; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative }
+    .name{ font-size:1.2rem; margin-bottom:.5rem }
+    .name input{ font:inherit; color:#e5e7eb; background:#1f2937; border:1px solid #0008; border-radius:.4rem; padding:.25rem .5rem; text-align:center; width:100% }
 
-    .score{width:100%; text-align:center; font-weight:900; line-height:0.92; cursor:pointer; user-select:none; -webkit-user-select:none; white-space:nowrap; overflow:hidden;
-           font-variant-numeric: tabular-nums; will-change: text-shadow, color; touch-action:manipulation;}
-    .score::selection{background:transparent}
+    /* To-felts digit-layout per spiller for stabil bredde */
+    .score{ width:100%; display:grid; grid-template-columns:1fr 1fr; gap:var(--dgap, 0.08em); justify-items:center; align-items:center; text-align:center; font-weight:900; line-height:0.92; cursor:pointer; user-select:none; -webkit-user-select:none; white-space:nowrap; overflow:hidden; font-variant-numeric:tabular-nums; will-change:text-shadow,color; touch-action:manipulation }
+    .score::selection{ background:transparent }
+    .score .digit{ display:block; width:100%; text-align:center }
 
-    .minusBtn{margin-top:.75rem;font-size:1.4rem;padding:.6rem 1rem;border-radius:.6rem;border:0;background:#ef4444;color:#fff;cursor:pointer;touch-action:manipulation}
+    .minusBtn{ margin-top:.75rem; font-size:1.4rem; padding:.6rem 1rem; border-radius:.6rem; border:0; background:#ef4444; color:#fff; cursor:pointer; touch-action:manipulation }
 
-    footer{background:#1f2937;padding:.6rem 1rem;display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap}
-    footer button{padding:.6rem 1rem;border-radius:.6rem;border:0;cursor:pointer;touch-action:manipulation}
+    footer{ background:#1f2937; padding:.6rem 1rem; display:flex; gap:.6rem; justify-content:center; flex-wrap:wrap }
+    footer button{ padding:.6rem 1rem; border-radius:.6rem; border:0; cursor:pointer; touch-action:manipulation }
 
-    #sets{padding:.6rem 1rem;text-align:center;font-size:1.2rem}
-    #winnerMsg{padding:1rem 1rem 0;text-align:center;font-size:clamp(1.2rem,3.5vw,2rem);color:#facc15;font-weight:900;white-space:pre-line}
+    #sets{ padding:.6rem 1rem; text-align:center; font-size:1.2rem }
+    #winnerMsg{ padding:1rem 1rem 0; text-align:center; font-size:clamp(1.2rem,3.5vw,2rem); color:#facc15; font-weight:900; white-space:pre-line }
 
-    .setCounter{position:absolute;top:.5rem;right:.5rem;background:#22c55e;color:#06210f;font-weight:900;border-radius:50%;width:2rem;height:2rem;display:flex;align-items:center;justify-content:center}
+    .setCounter{ position:absolute; top:.5rem; right:.5rem; background:#22c55e; color:#06210f; font-weight:900; border-radius:50%; width:2rem; height:2rem; display:flex; align-items:center; justify-content:center }
 
-    /* Trykk-animasjon: glød + fargeendring */
-    @keyframes glowChange {
-      0%   { color:#fff; text-shadow:none; }
-      40%  { color:#facc15; text-shadow:0 0 25px rgba(250,204,21,.8); }
-      100% { color:#fff; text-shadow:none; }
-    }
-    .score.pop { animation: glowChange 280ms ease-out; }
+    /* Trykk-animasjon: glød + fargeendring (uten layout-endring) */
+    @keyframes glowChange{ 0%{ color:#fff; text-shadow:none } 40%{ color:#facc15; text-shadow:0 0 25px rgba(250,204,21,.8) } 100%{ color:#fff; text-shadow:none } }
+    .score.pop{ animation:glowChange 280ms ease-out }
 
-    .final .score, .final .minusBtn { pointer-events:none; opacity:.85 }
-    #newMatchBtn{display:none;background:#22c55e;color:#06210f;font-weight:900}
-    .final #newMatchBtn{display:inline-block}
+    .final .score, .final .minusBtn{ pointer-events:none; opacity:.85 }
+    #newMatchBtn{ display:none; background:#22c55e; color:#06210f; font-weight:900 }
+    .final #newMatchBtn{ display:inline-block }
 
-    #measure{position:absolute;left:-9999px;top:-9999px;visibility:hidden;white-space:nowrap;font-weight:900;line-height:0.92;font-variant-numeric:tabular-nums}
-    #version{position:absolute;top:.3rem;right:.5rem;font-size:.75rem;color:#9ca3af;pointer-events:none;}
+    #measure{ position:absolute; left:-9999px; top:-9999px; visibility:hidden; white-space:nowrap; font-weight:900; line-height:0.92; font-variant-numeric:tabular-nums }
+    #version{ position:absolute; top:.3rem; right:.5rem; font-size:.75rem; color:#9ca3af; pointer-events:none }
   </style>
 </head>
 <body>
   <header>
     <h1>🏸 Badminton Poengteller</h1>
     <button id="fsBtn" onclick="toggleFullscreen()">⛶ Fullskjerm</button>
-    <div id="version">v1.1</div>
-</header>
+    <div id="version">v1.3</div>
+  </header>
 
-  <div id="sets">Sett: 0–0</div>
+  <div id="sets">Sett: 0-0</div>
 
   <div class="wrap">
     <div class="side" id="sideA">
       <div id="setCounterA" class="setCounter" style="display:none">0</div>
       <div class="name"><input id="nameA" value="Spiller A" /></div>
-      <div class="score" id="scoreA" onclick="addPoint('A')">0</div>
+      <div class="score" id="scoreA" onclick="addPoint('A')">
+        <span class="digit" id="A_tens"></span>
+        <span class="digit" id="A_ones">0</span>
+      </div>
       <button class="minusBtn" onclick="removePoint('A')">−1</button>
     </div>
 
     <div class="side" id="sideB">
       <div id="setCounterB" class="setCounter" style="display:none">0</div>
       <div class="name"><input id="nameB" value="Spiller B" /></div>
-      <div class="score" id="scoreB" onclick="addPoint('B')">0</div>
+      <div class="score" id="scoreB" onclick="addPoint('B')">
+        <span class="digit" id="B_tens"></span>
+        <span class="digit" id="B_ones">0</span>
+      </div>
       <button class="minusBtn" onclick="removePoint('B')">−1</button>
     </div>
   </div>
@@ -82,67 +85,84 @@
   <span id="measure">88</span>
 
   <script>
+    // --- Viewport høyde (mobil adressefelt) ---
     function setVH(){ document.documentElement.style.setProperty('--vh', (window.innerHeight*0.01)+'px'); }
-    setVH(); window.addEventListener('resize', ()=>{ setVH(); resizeScores(true); });
+    setVH();
 
+    // --- Tilstand ---
     let scoreA=0, scoreB=0;
     let setsA=0, setsB=0;
     const target=21, cap=30;
     let currentSet=1;
     let swappedAt11=false;
-    let locked=false;
-    let scoreFontPx=null; // låst fontstørrelse
+    let locked=false;          // lås poeng etter kamp-slutt
+    let scoreFontPx=null;      // lås fontstørrelse mellom oppdateringer
 
+    // --- UI ---
     function update(){
-      document.getElementById('scoreA').textContent=scoreA;
-      document.getElementById('scoreB').textContent=scoreB;
-      document.getElementById('sets').textContent=`Sett: ${setsA}–${setsB}`;
+      const a=scoreA, b=scoreB;
+      // NB: bruk vanlig minus '-' (ikke en-dash) for å unngå rare token-feil i noen motorer
+      document.getElementById('sets').textContent = `Sett: ${setsA}-${setsB}`;
+
+      // Settseiere-indikatorer
       const counterA=document.getElementById('setCounterA');
       const counterB=document.getElementById('setCounterB');
-      if(setsA>0){counterA.style.display='flex';counterA.textContent=setsA;}else counterA.style.display='none';
-      if(setsB>0){counterB.style.display='flex';counterB.textContent=setsB;}else counterB.style.display='none';
+      counterA.style.display = setsA>0 ? 'flex' : 'none';
+      counterB.style.display = setsB>0 ? 'flex' : 'none';
+      if(setsA>0) counterA.textContent = setsA;
+      if(setsB>0) counterB.textContent = setsB;
+
+      // Oppdater digits for A
+      const A_t = Math.floor(a/10); const A_o = a%10;
+      document.getElementById('A_tens').textContent = a>=10 ? String(A_t) : '';
+      document.getElementById('A_ones').textContent = String(A_o);
+      // Oppdater digits for B
+      const B_t = Math.floor(b/10); const B_o = b%10;
+      document.getElementById('B_tens').textContent = b>=10 ? String(B_t) : '';
+      document.getElementById('B_ones').textContent = String(B_o);
     }
 
+    // --- Beregn og lås fontstørrelse. Kalles kun ved resize/fullscreen/finalemodus ---
     function resizeScores(force){
-      if(!force && scoreFontPx){
-        document.getElementById('scoreA').style.fontSize=scoreFontPx+'px';
-        document.getElementById('scoreB').style.fontSize=scoreFontPx+'px';
+      if(!force && typeof scoreFontPx==='number'){
+        document.getElementById('scoreA').style.fontSize = scoreFontPx + 'px';
+        document.getElementById('scoreB').style.fontSize = scoreFontPx + 'px';
         return;
       }
-      const sideA=document.getElementById('sideA');
       const sA=document.getElementById('scoreA');
       const sB=document.getElementById('scoreB');
       const meas=document.getElementById('measure');
-      const vwHalf=sideA.clientWidth;
-      const maxVhPct=document.body.classList.contains('final')?35:70;
+
+      // Beregn tilgjengelig bredde per digit i hver scoreboks (tar hensyn til gap)
+      const gapA=parseFloat(getComputedStyle(sA).gap)||0;
+      const gapB=parseFloat(getComputedStyle(sB).gap)||0;
+      const perDigitA=(sA.clientWidth - gapA)/2;
+      const perDigitB=(sB.clientWidth - gapB)/2;
+      const perDigit=Math.min(perDigitA, perDigitB);
+
+      const maxVhPct=document.body.classList.contains('final')?35:70; // 70% normalt, 35% i finale
       const maxH=Math.floor(window.innerHeight*(maxVhPct/100));
+
+      // Mål én «8» for worst-case per digit
       const baseFont=100;
       meas.style.fontSize=baseFont+'px';
-      meas.textContent='88';
+      meas.textContent='8';
       const rect=meas.getBoundingClientRect();
-      const wBase=rect.width||1;
-      const hBase=rect.height||1;
-      const sizeByWidth=vwHalf/wBase*baseFont;
+      const wBase=rect.width||1; const hBase=rect.height||1;
+      const sizeByWidth=perDigit/wBase*baseFont;
       const sizeByHeight=maxH/hBase*baseFont;
       scoreFontPx=Math.floor(Math.min(sizeByWidth,sizeByHeight));
+
       sA.style.fontSize=scoreFontPx+'px';
       sB.style.fontSize=scoreFontPx+'px';
     }
 
+    // --- Effekt uten layout-hopp ---
     function bump(el){ el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
 
-    function addPoint(side){
-      if(locked) return;
-      if(side==='A') scoreA++; else scoreB++;
-      checkSetEnd();
-      update();
-      bump(document.getElementById(side==='A' ? 'scoreA':'scoreB'));
-    }
-    function removePoint(side){
-      if(locked) return;
-      if(side==='A'&&scoreA>0) scoreA--; if(side==='B'&&scoreB>0) scoreB--;
-      update();
-    }
+    // --- Handling ---
+    function addPoint(side){ if(locked) return; if(side==='A') scoreA++; else scoreB++; checkSetEnd(); update(); bump(document.getElementById(side==='A'?'scoreA':'scoreB')); }
+    function removePoint(side){ if(locked) return; if(side==='A'&&scoreA>0) scoreA--; if(side==='B'&&scoreB>0) scoreB--; update(); }
 
     function checkSetEnd(){
       const lead=Math.abs(scoreA-scoreB);
@@ -153,14 +173,16 @@
           const nameB=document.getElementById('nameB').value;
           const matchWinner=setsA===2?nameA:nameB;
           const matchLoser=setsA===2?nameB:nameA;
-          document.getElementById('winnerMsg').textContent=`🎉 GRATULERER ${matchWinner.toUpperCase()}! DU VANT KAMPEN!\n👏 BRA JOBBA ${matchLoser.toUpperCase()}, DU GJORDE DITT BESTE.`;
+          document.getElementById('winnerMsg').textContent = `🎉 GRATULERER ${matchWinner.toUpperCase()}! DU VANT KAMPEN!\n👏 BRA JOBBA ${matchLoser.toUpperCase()}, DU GJORDE DITT BESTE.`;
           document.body.classList.add('final');
-          locked=true; resizeScores(true);
+          locked=true; resizeScores(true); // krymp tall i finalemodus
           return;
         }
-        scoreA=0;scoreB=0; currentSet++; swappedAt11=false; swapSides();
+        // Nytt sett
+        scoreA=0; scoreB=0; currentSet++; swappedAt11=false; swapSides();
       }
-      if(currentSet===3&&!swappedAt11&&(scoreA===11||scoreB===11)){
+      // I tredje sett bytter man side ved første som når 11 (kun én gang)
+      if(currentSet===3 && !swappedAt11 && (scoreA===11 || scoreB===11)){
         swapSides(); swappedAt11=true;
       }
     }
@@ -174,35 +196,78 @@
       update();
     }
 
-    function resetSet(){ if(locked) return; scoreA=0;scoreB=0;swappedAt11=false;document.getElementById('winnerMsg').textContent='';update(); }
-    function resetMatch(){ scoreA=0;scoreB=0;setsA=0;setsB=0;currentSet=1;swappedAt11=false;locked=false;scoreFontPx=null;document.getElementById('winnerMsg').textContent='';document.body.classList.remove('final');update();resizeScores(true); }
+    function resetSet(){ if(locked) return; scoreA=0; scoreB=0; swappedAt11=false; document.getElementById('winnerMsg').textContent=''; update(); }
+    function resetMatch(){ scoreA=0; scoreB=0; setsA=0; setsB=0; currentSet=1; swappedAt11=false; locked=false; scoreFontPx=null; document.getElementById('winnerMsg').textContent=''; document.body.classList.remove('final'); update(); resizeScores(true); }
     function startNewMatch(){ resetMatch(); }
 
     function toggleFullscreen(){
       const btn=document.getElementById('fsBtn');
-      if(!document.fullscreenElement){document.documentElement.requestFullscreen();if(btn)btn.textContent='⤢ Avslutt fullskjerm';}
-      else{document.exitFullscreen();if(btn)btn.textContent='⛶ Fullskjerm';}
-      setTimeout(()=>resizeScores(true),300);
+      if(!document.fullscreenElement){ document.documentElement.requestFullscreen(); if(btn) btn.textContent='⤢ Avslutt fullskjerm'; }
+      else{ document.exitFullscreen(); if(btn) btn.textContent='⛶ Fullskjerm'; }
+      // Når fullskjerm endres, recalibrerer vi under
     }
 
+    // --- Lyttere for rekalibrering og touch ---
+    window.addEventListener('resize', ()=>{ setVH(); resizeScores(true); });
+    document.addEventListener('fullscreenchange', ()=>{ resizeScores(true); });
+
+    // iOS: hindre double-tap zoom
     (function(){
-      let lastTouchEnd = 0;
+      let lastTouchEnd=0;
       document.addEventListener('touchend', function(e){
-        const now = Date.now();
-        if(now - lastTouchEnd <= 300){ e.preventDefault(); }
-        lastTouchEnd = now;
+        const now=Date.now();
+        if(now-lastTouchEnd<=300){ e.preventDefault(); }
+        lastTouchEnd=now;
       }, {passive:false});
     })();
 
-    function bindTouch(id, fn){
-      const el=document.getElementById(id);
-      if(!el) return;
-      el.addEventListener('touchstart', function(e){ e.preventDefault(); fn(); }, {passive:false});
-    }
+    function bindTouch(id, fn){ const el=document.getElementById(id); if(!el) return; el.addEventListener('touchstart', (e)=>{ e.preventDefault(); fn(); }, {passive:false}); }
     bindTouch('scoreA', ()=>addPoint('A'));
     bindTouch('scoreB', ()=>addPoint('B'));
     bindTouch('newMatchBtn', ()=>startNewMatch());
 
+    // --- Konsolltester ---
+    function runTests(){
+      const log=(ok,msg)=>console[ok?'log':'error']((ok?'✅':'❌')+' '+msg);
+      try{
+        // Snapshot
+        const snap={ scoreA,scoreB,setsA,setsB,currentSet,swappedAt11,locked, scoreFontPx, setsText:document.getElementById('sets').textContent };
+
+        // 1) toggleFullscreen definert
+        log(typeof toggleFullscreen==='function', 'toggleFullscreen er definert');
+
+        // 2) Bredde stabil 9 -> 10
+        resetMatch();
+        const el=document.getElementById('scoreA');
+        scoreA=9; update(); const w9=el.getBoundingClientRect().width;
+        scoreA=10; update(); const w10=el.getBoundingClientRect().width;
+        log(Math.abs(w9-w10)<1.5, 'Score-bredde er stabil fra 1- til 2-sifret');
+
+        // 3) Ingen horisontal scroll
+        log(document.documentElement.scrollWidth<=window.innerWidth+1, 'Ingen horisontal scrolling');
+
+        // 4) Final-lås og Start ny kamp resetter font
+        resetMatch();
+        const fontBefore=scoreFontPx;
+        // Simuler at A vinner to sett
+        scoreA=21; checkSetEnd(); // sett 1
+        scoreA=21; checkSetEnd(); // sett 2 -> final
+        log(locked && document.body.classList.contains('final'), 'Låser og går i finalemodus ved kamp-slutt');
+        const fontFinal=scoreFontPx;
+        startNewMatch();
+        const fontAfter=scoreFontPx;
+        log(typeof fontBefore==='number' && typeof fontFinal==='number' && typeof fontAfter==='number' && fontAfter===fontBefore, 'Fontstørrelse resettes etter Start ny kamp');
+
+        // 5) Sets label bruker minus-tegn
+        log(/Sett: \d+-\d+/.test(document.getElementById('sets').textContent), 'Sets-label bruker standard minus (-)');
+
+        // Gjenopprett
+        scoreA=snap.scoreA; scoreB=snap.scoreB; setsA=snap.setsA; setsB=snap.setsB; currentSet=snap.currentSet; swappedAt11=snap.swappedAt11; locked=snap.locked; scoreFontPx=snap.scoreFontPx; document.getElementById('sets').textContent=snap.setsText; update(); resizeScores(true);
+        log(true,'Tilstand gjenopprettet etter tester');
+      }catch(e){ console.error('Tester feilet:', e); }
+    }
+
+    // Init
     update();
     resizeScores(true);
   </script>
