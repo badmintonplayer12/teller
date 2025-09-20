@@ -29,12 +29,8 @@
 
     .setCounter{position:absolute;top:.5rem;right:.5rem;background:#22c55e;color:#06210f;font-weight:900;border-radius:50%;width:2rem;height:2rem;display:flex;align-items:center;justify-content:center}
 
-    /* Trykk-animasjon: glød + fargeendring */
-    @keyframes glowChange {
-      0%   { color:#fff; text-shadow:none; }
-      40%  { color:#facc15; text-shadow:0 0 25px rgba(250,204,21,.8); }
-      100% { color:#fff; text-shadow:none; }
-    }
+    /* Trykk-animasjon: glød + fargeendring uten layout-endring */
+    @keyframes glowChange { 0%{ color:#fff; text-shadow:none; } 40%{ color:#facc15; text-shadow:0 0 25px rgba(250,204,21,.8); } 100%{ color:#fff; text-shadow:none; } }
     .score.pop { animation: glowChange 280ms ease-out; }
 
     .final .score, .final .minusBtn { pointer-events:none; opacity:.85 }
@@ -81,14 +77,15 @@
 
   <script>
     function setVH(){ document.documentElement.style.setProperty('--vh', (window.innerHeight*0.01)+'px'); }
-    setVH(); window.addEventListener('resize', ()=>{ setVH(); resizeScores(); });
+    setVH();
 
     let scoreA=0, scoreB=0;
     let setsA=0, setsB=0;
     const target=21, cap=30;
     let currentSet=1;
     let swappedAt11=false;
-    let locked=false;
+    let locked=false;          // lås poeng etter kamp-slutt
+    let scoreFontPx=null;      // lås fontstørrelse mellom oppdateringer
 
     function update(){
       document.getElementById('scoreA').textContent=scoreA;
@@ -98,27 +95,34 @@
       const counterB=document.getElementById('setCounterB');
       if(setsA>0){counterA.style.display='flex';counterA.textContent=setsA;}else counterA.style.display='none';
       if(setsB>0){counterB.style.display='flex';counterB.textContent=setsB;}else counterB.style.display='none';
-      resizeScores();
+      // Ikke kall resizeScores() her – vi vil beholde låst fontstørrelse mellom poeng
     }
 
-    function resizeScores(){
+    // Beregn fontstørrelse kun ved skjerm-/modusendringer
+    function resizeScores(force){
+      if(!force && typeof scoreFontPx==='number'){
+        document.getElementById('scoreA').style.fontSize = scoreFontPx + 'px';
+        document.getElementById('scoreB').style.fontSize = scoreFontPx + 'px';
+        return;
+      }
       const sideA=document.getElementById('sideA');
       const sA=document.getElementById('scoreA');
       const sB=document.getElementById('scoreB');
       const meas=document.getElementById('measure');
-      const vwHalf=sideA.clientWidth;
-      const maxVhPct=document.body.classList.contains('final')?35:70;
+      const vwHalf=sideA.clientWidth; // ~50% av skjermen
+      const maxVhPct=document.body.classList.contains('final')?35:70; // 70% normalt, 35% i finale
       const maxH=Math.floor(window.innerHeight*(maxVhPct/100));
       const baseFont=100;
       meas.style.fontSize=baseFont+'px';
-      const wBase=meas.getBoundingClientRect().width;
-      const hBase=meas.getBoundingClientRect().height;
-      if(!wBase||!hBase) return;
+      meas.textContent='88';
+      const rect=meas.getBoundingClientRect();
+      const wBase=rect.width||1;
+      const hBase=rect.height||1;
       const sizeByWidth=vwHalf/wBase*baseFont;
       const sizeByHeight=maxH/hBase*baseFont;
-      const sizePx=Math.floor(Math.min(sizeByWidth,sizeByHeight));
-      sA.style.fontSize=sizePx+'px';
-      sB.style.fontSize=sizePx+'px';
+      scoreFontPx=Math.floor(Math.min(sizeByWidth,sizeByHeight));
+      sA.style.fontSize=scoreFontPx+'px';
+      sB.style.fontSize=scoreFontPx+'px';
     }
 
     function bump(el){ el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
@@ -147,7 +151,8 @@
           const matchLoser=setsA===2?nameB:nameA;
           document.getElementById('winnerMsg').textContent=`🎉 GRATULERER ${matchWinner.toUpperCase()}! DU VANT KAMPEN!\n👏 BRA JOBBA ${matchLoser.toUpperCase()}, DU GJORDE DITT BESTE.`;
           document.body.classList.add('final');
-          locked=true; resizeScores();
+          locked=true;
+          resizeScores(true); // krymp tall i finalemodus
           return;
         }
         scoreA=0;scoreB=0; currentSet++; swappedAt11=false; swapSides();
@@ -174,29 +179,34 @@
       const btn=document.getElementById('fsBtn');
       if(!document.fullscreenElement){document.documentElement.requestFullscreen();if(btn)btn.textContent='⤢ Avslutt fullskjerm';}
       else{document.exitFullscreen();if(btn)btn.textContent='⛶ Fullskjerm';}
+      // fullscreenchange-listener under vil trigge resize
     }
 
-    // iOS/Android: hindre double‑tap zoom
+    // Lytt på endringer som faktisk skal re-kalibrere fonten
+    window.addEventListener('resize', ()=>{ setVH(); resizeScores(true); });
+    document.addEventListener('fullscreenchange', ()=>{ resizeScores(true); });
+
+    // iOS: hindre double-tap zoom og gjør touch responsiv
     (function(){
       let lastTouchEnd = 0;
       document.addEventListener('touchend', function(e){
         const now = Date.now();
-        if (now - lastTouchEnd <= 300) { e.preventDefault(); }
+        if(now - lastTouchEnd <= 300){ e.preventDefault(); }
         lastTouchEnd = now;
-      }, { passive: false });
+      }, {passive:false});
     })();
-
-    // Bind touchstart direkte for raskere respons og uten zoom
     function bindTouch(id, fn){
-      const el = document.getElementById(id);
+      const el=document.getElementById(id);
       if(!el) return;
-      el.addEventListener('touchstart', function(e){ e.preventDefault(); fn(); }, { passive: false });
+      el.addEventListener('touchstart', function(e){ e.preventDefault(); fn(); }, {passive:false});
     }
     bindTouch('scoreA', ()=>addPoint('A'));
     bindTouch('scoreB', ()=>addPoint('B'));
     bindTouch('newMatchBtn', ()=>startNewMatch());
 
+    // Init
     update();
+    resizeScores(true);
   </script>
 </body>
 </html>
