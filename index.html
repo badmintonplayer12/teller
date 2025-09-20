@@ -4,13 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <title>Badminton Poengteller</title>
-  <!-- Inter – pene, jevnbrede sifre med tabular-nums (uten slashed zero) -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800;900&display=swap" rel="stylesheet" />
   <style>
     :root{ --vh: 1vh; }
     *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
     html,body{ height:100%; }
-    body{ margin:0; font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background:#0f172a; color:#fff; display:flex; flex-direction:column; max-width:100vw; overflow-x:hidden; }
+    body{ margin:0; font-family:system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background:#0f172a; color:#fff; display:flex; flex-direction:column; max-width:100vw; overflow-x:hidden; }
     header{ background:#1f2937; padding:.5rem 1rem; display:flex; align-items:center; gap:1rem; justify-content:space-between; position:relative; max-width:100vw; overflow:hidden }
     header h1{ font-size:1rem; margin:0 }
     .wrap{ flex:1; display:grid; grid-template-columns:1fr 1fr; gap:1rem; padding:1rem; max-width:100vw; overflow:hidden }
@@ -18,18 +16,17 @@
     .name{ font-size:1.2rem; margin-bottom:.5rem }
     .name input{ font:inherit; color:#e5e7eb; background:#1f2937; border:1px solid #0008; border-radius:.4rem; padding:.25rem .5rem; text-align:center; width:100% }
 
-    /* Poeng: to faste ruter (tiere + enere). Inter + tabular-nums = like-brede sifre */
+    /* Poeng: to faste ruter (tiere + enere). Tabular-nums der det finnes støtte */
     .score{
       width:100%; display:flex; justify-content:center; align-items:center;
       text-align:center; font-weight:900; line-height:0.92; cursor:pointer;
       user-select:none; -webkit-user-select:none; white-space:nowrap; overflow:hidden;
       will-change:text-shadow,color; touch-action:manipulation;
-      font-family:Inter, ui-sans-serif, system-ui, sans-serif;
-      font-variant-numeric:tabular-nums; font-feature-settings:'tnum' 1;
+      font-variant-numeric:tabular-nums; /* best effort på tvers av systemfonter */
     }
     .score::selection{ background:transparent }
     .digits{ display:flex; gap:var(--dgap, 0.08em); align-items:baseline }
-    .digit{ width:1ch; text-align:center }
+    .digit{ display:inline-block; width:1ch; text-align:center }
     .digit.ghost{ visibility:hidden }
 
     .minusBtn{ margin-top:.75rem; font-size:1.4rem; padding:.6rem 1rem; border-radius:.6rem; border:0; background:#ef4444; color:#fff; cursor:pointer; touch-action:manipulation }
@@ -50,13 +47,8 @@
     #newMatchBtn{ display:none; background:#22c55e; color:#06210f; font-weight:900 }
     .final #newMatchBtn{ display:inline-block }
 
-    /* Måleelement – samme font/features som poeng for korrekt skalering */
-    #measure{
-      position:absolute; left:-9999px; top:-9999px; visibility:hidden;
-      white-space:nowrap; font-weight:900; line-height:0.92;
-      font-variant-numeric:tabular-nums; font-feature-settings:'tnum' 1;
-      font-family:Inter, ui-sans-serif, system-ui, sans-serif;
-    }
+    /* Måleelement for fontberegning */
+    #measure{ position:absolute; left:-9999px; top:-9999px; visibility:hidden; white-space:nowrap; font-weight:900; line-height:0.92; font-variant-numeric:tabular-nums }
     #version{ position:absolute; top:.3rem; right:.5rem; font-size:.75rem; color:#9ca3af; pointer-events:none }
   </style>
 </head>
@@ -64,7 +56,7 @@
   <header>
     <h1>🏸 Badminton Poengteller</h1>
     <button id="fsBtn" onclick="toggleFullscreen()">⛶ Fullskjerm</button>
-    <div id="version">v2.2</div>
+    <div id="version">v3.0</div>
   </header>
 
   <div id="sets">Sett: 0-0</div>
@@ -107,23 +99,19 @@
   <span id="measure">88</span>
 
   <script>
-    // --- Viewport høyde (mobil adressefelt) ---
     function setVH(){ document.documentElement.style.setProperty('--vh', (window.innerHeight*0.01)+'px'); }
     setVH();
 
-    // --- Tilstand ---
     let scoreA=0, scoreB=0;
     let setsA=0, setsB=0;
     const target=21, cap=30;
     let currentSet=1;
     let swappedAt11=false;
-    let locked=false;          // lås poeng etter kamp-slutt
-    let scoreFontPx=null;      // lås fontstørrelse mellom oppdateringer
+    let locked=false;
+    let scoreFontPx=null; // låses mellom oppdateringer
 
-    // --- UI ---
     function update(){
       const a=scoreA, b=scoreB;
-      // NB: bruk vanlig minus '-' (ikke en-dash)
       document.getElementById('sets').textContent = `Sett: ${setsA}-${setsB}`;
 
       const counterA=document.getElementById('setCounterA');
@@ -133,7 +121,6 @@
       if(setsA>0) counterA.textContent = setsA;
       if(setsB>0) counterB.textContent = setsB;
 
-      // A
       const A_t = Math.floor(a/10), A_o=a%10;
       const A_tensEl=document.getElementById('A_tens');
       const A_onesEl=document.getElementById('A_ones');
@@ -141,7 +128,6 @@
       else{ A_tensEl.textContent=String(A_t); A_tensEl.classList.remove('ghost'); }
       A_onesEl.textContent=String(A_o);
 
-      // B
       const B_t = Math.floor(b/10), B_o=b%10;
       const B_tensEl=document.getElementById('B_tens');
       const B_onesEl=document.getElementById('B_ones');
@@ -150,42 +136,52 @@
       B_onesEl.textContent=String(B_o);
     }
 
-    // --- Beregn/lås fontstørrelsen kun ved skjerm/FS-endringer og når kampen er ferdig ---
+    // Iterativ, font-agnostisk fit: sørger for at begge sider holder seg innenfor boks + høyde
     function resizeScores(force){
-      if(!force && typeof scoreFontPx==='number'){
-        document.getElementById('scoreA').style.fontSize = scoreFontPx + 'px';
-        document.getElementById('scoreB').style.fontSize = scoreFontPx + 'px';
-        return;
-      }
       const sA=document.getElementById('scoreA');
       const sB=document.getElementById('scoreB');
+      if(!force && typeof scoreFontPx==='number'){
+        sA.style.fontSize = scoreFontPx + 'px';
+        sB.style.fontSize = scoreFontPx + 'px';
+        return;
+      }
       const meas=document.getElementById('measure');
-
-      // Minste av venstre/høyre boks bestemmer, så ingen av dem kan overflowe
-      const boxWidth=Math.min(sA.clientWidth,sB.clientWidth);
       const maxVhPct=document.body.classList.contains('final')?35:70;
       const maxH=Math.floor(window.innerHeight*(maxVhPct/100));
 
-      // Mål to «8» med samme gap som i .digits for å speile faktisk layout
-      const baseFont=100;
-      meas.style.fontSize=baseFont+'px';
-      meas.innerHTML = '<span class="digits" style="display:flex;gap:0.08em"><span>8</span><span>8</span></span>';
-      const inner = meas.firstElementChild;
-      const rect=inner.getBoundingClientRect();
+      // Start-estimat basert på «88» i minste av boksene
+      const baseFont=100; meas.style.fontSize=baseFont+'px';
+      meas.innerHTML = '<span class="digits" style="display:flex;gap:0.08em"><span style="display:inline-block;width:1ch">8</span><span style="display:inline-block;width:1ch">8</span></span>';
+      const rect=meas.firstElementChild.getBoundingClientRect();
       const wBase=rect.width||1, hBase=rect.height||1;
+      const minBox = Math.min(sA.clientWidth, sB.clientWidth);
+      let nextFont = Math.floor(Math.min(minBox/wBase*baseFont, maxH/hBase*baseFont));
 
-      const sizeByWidth=boxWidth/wBase*baseFont;
-      const sizeByHeight=maxH/hBase*baseFont;
-      scoreFontPx=Math.floor(Math.min(sizeByWidth,sizeByHeight));
-
-      sA.style.fontSize=scoreFontPx+'px';
-      sB.style.fontSize=scoreFontPx+'px';
+      // Påfør og juster i små steg til begge sider passer
+      sA.style.fontSize=nextFont+'px';
+      sB.style.fontSize=nextFont+'px';
+      const maxSteps=5;
+      for(let i=0;i<maxSteps;i++){
+        const aDigits = sA.querySelector('.digits');
+        const bDigits = sB.querySelector('.digits');
+        const aW = aDigits.getBoundingClientRect().width;
+        const bW = bDigits.getBoundingClientRect().width;
+        const aH = aDigits.getBoundingClientRect().height;
+        const bH = bDigits.getBoundingClientRect().height;
+        // skaleringsfaktorer for bredde og høyde
+        const scaleA = Math.min(1, (sA.clientWidth / aW) || 1, (maxH / aH) || 1);
+        const scaleB = Math.min(1, (sB.clientWidth / bW) || 1, (maxH / bH) || 1);
+        const scale = Math.min(scaleA, scaleB);
+        if(scale >= 0.999) break; // passer allerede
+        nextFont = Math.floor(nextFont * scale * 0.996); // liten margin
+        sA.style.fontSize=nextFont+'px';
+        sB.style.fontSize=nextFont+'px';
+      }
+      scoreFontPx = nextFont;
     }
 
-    // --- Effekt uten layout-hopp ---
     function bump(el){ el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
 
-    // --- Handling ---
     function addPoint(side){ if(locked) return; if(side==='A') scoreA++; else scoreB++; checkSetEnd(); update(); bump(document.getElementById(side==='A'?'scoreA':'scoreB')); }
     function removePoint(side){ if(locked) return; if(side==='A'&&scoreA>0) scoreA--; if(side==='B'&&scoreB>0) scoreB--; update(); }
 
@@ -203,11 +199,9 @@
           locked=true; resizeScores(true); // krymp tall i gratulasjonsvisning
           return;
         }
-        // Nytt sett
         scoreA=0; scoreB=0; currentSet++; swappedAt11=false; swapSides();
       }
-      // I tredje sett bytter man side ved første som når 11 (kun én gang)
-      if(currentSet===3 && !swappedAt11 && (scoreA===11 || scoreB===11)){
+      if(currentSet===3 && !swappedAt11 && (scoreA===11||scoreB===11)){
         swapSides(); swappedAt11=true;
       }
     }
@@ -231,55 +225,27 @@
       else{ document.exitFullscreen(); if(btn) btn.textContent='⛶ Fullskjerm'; }
     }
 
-    // --- Lyttere for re-kalibrering og touch ---
     window.addEventListener('resize', ()=>{ setVH(); resizeScores(true); });
     document.addEventListener('fullscreenchange', ()=>{ resizeScores(true); });
 
-    // iOS: hindre double-tap zoom
-    (function(){
-      let lastTouchEnd=0;
-      document.addEventListener('touchend', function(e){
-        const now=Date.now();
-        if(now-lastTouchEnd<=300){ e.preventDefault(); }
-        lastTouchEnd=now;
-      }, {passive:false});
-    })();
-
-    function bindTouch(id, fn){ const el=document.getElementById(id); if(!el) return; el.addEventListener('touchstart', (e)=>{ e.preventDefault(); fn(); }, {passive:false}); }
-    bindTouch('scoreA', ()=>addPoint('A'));
-    bindTouch('scoreB', ()=>addPoint('B'));
-    bindTouch('newMatchBtn', ()=>startNewMatch());
-
-    // --- Init ---
+    // Init – kjør et par runder for å unngå «flash» ved lokale filer
     update();
     resizeScores(true);
+    requestAnimationFrame(()=> resizeScores(true));
+    setTimeout(()=> resizeScores(true), 60);
 
-    // --- Tester (frivillig, i DevTools) ---
+    // Tester (frivillig, i DevTools)
     function runTests(){
       const log=(ok,msg)=>console[ok?'log':'error']((ok?'✅':'❌')+' '+msg);
       try{
-        // Senterposisjon stabil 9→10 for begge sider
         resetMatch();
         const center = (id)=>{ const r=document.getElementById(id).getBoundingClientRect(); return r.left + r.width/2; };
         scoreA=9; scoreB=9; update(); const cA9=center('scoreA'), cB9=center('scoreB');
         scoreA=10; scoreB=10; update(); const cA10=center('scoreA'), cB10=center('scoreB');
         log(Math.abs(cA9-cA10) < 1.0, 'A: senter stabil 9→10');
         log(Math.abs(cB9-cB10) < 1.0, 'B: senter stabil 9→10');
-        // Ingen horisontal scrolling
         log(document.documentElement.scrollWidth <= window.innerWidth+1, 'Ingen horisontal scrolling');
       }catch(e){ console.error('Tester feilet:', e); }
-    }
-
-    // Ekstra tester (ikke endre over): sjekk font-reset & minus-tegn
-    function runTestsExtra(){
-      const log=(ok,msg)=>console[ok?'log':'error']((ok?'✅':'❌')+' '+msg);
-      try{
-        resetMatch(); const fBefore=scoreFontPx; scoreA=21; checkSetEnd(); scoreA=21; checkSetEnd();
-        log(locked && document.body.classList.contains('final'), 'Finalelås ved kamp-slutt');
-        const fFinal=scoreFontPx; startNewMatch(); const fAfter=scoreFontPx;
-        log(typeof fBefore==='number' && typeof fFinal==='number' && fAfter===fBefore, 'Font resettes etter Start ny kamp');
-        log(/Sett: \d+-\d+/.test(document.getElementById('sets').textContent), 'Sets-label bruker standard minus (-)');
-      }catch(e){ console.error('Ekstra tester feilet:', e); }
     }
   </script>
 </body>
