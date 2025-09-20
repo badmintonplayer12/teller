@@ -15,9 +15,8 @@
     .name{font-size:1.2rem;margin-bottom:.5rem}
     .name input{font:inherit;color:#e5e7eb;background:#1f2937;border:1px solid #0008;border-radius:.4rem;padding:.25rem .5rem;text-align:center;width:100%}
 
-    /* Tall: Vi styrer font-størrelsen i JS for stabil høyde og bredde.  */
     .score{width:100%; text-align:center; font-weight:900; line-height:0.92; cursor:pointer; user-select:none; -webkit-user-select:none; white-space:nowrap; overflow:hidden;
-           font-variant-numeric: tabular-nums;}
+           font-variant-numeric: tabular-nums; will-change: text-shadow, color;}
     .score::selection{background:transparent}
 
     .minusBtn{margin-top:.75rem;font-size:1.4rem;padding:.6rem 1rem;border-radius:.6rem;border:0;background:#ef4444;color:#fff;cursor:pointer}
@@ -30,16 +29,18 @@
 
     .setCounter{position:absolute;top:.5rem;right:.5rem;background:#22c55e;color:#06210f;font-weight:900;border-radius:50%;width:2rem;height:2rem;display:flex;align-items:center;justify-content:center}
 
-    /* Trykk-animasjon på tallene */
-    @keyframes pop { 0%{transform:scale(1);text-shadow:none;} 45%{transform:scale(1.08);text-shadow:0 0 18px rgba(250,204,21,.35);} 100%{transform:scale(1);text-shadow:none;} }
-    .score.pop { animation: pop 180ms ease-out; }
+    /* Trykk-animasjon: glød + fargeendring */
+    @keyframes glowChange {
+      0%   { color:#fff; text-shadow:none; }
+      40%  { color:#facc15; text-shadow:0 0 25px rgba(250,204,21,.8); }
+      100% { color:#fff; text-shadow:none; }
+    }
+    .score.pop { animation: glowChange 280ms ease-out; }
 
-    /* Lås interaksjoner når kampen er ferdig + mindre tall for plass til gratulasjon */
     .final .score, .final .minusBtn { pointer-events:none; opacity:.85 }
     #newMatchBtn{display:none;background:#22c55e;color:#06210f;font-weight:900}
     .final #newMatchBtn{display:inline-block}
 
-    /* Målespan skjules, brukes for å beregne fontstørrelse */
     #measure{position:absolute;left:-9999px;top:-9999px;visibility:hidden;white-space:nowrap;font-weight:900;line-height:0.92;font-variant-numeric:tabular-nums}
   </style>
 </head>
@@ -76,23 +77,19 @@
     <button onclick="resetMatch()">Nullstill kamp</button>
   </footer>
 
-  <!-- skjult måleelement for font-beregning -->
   <span id="measure">88</span>
 
   <script>
-    // --- Viewport-høyde fix for mobil ---
     function setVH(){ document.documentElement.style.setProperty('--vh', (window.innerHeight*0.01)+'px'); }
     setVH(); window.addEventListener('resize', ()=>{ setVH(); resizeScores(); });
 
-    // --- Tilstand ---
     let scoreA=0, scoreB=0;
     let setsA=0, setsB=0;
     const target=21, cap=30;
-    let currentSet=1;           // 1, 2, 3
-    let swappedAt11=false;      // i sett 3 – bytt kun én gang ved 11
-    let locked=false;           // lås poeng etter kamp-slutt
+    let currentSet=1;
+    let swappedAt11=false;
+    let locked=false;
 
-    // --- UI-oppdatering ---
     function update(){
       document.getElementById('scoreA').textContent=scoreA;
       document.getElementById('scoreB').textContent=scoreB;
@@ -104,58 +101,45 @@
       resizeScores();
     }
 
-    // --- Beregn fontstørrelse slik at to siffer ("88") alltid får plass ---
     function resizeScores(){
-      const sideA = document.getElementById('sideA');
-      const sideB = document.getElementById('sideB');
-      const sA = document.getElementById('scoreA');
-      const sB = document.getElementById('scoreB');
-      const meas = document.getElementById('measure');
-
-      const vwHalf = sideA.clientWidth; // ~50% av skjermen
-      const maxVhPct = document.body.classList.contains('final') ? 35 : 70; // 70% høyde normalt, 35% i finale
-      const maxH = Math.floor(window.innerHeight * (maxVhPct/100));
-
-      // Mål med baseFont px og skaler
-      const baseFont = 100; // px
-      meas.style.fontSize = baseFont + 'px';
-      const wBase = meas.getBoundingClientRect().width; // bredde av "88"
-      const hBase = meas.getBoundingClientRect().height; // høyde av "88"
-      if(!wBase || !hBase) return;
-
-      // Skaler slik at både høyde og bredde-krav ivaretas
-      const sizeByWidth = vwHalf / wBase * baseFont; // så "88" får plass i halve skjermen
-      const sizeByHeight = maxH / hBase * baseFont;  // så høyden er <= 70%/35% av skjermen
-      const sizePx = Math.floor(Math.min(sizeByWidth, sizeByHeight));
-
-      sA.style.fontSize = sizePx + 'px';
-      sB.style.fontSize = sizePx + 'px';
+      const sideA=document.getElementById('sideA');
+      const sA=document.getElementById('scoreA');
+      const sB=document.getElementById('scoreB');
+      const meas=document.getElementById('measure');
+      const vwHalf=sideA.clientWidth;
+      const maxVhPct=document.body.classList.contains('final')?35:70;
+      const maxH=Math.floor(window.innerHeight*(maxVhPct/100));
+      const baseFont=100;
+      meas.style.fontSize=baseFont+'px';
+      const wBase=meas.getBoundingClientRect().width;
+      const hBase=meas.getBoundingClientRect().height;
+      if(!wBase||!hBase) return;
+      const sizeByWidth=vwHalf/wBase*baseFont;
+      const sizeByHeight=maxH/hBase*baseFont;
+      const sizePx=Math.floor(Math.min(sizeByWidth,sizeByHeight));
+      sA.style.fontSize=sizePx+'px';
+      sB.style.fontSize=sizePx+'px';
     }
 
-    // Hjelpefunksjon for trykk-animasjon
     function bump(el){ el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
 
-    // --- Poenghåndtering ---
     function addPoint(side){
-      if(locked) return; // låst etter kamp-slutt
+      if(locked) return;
       if(side==='A') scoreA++; else scoreB++;
       checkSetEnd();
       update();
-      bump(document.getElementById(side==='A' ? 'scoreA' : 'scoreB'));
+      bump(document.getElementById(side==='A' ? 'scoreA':'scoreB'));
     }
     function removePoint(side){
-      if(locked) return; // låst etter kamp-slutt
-      if(side==='A' && scoreA>0) scoreA--; if(side==='B' && scoreB>0) scoreB--;
+      if(locked) return;
+      if(side==='A'&&scoreA>0) scoreA--; if(side==='B'&&scoreB>0) scoreB--;
       update();
     }
 
-    // --- Sett/kamp-logikk ---
     function checkSetEnd(){
       const lead=Math.abs(scoreA-scoreB);
-      // Sett ferdig?
       if((scoreA>=target||scoreB>=target)&&(lead>=2||scoreA===cap||scoreB===cap)){
         if(scoreA>scoreB) setsA++; else setsB++;
-        // Kamp ferdig? (best av 3)
         if(setsA===2||setsB===2){
           const nameA=document.getElementById('nameA').value;
           const nameB=document.getElementById('nameB').value;
@@ -163,85 +147,35 @@
           const matchLoser=setsA===2?nameB:nameA;
           document.getElementById('winnerMsg').textContent=`🎉 GRATULERER ${matchWinner.toUpperCase()}! DU VANT KAMPEN!\n👏 BRA JOBBA ${matchLoser.toUpperCase()}, DU GJORDE DITT BESTE.`;
           document.body.classList.add('final');
-          locked=true; // lås poengtrykk
-          resizeScores(); // gjør tallene mindre i finalemodus
-          return; // ikke start nytt sett når kampen er ferdig
+          locked=true; resizeScores();
+          return;
         }
-        // Nullstill poeng for nytt sett og bytt side
-        scoreA=0;scoreB=0;
-        currentSet++;
-        swappedAt11=false;
-        swapSides();
+        scoreA=0;scoreB=0; currentSet++; swappedAt11=false; swapSides();
       }
-      // I tredje sett: bytt side ved 11 poeng (kun én gang)
-      if(currentSet===3 && !swappedAt11 && (scoreA===11 || scoreB===11)){
-        swapSides();
-        swappedAt11=true;
+      if(currentSet===3&&!swappedAt11&&(scoreA===11||scoreB===11)){
+        swapSides(); swappedAt11=true;
       }
     }
 
-    // --- Verktøy ---
     function swapSides(){
-      // bytt navn
       const nameA=document.getElementById('nameA');
       const nameB=document.getElementById('nameB');
       const tmpName=nameA.value; nameA.value=nameB.value; nameB.value=tmpName;
-      // bytt score
       const tmpScore=scoreA; scoreA=scoreB; scoreB=tmpScore;
-      // bytt sett-teller
       const tmpSets=setsA; setsA=setsB; setsB=tmpSets;
       update();
     }
 
-    function resetSet(){
-      if(locked) return; // ikke la dem rote etter kamp-slutt
-      scoreA=0;scoreB=0; swappedAt11=false; document.getElementById('winnerMsg').textContent=''; update();
-    }
-
-    function resetMatch(){
-      scoreA=0;scoreB=0;setsA=0;setsB=0;currentSet=1; swappedAt11=false; locked=false; document.getElementById('winnerMsg').textContent=''; document.body.classList.remove('final'); update();
-    }
-
+    function resetSet(){ if(locked) return; scoreA=0;scoreB=0;swappedAt11=false;document.getElementById('winnerMsg').textContent='';update(); }
+    function resetMatch(){ scoreA=0;scoreB=0;setsA=0;setsB=0;currentSet=1;swappedAt11=false;locked=false;document.getElementById('winnerMsg').textContent='';document.body.classList.remove('final');update(); }
     function startNewMatch(){ resetMatch(); }
 
-    // --- Fullskjerm ---
     function toggleFullscreen(){
       const btn=document.getElementById('fsBtn');
-      if(!document.fullscreenElement){
-        document.documentElement.requestFullscreen();
-        if(btn) btn.textContent='⤢ Avslutt fullskjerm';
-      } else {
-        document.exitFullscreen();
-        if(btn) btn.textContent='⛶ Fullskjerm';
-      }
+      if(!document.fullscreenElement){document.documentElement.requestFullscreen();if(btn)btn.textContent='⤢ Avslutt fullskjerm';}
+      else{document.exitFullscreen();if(btn)btn.textContent='⛶ Fullskjerm';}
     }
 
-    // --- Tester ---
-    function runTests(){
-      const log=(ok,msg)=>console[ok?'log':'error'](ok?'✅ '+msg:'❌ '+msg);
-      try{
-        // Test 1: toggleFullscreen finnes
-        log(typeof toggleFullscreen==='function','toggleFullscreen er definert');
-        // Test 2: bredde endres ikke når vi går fra 9 -> 10
-        resetMatch();
-        const el=document.getElementById('scoreA');
-        scoreA=9; update(); const w9=el.getBoundingClientRect().width;
-        scoreA=10; update(); const w10=el.getBoundingClientRect().width;
-        log(Math.abs(w9-w10) < 1.5, 'Bredden for scoreA er stabil fra 1- til 2-sifret');
-        // Test 3: høyden ~70% av skjermen (toleranse)
-        resetMatch(); update();
-        const h = el.getBoundingClientRect().height;
-        const targetH = Math.round(window.innerHeight*0.70);
-        log(h <= targetH+8, 'Høyden er ≤ 70% av skjermen');
-        // Test 4: final-lås
-        scoreA=21; checkSetEnd(); // A vinner 1. sett
-        scoreA=21; checkSetEnd(); // A vinner 2. sett -> kamp slutt
-        const before=scoreA; addPoint('A'); const after=scoreA;
-        log(before===after && document.body.classList.contains('final'),'Låser poeng etter kamp-slutt');
-      }catch(e){ console.error('Tester feilet:', e); }
-    }
-
-    // Init
     update();
   </script>
 </body>
