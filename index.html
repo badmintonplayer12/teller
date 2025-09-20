@@ -46,7 +46,7 @@
   <header>
     <h1>🏸 Badminton Poengteller</h1>
     <button id="fsBtn" onclick="toggleFullscreen()">⛶ Fullskjerm</button>
-    <div id="version">v3.8</div>
+    <div id="version">v4.0</div>
   </header>
 
   <div id="sets">Sett: 0-0</div>
@@ -106,6 +106,20 @@
     let locked=false;
     let scoreFontPx=null; // låses mellom oppdateringer
 
+    // --- Debounce/defuse for ResizeObserver & window.resize ---
+    let fitQueued=false, isFitting=false, rafId=null, toId=null;
+    function queueFit(immediate=false){
+      if(isFitting) return;            // Ignorer om vi allerede fitter
+      if(fitQueued && !immediate) return; // Allerede planlagt
+      fitQueued=true;
+      cancelAnimationFrame(rafId); clearTimeout(toId);
+      rafId = requestAnimationFrame(()=>{
+        isFitting=true;
+        resizeScores(true);
+        toId = setTimeout(()=>{ resizeScores(true); isFitting=false; fitQueued=false; }, 60);
+      });
+    }
+
     function update(){
       const a=scoreA, b=scoreB;
       document.getElementById('sets').textContent = `Sett: ${setsA}-${setsB}`;
@@ -142,35 +156,22 @@
         return;
       }
 
-      // --- TILGJENGELIG HØYDE ---
-      // Målet: (navn + poeng) skal under viewport-høyde, og så nær 100% som mulig.
-      // Vi regner per side: fra side-containerens TOPP, via NAVNETS høyde, til bunn av viewport.
-      const sideA = document.getElementById('sideA');
-      const sideB = document.getElementById('sideB');
-      const nameA = sideA.querySelector('.name');
-      const nameB = sideB.querySelector('.name');
+      // --- HØYDE: bruk KUN navnets egen høyde, ikke posisjon i viewport ---
+      const nameA = document.querySelector('#sideA .name');
+      const nameB = document.querySelector('#sideB .name');
       const vh = window.innerHeight || document.documentElement.clientHeight;
-      const topA = sideA.getBoundingClientRect().top;
-      const topB = sideB.getBoundingClientRect().top;
-      const nameAH = nameA ? nameA.getBoundingClientRect().height : 0;
-      const nameBH = nameB ? nameB.getBoundingClientRect().height : 0;
-      const margin = 10; // luft under navnet til selve poengtallene
-      let availHA = Math.max(40, Math.floor(vh - (topA + nameAH + margin)));
-      let availHB = Math.max(40, Math.floor(vh - (topB + nameBH + margin)));
+      const nameAH = nameA ? nameA.offsetHeight : 0;
+      const nameBH = nameB ? nameB.offsetHeight : 0;
+      const reservedTop = Math.max(nameAH, nameBH) + 10; // 10px luft
+      let maxH = Math.max(40, vh - reservedTop);
+      if(document.body.classList.contains('final')) maxH = Math.floor(maxH * 0.6);
 
-      // Hvis vi er i finalemodus, gi ekstra luft til gratulasjonstekst
-      if(document.body.classList.contains('final')){
-        availHA = Math.floor(availHA * 0.6);
-        availHB = Math.floor(availHB * 0.6);
-      }
-      const maxH = Math.min(availHA, availHB);
-
-      // --- TILGJENGELIG BREDDE ---
-      const boxA = sideA.querySelector('.scoreBox') || sA;
-      const boxB = sideB.querySelector('.scoreBox') || sB;
+      // --- BREDDE ---
+      const boxA = document.querySelector('#sideA .scoreBox') || sA;
+      const boxB = document.querySelector('#sideB .scoreBox') || sB;
       const minBoxW = Math.min(boxA.clientWidth, boxB.clientWidth);
 
-      // --- Start-estimat basert på «88» (to ruter + gap som i UI) ---
+      // --- Referanse «88» ---
       const meas=document.getElementById('measure');
       const baseFont=100; meas.style.fontSize=baseFont+'px';
       meas.innerHTML = '<span class="digits" style="display:flex;gap:0.08em"><span style="display:inline-block;width:1ch">8</span><span style="display:inline-block;width:1ch">8</span></span>';
@@ -181,13 +182,11 @@
       sA.style.fontSize=nextFont+'px';
       sB.style.fontSize=nextFont+'px';
 
-      // --- Iterativ sikkerhet: justér til begge sider passer ---
+      // --- Iterativ sikkerhet ---
       const maxSteps=8;
       for(let i=0;i<maxSteps;i++){
-        const aDigits = sA.querySelector('.digits');
-        const bDigits = sB.querySelector('.digits');
-        const aR = aDigits.getBoundingClientRect();
-        const bR = bDigits.getBoundingClientRect();
+        const aR = sA.querySelector('.digits').getBoundingClientRect();
+        const bR = sB.querySelector('.digits').getBoundingClientRect();
         const scaleA = Math.min(1, (boxA.clientWidth / aR.width) || 1, (maxH / aR.height) || 1);
         const scaleB = Math.min(1, (boxB.clientWidth / bR.width) || 1, (maxH / bR.height) || 1);
         const scale = Math.min(scaleA, scaleB);
@@ -216,7 +215,7 @@
           const matchLoser=setsA===2?nameB:nameA;
           document.getElementById('winnerMsg').textContent=`🎉 GRATULERER ${matchWinner.toUpperCase()}! DU VANT KAMPEN!\n👏 BRA JOBBA ${matchLoser.toUpperCase()}, DU GJORDE DITT BESTE.`;
           document.body.classList.add('final');
-          locked=true; resizeScores(true); // krymp tall i gratulasjonsvisning
+          locked=true; queueFit(true); // juster visning for sluttmelding
           return;
         }
         scoreA=0; scoreB=0; currentSet++; swappedAt11=false; swapSides();
@@ -233,10 +232,11 @@
       const tmpScore=scoreA; scoreA=scoreB; scoreB=tmpScore;
       const tmpSets=setsA; setsA=setsB; setsB=tmpSets;
       update();
+      queueFit(true);
     }
 
-    function resetSet(){ if(locked) return; scoreA=0; scoreB=0; swappedAt11=false; document.getElementById('winnerMsg').textContent=''; update(); }
-    function resetMatch(){ scoreA=0; scoreB=0; setsA=0; setsB=0; currentSet=1; swappedAt11=false; locked=false; scoreFontPx=null; document.getElementById('winnerMsg').textContent=''; document.body.classList.remove('final'); update(); resizeScores(true); }
+    function resetSet(){ if(locked) return; scoreA=0; scoreB=0; swappedAt11=false; document.getElementById('winnerMsg').textContent=''; update(); queueFit(true); }
+    function resetMatch(){ scoreA=0; scoreB=0; setsA=0; setsB=0; currentSet=1; swappedAt11=false; locked=false; scoreFontPx=null; document.getElementById('winnerMsg').textContent=''; document.body.classList.remove('final'); update(); queueFit(true); }
     function startNewMatch(){ resetMatch(); }
 
     function toggleFullscreen(){
@@ -245,39 +245,23 @@
       else{ document.exitFullscreen(); if(btn) btn.textContent='⛶ Fullskjerm'; }
     }
 
-    // Refit ved alle endringer/rotasjon, med ekstra pass for å fange etterslep i layout
-    window.addEventListener('resize', ()=>{
-      setVH();
-      scoreFontPx=null;
-      // Kjør flere pass slik at bredde- og høydeendringer alltid fanges
-      resizeScores(true);
-      requestAnimationFrame(()=> resizeScores(true));
-      setTimeout(()=> resizeScores(true), 60);
-    });
-    document.addEventListener('fullscreenchange', ()=>{ resizeScores(true); });
+    // Refit ved alle endringer/rotasjon – bruk kun debounced kø for å unngå RO-løkker
+    window.addEventListener('resize', ()=>{ setVH(); scoreFontPx=null; queueFit(); });
+    document.addEventListener('fullscreenchange', ()=>{ scoreFontPx=null; queueFit(true); });
 
-    // ResizeObserver: re-fit når sidene faktisk endrer bredde/høyde
+    // ResizeObserver: planlegg re-fit senere (ikke synkront) for å unngå varsel
     const ro = (typeof ResizeObserver!=='undefined') ? new ResizeObserver(()=>{
-      scoreFontPx=null;
-      resizeScores(true);
-      requestAnimationFrame(()=> resizeScores(true));
-      setTimeout(()=> resizeScores(true), 60);
+      if(isFitting) return; // ignorer endringer vi selv utløser
+      scoreFontPx=null; queueFit();
     }) : null;
-    if(ro){
-      ro.observe(document.getElementById('sideA'));
-      ro.observe(document.getElementById('sideB'));
-    }
-    // orientationchange for enkelte mobile nettlesere
-    window.addEventListener('orientationchange', ()=>{
-      scoreFontPx=null;
-      setTimeout(()=>{ resizeScores(true); }, 40);
-    });
+    if(ro){ ro.observe(document.getElementById('sideA')); ro.observe(document.getElementById('sideB')); }
 
-    // Init – kjør et par runder for å unngå «flash» ved lokale filer
+    // orientationchange for enkelte mobile nettlesere
+    window.addEventListener('orientationchange', ()=>{ scoreFontPx=null; queueFit(true); });
+
+    // Init
     update();
-    resizeScores(true);
-    requestAnimationFrame(()=> resizeScores(true));
-    setTimeout(()=> resizeScores(true), 60);
+    queueFit(true);
 
     // Tester (frivillig, i DevTools)
     function runTests(){
@@ -285,8 +269,8 @@
       try{
         resetMatch();
         const center = (id)=>{ const r=document.getElementById(id).getBoundingClientRect(); return r.left + r.width/2; };
-        scoreA=9; scoreB=9; update(); const cA9=center('scoreA'), cB9=center('scoreB');
-        scoreA=10; scoreB=10; update(); const cA10=center('scoreA'), cB10=center('scoreB');
+        scoreA=9; scoreB=9; update(); queueFit(true); const cA9=center('scoreA'), cB9=center('scoreB');
+        scoreA=10; scoreB=10; update(); queueFit(true); const cA10=center('scoreA'), cB10=center('scoreB');
         log(Math.abs(cA9-cA10) < 1.0, 'A: senter stabil 9→10');
         log(Math.abs(cB9-cB10) < 1.0, 'B: senter stabil 9→10');
         log(document.documentElement.scrollWidth <= window.innerWidth+1, 'Ingen horisontal scrolling');
@@ -294,15 +278,14 @@
         const nameA=document.querySelector('#sideA .name');
         const nameB=document.querySelector('#sideB .name');
         const vh=window.innerHeight; const margin=10;
-        const availHA = Math.max(40, Math.floor(vh - nameA.getBoundingClientRect().bottom - margin));
-        const availHB = Math.max(40, Math.floor(vh - nameB.getBoundingClientRect().bottom - margin));
-        const maxH = Math.min(availHA, availHB);
+        const maxNameH = Math.max(nameA.offsetHeight, nameB.offsetHeight) + margin;
+        const maxH = Math.max(40, vh - maxNameH);
         const aH=document.getElementById('scoreA').querySelector('.digits').getBoundingClientRect().height;
         const bH=document.getElementById('scoreB').querySelector('.digits').getBoundingClientRect().height;
         log(aH <= maxH+0.5 && bH <= maxH+0.5, 'Score holder seg innenfor (navn+poeng ≤ viewport)');
-        // Ny test: minus-knapper fungerer
+        // Minusknapp logikk
         scoreA=5; update(); removePoint('A'); log(scoreA===4, 'Minusknapp logikk A (syntetisk)');
-        // Sanity: funskjoner finnes
+        // Funksjoner finnes
         log(typeof resizeScores==='function', 'resizeScores finnes');
       }catch(e){ console.error('Tester feilet:', e); }
     }
