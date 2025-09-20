@@ -13,29 +13,23 @@
     header h1{ font-size:1rem; margin:0 }
 
     /* Layout med subtil midtlinje og ekstra spacing */
-    .wrap{ flex:1; display:grid; grid-template-columns:1fr 2px 1fr; column-gap:3rem; padding:1rem; max-width:100vw; overflow:hidden; align-items:stretch }
+    .wrap{ flex:1; display:grid; grid-template-columns:1fr 2px 1fr; column-gap:3rem; padding:1rem; max-width:100vw; overflow:visible; align-items:stretch }
     .divider{ background:#1e293b; }
 
-    .side{ background:#111827; border-radius:.8rem; padding:1rem; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; position:relative; min-height:0; overflow:hidden }
+    .side{ background:#111827; border-radius:.8rem; padding:1rem; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; position:relative; min-height:0 }
     .name{ font-size:1.2rem; margin-bottom:.5rem }
     .name input{ font:inherit; color:#e5e7eb; background:#1f2937; border:1px solid #0008; border-radius:.4rem; padding:.25rem .5rem; text-align:center; width:100% }
 
     .setCounter{ position:absolute; top:.5rem; right:.5rem; background:#22c55e; color:#06210f; font-weight:900; border-radius:999px; padding:.25rem .6rem; min-width:2rem; text-align:center }
 
     /* Poeng: to faste ruter (tiere + enere). Tabular-nums der det finnes støtte */
-    .score{
-      width:100%; display:flex; justify-content:center; align-items:center;
-      text-align:center; font-weight:900; line-height:0.92; cursor:pointer;
-      user-select:none; -webkit-user-select:none; white-space:nowrap; overflow:hidden;
-      will-change:text-shadow,color; touch-action:manipulation;
-      font-variant-numeric:tabular-nums; /* best effort på tvers av systemfonter */
-    }
+    .score{ width:100%; display:flex; justify-content:center; align-items:center; text-align:center; font-weight:900; line-height:0.92; cursor:pointer; user-select:none; -webkit-user-select:none; white-space:nowrap; overflow:hidden; will-change:text-shadow,color; touch-action:manipulation; font-variant-numeric:tabular-nums }
     .score::selection{ background:transparent }
     .digits{ display:flex; gap:var(--dgap, 0.08em); align-items:baseline }
     .digit{ display:inline-block; width:1ch; text-align:center }
     .digit.ghost{ visibility:hidden }
 
-    /* Egen container som fyller all midtplass mellom navn og minus-knapp */
+    /* Beholder som fyller all midtplass mellom navn og minus-knapp */
     .scoreBox{ flex:1 1 auto; width:100%; min-height:0; display:flex; align-items:center; justify-content:center }
 
     .minusBtn{ margin-top:.75rem; font-size:1.4rem; padding:.6rem 1rem; border-radius:.6rem; border:0; background:#ef4444; color:#fff; cursor:pointer; touch-action:manipulation }
@@ -52,7 +46,7 @@
   <header>
     <h1>🏸 Badminton Poengteller</h1>
     <button id="fsBtn" onclick="toggleFullscreen()">⛶ Fullskjerm</button>
-    <div id="version">v3.4</div>
+    <div id="version">v3.8</div>
   </header>
 
   <div id="sets">Sett: 0-0</div>
@@ -138,7 +132,7 @@
       B_onesEl.textContent=String(B_o);
     }
 
-    // Iterativ, font-agnostisk fit: sørger for at begge sider holder seg innenfor boks + høyde
+    // Beregn font slik at: (navn + score) ≤ viewport-høyde og score ≤ egen bredde
     function resizeScores(force){
       const sA=document.getElementById('scoreA');
       const sB=document.getElementById('scoreB');
@@ -147,40 +141,62 @@
         sB.style.fontSize = scoreFontPx + 'px';
         return;
       }
-      const meas=document.getElementById('measure');
-      // Bruk faktisk høyde i scoreBox-ene (navn/knapp tas automatisk hensyn til)
-      const boxA = document.querySelector('#sideA .scoreBox');
-      const boxB = document.querySelector('#sideB .scoreBox');
-      const maxH = Math.floor(Math.min(boxA?.clientHeight||0, boxB?.clientHeight||0) * 0.985);
 
-      // Start-estimat basert på «88» i minste av boksene
+      // --- TILGJENGELIG HØYDE ---
+      // Målet: (navn + poeng) skal under viewport-høyde, og så nær 100% som mulig.
+      // Vi regner per side: fra side-containerens TOPP, via NAVNETS høyde, til bunn av viewport.
+      const sideA = document.getElementById('sideA');
+      const sideB = document.getElementById('sideB');
+      const nameA = sideA.querySelector('.name');
+      const nameB = sideB.querySelector('.name');
+      const vh = window.innerHeight || document.documentElement.clientHeight;
+      const topA = sideA.getBoundingClientRect().top;
+      const topB = sideB.getBoundingClientRect().top;
+      const nameAH = nameA ? nameA.getBoundingClientRect().height : 0;
+      const nameBH = nameB ? nameB.getBoundingClientRect().height : 0;
+      const margin = 10; // luft under navnet til selve poengtallene
+      let availHA = Math.max(40, Math.floor(vh - (topA + nameAH + margin)));
+      let availHB = Math.max(40, Math.floor(vh - (topB + nameBH + margin)));
+
+      // Hvis vi er i finalemodus, gi ekstra luft til gratulasjonstekst
+      if(document.body.classList.contains('final')){
+        availHA = Math.floor(availHA * 0.6);
+        availHB = Math.floor(availHB * 0.6);
+      }
+      const maxH = Math.min(availHA, availHB);
+
+      // --- TILGJENGELIG BREDDE ---
+      const boxA = sideA.querySelector('.scoreBox') || sA;
+      const boxB = sideB.querySelector('.scoreBox') || sB;
+      const minBoxW = Math.min(boxA.clientWidth, boxB.clientWidth);
+
+      // --- Start-estimat basert på «88» (to ruter + gap som i UI) ---
+      const meas=document.getElementById('measure');
       const baseFont=100; meas.style.fontSize=baseFont+'px';
       meas.innerHTML = '<span class="digits" style="display:flex;gap:0.08em"><span style="display:inline-block;width:1ch">8</span><span style="display:inline-block;width:1ch">8</span></span>';
       const rect=meas.firstElementChild.getBoundingClientRect();
       const wBase=rect.width||1, hBase=rect.height||1;
-      const minBox = Math.min(sA.clientWidth, sB.clientWidth);
-      let nextFont = Math.floor(Math.min(minBox/wBase*baseFont, maxH/hBase*baseFont));
 
-      // Påfør og juster i små steg til begge sider passer
+      let nextFont = Math.floor(Math.min(minBoxW/wBase*baseFont, maxH/hBase*baseFont));
       sA.style.fontSize=nextFont+'px';
       sB.style.fontSize=nextFont+'px';
-      const maxSteps=5;
+
+      // --- Iterativ sikkerhet: justér til begge sider passer ---
+      const maxSteps=8;
       for(let i=0;i<maxSteps;i++){
         const aDigits = sA.querySelector('.digits');
         const bDigits = sB.querySelector('.digits');
-        const aW = aDigits.getBoundingClientRect().width;
-        const bW = bDigits.getBoundingClientRect().width;
-        const aH = aDigits.getBoundingClientRect().height;
-        const bH = bDigits.getBoundingClientRect().height;
-        // skaleringsfaktorer for bredde og høyde
-        const scaleA = Math.min(1, (sA.clientWidth / aW) || 1, (maxH / aH) || 1);
-        const scaleB = Math.min(1, (sB.clientWidth / bW) || 1, (maxH / bH) || 1);
+        const aR = aDigits.getBoundingClientRect();
+        const bR = bDigits.getBoundingClientRect();
+        const scaleA = Math.min(1, (boxA.clientWidth / aR.width) || 1, (maxH / aR.height) || 1);
+        const scaleB = Math.min(1, (boxB.clientWidth / bR.width) || 1, (maxH / bR.height) || 1);
         const scale = Math.min(scaleA, scaleB);
-        if(scale >= 0.999) break; // passer allerede
-        nextFont = Math.floor(nextFont * scale * 0.996); // liten margin
+        if(scale >= 0.999) break;
+        nextFont = Math.floor(nextFont * scale * 0.996);
         sA.style.fontSize=nextFont+'px';
         sB.style.fontSize=nextFont+'px';
       }
+
       scoreFontPx = nextFont;
     }
 
@@ -233,11 +249,29 @@
     window.addEventListener('resize', ()=>{
       setVH();
       scoreFontPx=null;
+      // Kjør flere pass slik at bredde- og høydeendringer alltid fanges
       resizeScores(true);
       requestAnimationFrame(()=> resizeScores(true));
       setTimeout(()=> resizeScores(true), 60);
     });
     document.addEventListener('fullscreenchange', ()=>{ resizeScores(true); });
+
+    // ResizeObserver: re-fit når sidene faktisk endrer bredde/høyde
+    const ro = (typeof ResizeObserver!=='undefined') ? new ResizeObserver(()=>{
+      scoreFontPx=null;
+      resizeScores(true);
+      requestAnimationFrame(()=> resizeScores(true));
+      setTimeout(()=> resizeScores(true), 60);
+    }) : null;
+    if(ro){
+      ro.observe(document.getElementById('sideA'));
+      ro.observe(document.getElementById('sideB'));
+    }
+    // orientationchange for enkelte mobile nettlesere
+    window.addEventListener('orientationchange', ()=>{
+      scoreFontPx=null;
+      setTimeout(()=>{ resizeScores(true); }, 40);
+    });
 
     // Init – kjør et par runder for å unngå «flash» ved lokale filer
     update();
@@ -256,26 +290,22 @@
         log(Math.abs(cA9-cA10) < 1.0, 'A: senter stabil 9→10');
         log(Math.abs(cB9-cB10) < 1.0, 'B: senter stabil 9→10');
         log(document.documentElement.scrollWidth <= window.innerWidth+1, 'Ingen horisontal scrolling');
+        // Høydebegrensning – score + navn skal ikke overstige viewport
+        const nameA=document.querySelector('#sideA .name');
+        const nameB=document.querySelector('#sideB .name');
+        const vh=window.innerHeight; const margin=10;
+        const availHA = Math.max(40, Math.floor(vh - nameA.getBoundingClientRect().bottom - margin));
+        const availHB = Math.max(40, Math.floor(vh - nameB.getBoundingClientRect().bottom - margin));
+        const maxH = Math.min(availHA, availHB);
+        const aH=document.getElementById('scoreA').querySelector('.digits').getBoundingClientRect().height;
+        const bH=document.getElementById('scoreB').querySelector('.digits').getBoundingClientRect().height;
+        log(aH <= maxH+0.5 && bH <= maxH+0.5, 'Score holder seg innenfor (navn+poeng ≤ viewport)');
+        // Ny test: minus-knapper fungerer
+        scoreA=5; update(); removePoint('A'); log(scoreA===4, 'Minusknapp logikk A (syntetisk)');
+        // Sanity: funskjoner finnes
+        log(typeof resizeScores==='function', 'resizeScores finnes');
       }catch(e){ console.error('Tester feilet:', e); }
     }
-    // --- ResizeObserver: re-fit når sidene faktisk endrer bredde/høyde (bedre enn bare window.resize)
-    const ro = (typeof ResizeObserver!=='undefined') ? new ResizeObserver(()=>{
-      scoreFontPx=null;
-      resizeScores(true);
-      requestAnimationFrame(()=> resizeScores(true));
-      setTimeout(()=> resizeScores(true), 60);
-    }) : null;
-    if(ro){
-      const sideAEl=document.getElementById('sideA');
-      const sideBEl=document.getElementById('sideB');
-      ro.observe(sideAEl); ro.observe(sideBEl);
-    }
-    // Ekstra for enkelte Android/iOS: orientationchange kan komme uten resize-event
-    window.addEventListener('orientationchange', ()=>{
-      scoreFontPx=null;
-      setTimeout(()=>{ resizeScores(true); }, 40);
-    });
-
   </script>
 </body>
 </html>
