@@ -12,25 +12,29 @@
     header h1{font-size:1rem;margin:0}
     .wrap{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:1rem;padding:1rem}
     .side{background:#111827;border-radius:.5rem;padding:1rem;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative}
-    /* Tallene skal være så store som mulig: opptil 90% av skjermhøyden, men ikke bredere enn kolonnen */
-    .score{width:100%; text-align:center; font-weight:900; line-height:0.9; cursor:pointer; user-select:none; -webkit-user-select:none; -ms-user-select:none;
-      font-size: min(45vw, calc(90 * var(--vh)));}
-    /* Fjern blå markering/selection-farge på tallene */
+    /* Tallene skal være så store som mulig, men aldri bredere enn 50vw (hver halvdel av skjermen) */
+    .score{width:100%; text-align:center; font-weight:900; line-height:0.9; cursor:pointer; user-select:none; -webkit-user-select:none; -ms-user-select:none; white-space:nowrap; overflow:hidden;
+      /* 48vw < 50% så vi tar høyde for mellomrom/gap, og 90vh for høyden */
+      font-size: min(48vw, calc(90 * var(--vh)));}
+    /* Når kamp er ferdig, gjør tallene mindre så gratulasjon får plass uten scrolling */
+    .final .score{font-size: min(22vw, calc(35 * var(--vh)));}
+
     .score::selection{background:transparent}
     .minusBtn{margin-top:.75rem;font-size:1.4rem;padding:.6rem 1rem;border-radius:.5rem;border:0;background:#ef4444;color:#fff;cursor:pointer}
-    footer{background:#1f2937;padding:.5rem;display:flex;gap:.5rem;justify-content:center}
+    footer{background:#1f2937;padding:.5rem;display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
     footer button{padding:.6rem 1rem;border-radius:.6rem;border:0;cursor:pointer}
     #sets{padding:.6rem 1rem;text-align:center;font-size:1.2rem}
-    #winnerMsg{padding:1rem;text-align:center;font-size:2rem;color:#facc15;font-weight:bold}
+    #winnerMsg{padding:1rem 1rem 0;text-align:center;font-size:clamp(1.2rem,3.5vw,2rem);color:#facc15;font-weight:bold;white-space:pre-line}
     .setCounter{position:absolute;top:.5rem;right:.5rem;background:#22c55e;color:#000;font-weight:bold;border-radius:50%;width:2rem;height:2rem;display:flex;align-items:center;justify-content:center}
 
     /* Trykk-animasjon på tallene */
-    @keyframes pop {
-      0%   { transform: scale(1);    text-shadow:none; }
-      45%  { transform: scale(1.08); text-shadow:0 0 18px rgba(250,204,21,.35); }
-      100% { transform: scale(1);    text-shadow:none; }
-    }
+    @keyframes pop { 0%{transform:scale(1);text-shadow:none;} 45%{transform:scale(1.08);text-shadow:0 0 18px rgba(250,204,21,.35);} 100%{transform:scale(1);text-shadow:none;} }
     .score.pop { animation: pop 180ms ease-out; }
+
+    /* Lås interaksjoner når kampen er ferdig */
+    .final .score, .final .minusBtn { pointer-events:none; opacity:.85 }
+    #newMatchBtn{display:none;background:#22c55e;color:#06210f;font-weight:900}
+    .final #newMatchBtn{display:inline-block}
   </style>
 </head>
 <body>
@@ -57,6 +61,7 @@
   <footer>
     <button onclick="swapSides()">Bytt side</button>
     <button onclick="resetSet()">Nullstill sett</button>
+    <button id="newMatchBtn" onclick="startNewMatch()">Start ny kamp</button>
     <button onclick="resetMatch()">Nullstill kamp</button>
   </footer>
   <script>
@@ -69,7 +74,8 @@
     let setsA=0, setsB=0;
     const target=21, cap=30;
     let currentSet=1;           // 1, 2, 3
-    let swappedAt11=false;      // for sett 3 – bytt kun én gang ved 11
+    let swappedAt11=false;      // i sett 3 – bytt kun én gang ved 11
+    let locked=false;           // lås poeng etter kamp-slutt
 
     // --- UI-oppdatering ---
     function update(){
@@ -83,21 +89,18 @@
     }
 
     // Hjelpefunksjon for trykk-animasjon
-    function bump(el){
-      el.classList.remove('pop');
-      // reflow for å restarte animasjonen
-      void el.offsetWidth;
-      el.classList.add('pop');
-    }
+    function bump(el){ el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
 
     // --- Poenghåndtering ---
     function addPoint(side){
+      if(locked) return; // låst etter kamp-slutt
       if(side==='A') scoreA++; else scoreB++;
       checkSetEnd();
       update();
       bump(document.getElementById(side==='A' ? 'scoreA' : 'scoreB'));
     }
     function removePoint(side){
+      if(locked) return; // låst etter kamp-slutt
       if(side==='A' && scoreA>0) scoreA--; if(side==='B' && scoreB>0) scoreB--;
       update();
     }
@@ -114,7 +117,10 @@
           const nameB=document.getElementById('nameB').value;
           const matchWinner=setsA===2?nameA:nameB;
           const matchLoser=setsA===2?nameB:nameA;
-          document.getElementById('winnerMsg').textContent=`🎉 GRATULERER ${matchWinner.toUpperCase()}! DU VANT KAMPEN! 👏 BRA JOBBA ${matchLoser.toUpperCase()}, DU GJORDE DITT BESTE.`;
+          document.getElementById('winnerMsg').textContent=`🎉 GRATULERER ${matchWinner.toUpperCase()}! DU VANT KAMPEN!\n👏 BRA JOBBA ${matchLoser.toUpperCase()}, DU GJORDE DITT BESTE.`;
+          document.body.classList.add('final');
+          locked=true; // lås poengtrykk
+          return; // ikke start nytt sett når kampen er ferdig
         }
         // Nullstill poeng for nytt sett og bytt side
         scoreA=0;scoreB=0;
@@ -143,18 +149,15 @@
     }
 
     function resetSet(){
-      scoreA=0;scoreB=0;
-      swappedAt11=false;
-      document.getElementById('winnerMsg').textContent='';
-      update();
+      if(locked) return; // ikke la dem rote etter kamp-slutt
+      scoreA=0;scoreB=0; swappedAt11=false; document.getElementById('winnerMsg').textContent=''; update();
     }
 
     function resetMatch(){
-      scoreA=0;scoreB=0;setsA=0;setsB=0;currentSet=1;
-      swappedAt11=false;
-      document.getElementById('winnerMsg').textContent='';
-      update();
+      scoreA=0;scoreB=0;setsA=0;setsB=0;currentSet=1; swappedAt11=false; locked=false; document.getElementById('winnerMsg').textContent=''; document.body.classList.remove('final'); update();
     }
+
+    function startNewMatch(){ resetMatch(); }
 
     // --- Fullskjerm ---
     function toggleFullscreen(){
@@ -174,29 +177,22 @@
       try{
         log(typeof toggleFullscreen==='function','toggleFullscreen er definert');
         // Bevar tilstand
-        const snapshot={
-          scoreA,scoreB,setsA,setsB,currentSet,swappedAt11,
-          nameA: document.getElementById('nameA').value,
-          nameB: document.getElementById('nameB').value,
+        const snapshot={ scoreA,scoreB,setsA,setsB,currentSet,swappedAt11,locked,
+          nameA: document.getElementById('nameA').value, nameB: document.getElementById('nameB').value,
           winnerMsg: document.getElementById('winnerMsg').textContent,
-        };
+          finalClass: document.body.classList.contains('final') };
         // Test: bytt ved 11 i sett 3
-        scoreA=0;scoreB=0;setsA=1;setsB=1;currentSet=3;swappedAt11=false;
-        document.getElementById('nameA').value='Test A';
-        document.getElementById('nameB').value='Test B';
+        resetMatch(); setsA=1; setsB=1; currentSet=3; swappedAt11=false; locked=false;
         for(let i=0;i<11;i++){ addPoint('A'); }
         log(swappedAt11===true,'Byttet side ved 11 i sett 3');
-        // Test: bump-animasjon trigges
-        const before = document.getElementById('scoreA').classList.contains('pop');
-        addPoint('A');
-        const after = document.getElementById('scoreA').classList.contains('pop');
-        log(!before && after,'Trykk-animasjon på tall');
+        // Test: lås etter kamp-slutt
+        scoreA=21; scoreB=0; checkSetEnd();
+        const wasLocked=locked; const pre=scoreA; addPoint('A'); const unchanged=scoreA===pre; // skal ikke øke
+        log(wasLocked && unchanged,'Låser poeng etter kamp-slutt og krever Start ny kamp');
         // Gjenopprett tilstand
-        scoreA=snapshot.scoreA;scoreB=snapshot.scoreB;setsA=snapshot.setsA;setsB=snapshot.setsB;
-        currentSet=snapshot.currentSet;swappedAt11=snapshot.swappedAt11;
-        document.getElementById('nameA').value=snapshot.nameA;
-        document.getElementById('nameB').value=snapshot.nameB;
-        document.getElementById('winnerMsg').textContent=snapshot.winnerMsg;
+        scoreA=snapshot.scoreA;scoreB=snapshot.scoreB;setsA=snapshot.setsA;setsB=snapshot.setsB;currentSet=snapshot.currentSet;swappedAt11=snapshot.swappedAt11;locked=snapshot.locked;
+        document.getElementById('nameA').value=snapshot.nameA; document.getElementById('nameB').value=snapshot.nameB;
+        document.getElementById('winnerMsg').textContent=snapshot.winnerMsg; document.body.classList.toggle('final', snapshot.finalClass);
         update();
         log(true,'Tilstand gjenopprettet etter tester');
       }catch(e){ console.error('Tester feilet:', e); }
