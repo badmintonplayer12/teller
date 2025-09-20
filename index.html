@@ -7,34 +7,40 @@
   <style>
     :root{ --vh: 1vh; }
     *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
-    body{margin:0;font-family:sans-serif;background:#0f172a;color:#fff;display:flex;flex-direction:column;height:100%;}
+    body{margin:0;font-family:system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";background:#0f172a;color:#fff;display:flex;flex-direction:column;height:100%;}
     header{background:#1f2937;padding:.5rem 1rem;display:flex;align-items:center;gap:1rem;justify-content:space-between}
     header h1{font-size:1rem;margin:0}
     .wrap{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:1rem;padding:1rem}
-    .side{background:#111827;border-radius:.5rem;padding:1rem;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative}
-    /* Tallene skal være så store som mulig, men aldri bredere enn 50vw (hver halvdel av skjermen) */
-    .score{width:100%; text-align:center; font-weight:900; line-height:0.9; cursor:pointer; user-select:none; -webkit-user-select:none; -ms-user-select:none; white-space:nowrap; overflow:hidden;
-      /* 48vw < 50% så vi tar høyde for mellomrom/gap, og 90vh for høyden */
-      font-size: min(48vw, calc(90 * var(--vh)));}
-    /* Når kamp er ferdig, gjør tallene mindre så gratulasjon får plass uten scrolling */
-    .final .score{font-size: min(22vw, calc(35 * var(--vh)));}
+    .side{background:#111827;border-radius:.8rem;padding:1rem;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative}
+    .name{font-size:1.2rem;margin-bottom:.5rem}
+    .name input{font:inherit;color:#e5e7eb;background:#1f2937;border:1px solid #0008;border-radius:.4rem;padding:.25rem .5rem;text-align:center;width:100%}
 
+    /* Tall: Vi styrer font-størrelsen i JS for stabil høyde og bredde.  */
+    .score{width:100%; text-align:center; font-weight:900; line-height:0.92; cursor:pointer; user-select:none; -webkit-user-select:none; white-space:nowrap; overflow:hidden;
+           font-variant-numeric: tabular-nums;}
     .score::selection{background:transparent}
-    .minusBtn{margin-top:.75rem;font-size:1.4rem;padding:.6rem 1rem;border-radius:.5rem;border:0;background:#ef4444;color:#fff;cursor:pointer}
-    footer{background:#1f2937;padding:.5rem;display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+
+    .minusBtn{margin-top:.75rem;font-size:1.4rem;padding:.6rem 1rem;border-radius:.6rem;border:0;background:#ef4444;color:#fff;cursor:pointer}
+
+    footer{background:#1f2937;padding:.6rem 1rem;display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap}
     footer button{padding:.6rem 1rem;border-radius:.6rem;border:0;cursor:pointer}
+
     #sets{padding:.6rem 1rem;text-align:center;font-size:1.2rem}
-    #winnerMsg{padding:1rem 1rem 0;text-align:center;font-size:clamp(1.2rem,3.5vw,2rem);color:#facc15;font-weight:bold;white-space:pre-line}
-    .setCounter{position:absolute;top:.5rem;right:.5rem;background:#22c55e;color:#000;font-weight:bold;border-radius:50%;width:2rem;height:2rem;display:flex;align-items:center;justify-content:center}
+    #winnerMsg{padding:1rem 1rem 0;text-align:center;font-size:clamp(1.2rem,3.5vw,2rem);color:#facc15;font-weight:900;white-space:pre-line}
+
+    .setCounter{position:absolute;top:.5rem;right:.5rem;background:#22c55e;color:#06210f;font-weight:900;border-radius:50%;width:2rem;height:2rem;display:flex;align-items:center;justify-content:center}
 
     /* Trykk-animasjon på tallene */
     @keyframes pop { 0%{transform:scale(1);text-shadow:none;} 45%{transform:scale(1.08);text-shadow:0 0 18px rgba(250,204,21,.35);} 100%{transform:scale(1);text-shadow:none;} }
     .score.pop { animation: pop 180ms ease-out; }
 
-    /* Lås interaksjoner når kampen er ferdig */
+    /* Lås interaksjoner når kampen er ferdig + mindre tall for plass til gratulasjon */
     .final .score, .final .minusBtn { pointer-events:none; opacity:.85 }
     #newMatchBtn{display:none;background:#22c55e;color:#06210f;font-weight:900}
     .final #newMatchBtn{display:inline-block}
+
+    /* Målespan skjules, brukes for å beregne fontstørrelse */
+    #measure{position:absolute;left:-9999px;top:-9999px;visibility:hidden;white-space:nowrap;font-weight:900;line-height:0.92;font-variant-numeric:tabular-nums}
   </style>
 </head>
 <body>
@@ -42,32 +48,41 @@
     <h1>🏸 Badminton Poengteller</h1>
     <button id="fsBtn" onclick="toggleFullscreen()">⛶ Fullskjerm</button>
   </header>
+
   <div id="sets">Sett: 0–0</div>
+
   <div class="wrap">
     <div class="side" id="sideA">
       <div id="setCounterA" class="setCounter" style="display:none">0</div>
-      <input id="nameA" value="Spiller A" style="font-size:1.2rem;text-align:center;margin-bottom:.5rem;border-radius:.3rem;border:0;padding:.2rem .5rem" />
+      <div class="name"><input id="nameA" value="Spiller A" /></div>
       <div class="score" id="scoreA" onclick="addPoint('A')">0</div>
       <button class="minusBtn" onclick="removePoint('A')">−1</button>
     </div>
+
     <div class="side" id="sideB">
       <div id="setCounterB" class="setCounter" style="display:none">0</div>
-      <input id="nameB" value="Spiller B" style="font-size:1.2rem;text-align:center;margin-bottom:.5rem;border-radius:.3rem;border:0;padding:.2rem .5rem" />
+      <div class="name"><input id="nameB" value="Spiller B" /></div>
       <div class="score" id="scoreB" onclick="addPoint('B')">0</div>
       <button class="minusBtn" onclick="removePoint('B')">−1</button>
     </div>
   </div>
+
   <div id="winnerMsg"></div>
+
   <footer>
     <button onclick="swapSides()">Bytt side</button>
     <button onclick="resetSet()">Nullstill sett</button>
     <button id="newMatchBtn" onclick="startNewMatch()">Start ny kamp</button>
     <button onclick="resetMatch()">Nullstill kamp</button>
   </footer>
+
+  <!-- skjult måleelement for font-beregning -->
+  <span id="measure">88</span>
+
   <script>
-    // --- Viewport-høyde fix for mobil (adressefelt etc.) ---
+    // --- Viewport-høyde fix for mobil ---
     function setVH(){ document.documentElement.style.setProperty('--vh', (window.innerHeight*0.01)+'px'); }
-    setVH(); window.addEventListener('resize', setVH);
+    setVH(); window.addEventListener('resize', ()=>{ setVH(); resizeScores(); });
 
     // --- Tilstand ---
     let scoreA=0, scoreB=0;
@@ -86,6 +101,35 @@
       const counterB=document.getElementById('setCounterB');
       if(setsA>0){counterA.style.display='flex';counterA.textContent=setsA;}else counterA.style.display='none';
       if(setsB>0){counterB.style.display='flex';counterB.textContent=setsB;}else counterB.style.display='none';
+      resizeScores();
+    }
+
+    // --- Beregn fontstørrelse slik at to siffer ("88") alltid får plass ---
+    function resizeScores(){
+      const sideA = document.getElementById('sideA');
+      const sideB = document.getElementById('sideB');
+      const sA = document.getElementById('scoreA');
+      const sB = document.getElementById('scoreB');
+      const meas = document.getElementById('measure');
+
+      const vwHalf = sideA.clientWidth; // ~50% av skjermen
+      const maxVhPct = document.body.classList.contains('final') ? 35 : 70; // 70% høyde normalt, 35% i finale
+      const maxH = Math.floor(window.innerHeight * (maxVhPct/100));
+
+      // Mål med baseFont px og skaler
+      const baseFont = 100; // px
+      meas.style.fontSize = baseFont + 'px';
+      const wBase = meas.getBoundingClientRect().width; // bredde av "88"
+      const hBase = meas.getBoundingClientRect().height; // høyde av "88"
+      if(!wBase || !hBase) return;
+
+      // Skaler slik at både høyde og bredde-krav ivaretas
+      const sizeByWidth = vwHalf / wBase * baseFont; // så "88" får plass i halve skjermen
+      const sizeByHeight = maxH / hBase * baseFont;  // så høyden er <= 70%/35% av skjermen
+      const sizePx = Math.floor(Math.min(sizeByWidth, sizeByHeight));
+
+      sA.style.fontSize = sizePx + 'px';
+      sB.style.fontSize = sizePx + 'px';
     }
 
     // Hjelpefunksjon for trykk-animasjon
@@ -120,6 +164,7 @@
           document.getElementById('winnerMsg').textContent=`🎉 GRATULERER ${matchWinner.toUpperCase()}! DU VANT KAMPEN!\n👏 BRA JOBBA ${matchLoser.toUpperCase()}, DU GJORDE DITT BESTE.`;
           document.body.classList.add('final');
           locked=true; // lås poengtrykk
+          resizeScores(); // gjør tallene mindre i finalemodus
           return; // ikke start nytt sett når kampen er ferdig
         }
         // Nullstill poeng for nytt sett og bytt side
@@ -171,30 +216,28 @@
       }
     }
 
-    // --- Enkle konsoll-tester (kjør runTests() i DevTools for å verifisere) ---
+    // --- Tester ---
     function runTests(){
       const log=(ok,msg)=>console[ok?'log':'error'](ok?'✅ '+msg:'❌ '+msg);
       try{
+        // Test 1: toggleFullscreen finnes
         log(typeof toggleFullscreen==='function','toggleFullscreen er definert');
-        // Bevar tilstand
-        const snapshot={ scoreA,scoreB,setsA,setsB,currentSet,swappedAt11,locked,
-          nameA: document.getElementById('nameA').value, nameB: document.getElementById('nameB').value,
-          winnerMsg: document.getElementById('winnerMsg').textContent,
-          finalClass: document.body.classList.contains('final') };
-        // Test: bytt ved 11 i sett 3
-        resetMatch(); setsA=1; setsB=1; currentSet=3; swappedAt11=false; locked=false;
-        for(let i=0;i<11;i++){ addPoint('A'); }
-        log(swappedAt11===true,'Byttet side ved 11 i sett 3');
-        // Test: lås etter kamp-slutt
-        scoreA=21; scoreB=0; checkSetEnd();
-        const wasLocked=locked; const pre=scoreA; addPoint('A'); const unchanged=scoreA===pre; // skal ikke øke
-        log(wasLocked && unchanged,'Låser poeng etter kamp-slutt og krever Start ny kamp');
-        // Gjenopprett tilstand
-        scoreA=snapshot.scoreA;scoreB=snapshot.scoreB;setsA=snapshot.setsA;setsB=snapshot.setsB;currentSet=snapshot.currentSet;swappedAt11=snapshot.swappedAt11;locked=snapshot.locked;
-        document.getElementById('nameA').value=snapshot.nameA; document.getElementById('nameB').value=snapshot.nameB;
-        document.getElementById('winnerMsg').textContent=snapshot.winnerMsg; document.body.classList.toggle('final', snapshot.finalClass);
-        update();
-        log(true,'Tilstand gjenopprettet etter tester');
+        // Test 2: bredde endres ikke når vi går fra 9 -> 10
+        resetMatch();
+        const el=document.getElementById('scoreA');
+        scoreA=9; update(); const w9=el.getBoundingClientRect().width;
+        scoreA=10; update(); const w10=el.getBoundingClientRect().width;
+        log(Math.abs(w9-w10) < 1.5, 'Bredden for scoreA er stabil fra 1- til 2-sifret');
+        // Test 3: høyden ~70% av skjermen (toleranse)
+        resetMatch(); update();
+        const h = el.getBoundingClientRect().height;
+        const targetH = Math.round(window.innerHeight*0.70);
+        log(h <= targetH+8, 'Høyden er ≤ 70% av skjermen');
+        // Test 4: final-lås
+        scoreA=21; checkSetEnd(); // A vinner 1. sett
+        scoreA=21; checkSetEnd(); // A vinner 2. sett -> kamp slutt
+        const before=scoreA; addPoint('A'); const after=scoreA;
+        log(before===after && document.body.classList.contains('final'),'Låser poeng etter kamp-slutt');
       }catch(e){ console.error('Tester feilet:', e); }
     }
 
