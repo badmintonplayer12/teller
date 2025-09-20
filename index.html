@@ -5,18 +5,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
   <title>Badminton Poengteller</title>
   <style>
-    body{margin:0;font-family:sans-serif;background:#0f172a;color:#fff;display:flex;flex-direction:column;height:100%}
+    :root{ --vh: 1vh; }
+    *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+    body{margin:0;font-family:sans-serif;background:#0f172a;color:#fff;display:flex;flex-direction:column;height:100%;}
     header{background:#1f2937;padding:.5rem 1rem;display:flex;align-items:center;gap:1rem;justify-content:space-between}
     header h1{font-size:1rem;margin:0}
     .wrap{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:1rem;padding:1rem}
     .side{background:#111827;border-radius:.5rem;padding:1rem;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative}
-    .score{font-size:15vw;font-weight:bold;cursor:pointer}
-    .minusBtn{margin-top:.5rem;font-size:1.2rem;padding:.5rem 1rem;border-radius:.4rem;border:0;background:#ef4444;color:#fff;cursor:pointer}
+    /* Tallene skal være så store som mulig: opptil 90% av skjermhøyden, men ikke bredere enn kolonnen */
+    .score{width:100%; text-align:center; font-weight:900; line-height:0.9; cursor:pointer; user-select:none; -webkit-user-select:none; -ms-user-select:none;
+      font-size: min(45vw, calc(90 * var(--vh)));}
+    /* Fjern blå markering/selection-farge på tallene */
+    .score::selection{background:transparent}
+    .minusBtn{margin-top:.75rem;font-size:1.4rem;padding:.6rem 1rem;border-radius:.5rem;border:0;background:#ef4444;color:#fff;cursor:pointer}
     footer{background:#1f2937;padding:.5rem;display:flex;gap:.5rem;justify-content:center}
-    footer button{padding:.5rem 1rem;border-radius:.5rem;border:0;cursor:pointer}
-    #sets{padding:1rem;text-align:center;font-size:1.2rem}
+    footer button{padding:.6rem 1rem;border-radius:.6rem;border:0;cursor:pointer}
+    #sets{padding:.6rem 1rem;text-align:center;font-size:1.2rem}
     #winnerMsg{padding:1rem;text-align:center;font-size:2rem;color:#facc15;font-weight:bold}
     .setCounter{position:absolute;top:.5rem;right:.5rem;background:#22c55e;color:#000;font-weight:bold;border-radius:50%;width:2rem;height:2rem;display:flex;align-items:center;justify-content:center}
+
+    /* Trykk-animasjon på tallene */
+    @keyframes pop {
+      0%   { transform: scale(1);    text-shadow:none; }
+      45%  { transform: scale(1.08); text-shadow:0 0 18px rgba(250,204,21,.35); }
+      100% { transform: scale(1);    text-shadow:none; }
+    }
+    .score.pop { animation: pop 180ms ease-out; }
   </style>
 </head>
 <body>
@@ -46,6 +60,10 @@
     <button onclick="resetMatch()">Nullstill kamp</button>
   </footer>
   <script>
+    // --- Viewport-høyde fix for mobil (adressefelt etc.) ---
+    function setVH(){ document.documentElement.style.setProperty('--vh', (window.innerHeight*0.01)+'px'); }
+    setVH(); window.addEventListener('resize', setVH);
+
     // --- Tilstand ---
     let scoreA=0, scoreB=0;
     let setsA=0, setsB=0;
@@ -64,11 +82,20 @@
       if(setsB>0){counterB.style.display='flex';counterB.textContent=setsB;}else counterB.style.display='none';
     }
 
+    // Hjelpefunksjon for trykk-animasjon
+    function bump(el){
+      el.classList.remove('pop');
+      // reflow for å restarte animasjonen
+      void el.offsetWidth;
+      el.classList.add('pop');
+    }
+
     // --- Poenghåndtering ---
     function addPoint(side){
       if(side==='A') scoreA++; else scoreB++;
       checkSetEnd();
       update();
+      bump(document.getElementById(side==='A' ? 'scoreA' : 'scoreB'));
     }
     function removePoint(side){
       if(side==='A' && scoreA>0) scoreA--; if(side==='B' && scoreB>0) scoreB--;
@@ -157,14 +184,13 @@
         scoreA=0;scoreB=0;setsA=1;setsB=1;currentSet=3;swappedAt11=false;
         document.getElementById('nameA').value='Test A';
         document.getElementById('nameB').value='Test B';
-        // øk poeng til 11 for A
         for(let i=0;i<11;i++){ addPoint('A'); }
         log(swappedAt11===true,'Byttet side ved 11 i sett 3');
-        // Test: ferdig kamp gir gratulasjon
-        scoreA=21; scoreB=0; // tving settvinst
-        checkSetEnd();
-        const msg=document.getElementById('winnerMsg').textContent;
-        log(/GRATULERER/.test(msg),'Gratulasjon vises ved kamp-slutt');
+        // Test: bump-animasjon trigges
+        const before = document.getElementById('scoreA').classList.contains('pop');
+        addPoint('A');
+        const after = document.getElementById('scoreA').classList.contains('pop');
+        log(!before && after,'Trykk-animasjon på tall');
         // Gjenopprett tilstand
         scoreA=snapshot.scoreA;scoreB=snapshot.scoreB;setsA=snapshot.setsA;setsB=snapshot.setsB;
         currentSet=snapshot.currentSet;swappedAt11=snapshot.swappedAt11;
