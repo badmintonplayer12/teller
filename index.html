@@ -5,146 +5,178 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
   <title>Badminton Poengteller</title>
   <style>
-    :root{
-      --bg:#0f172a;--panel:#111827;--panel2:#1f2937;--fg:#e5e7eb;--ok:#22c55e;--bad:#ef4444;--gold:#facc15;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{margin:0;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial;background:var(--bg);color:var(--fg);display:flex;flex-direction:column}
-    header{background:var(--panel2);padding:.6rem 1rem;display:flex;align-items:center;gap:.75rem}
-    header h1{margin:0;font-size:1rem}
-    #sets{margin-left:auto;font-weight:700;opacity:.9}
-
+    body{margin:0;font-family:sans-serif;background:#0f172a;color:#fff;display:flex;flex-direction:column;height:100%}
+    header{background:#1f2937;padding:.5rem 1rem;display:flex;align-items:center;gap:1rem;justify-content:space-between}
+    header h1{font-size:1rem;margin:0}
     .wrap{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:1rem;padding:1rem}
-    .side{position:relative;background:var(--panel);border-radius:.8rem;padding:1rem;display:flex;flex-direction:column;align-items:center;justify-content:center}
-    .badge{position:absolute;top:.5rem;right:.5rem;width:2.2rem;height:2.2rem;border-radius:999px;background:var(--ok);color:#06210f;font-weight:900;display:none;place-items:center;box-shadow:0 3px 10px rgba(0,0,0,.35)}
-    .name{font-size:1.2rem;margin-bottom:.5rem}
-    .name input{font:inherit;color:var(--fg);background:var(--panel2);border:1px solid #0008;border-radius:.4rem;padding:.25rem .5rem;text-align:center;width:100%}
-    .score{font-size:16vw;font-weight:900;line-height:1}
-    @media(min-width:900px){.score{font-size:18vh}}
-    .buttons{display:flex;gap:1rem;margin-top:1rem}
-    .buttons button{font-size:1.4rem;padding:1rem 1.75rem;border:0;border-radius:.7rem;cursor:pointer;font-weight:900}
-    .plus{background:var(--ok);color:#06210f}
-    .minus{background:var(--bad);color:#fff}
-
-    footer{background:var(--panel2);padding:.6rem 1rem;display:flex;gap:.6rem;justify-content:center}
-    footer button{padding:.6rem 1rem;border-radius:.6rem;border:0;background:#0b1220;color:var(--fg);font-weight:700;cursor:pointer}
-
-    /* Finale overlay + effekter */
-    #finalMsg{position:fixed;inset:0;display:none;align-items:center;justify-content:center;text-align:center;font-size:clamp(2rem,6vw,5rem);font-weight:900;color:var(--gold);letter-spacing:.05em;text-transform:uppercase;padding:1rem;z-index:30;pointer-events:none;text-shadow:0 2px 12px rgba(0,0,0,.7)}
-    #effects{position:fixed;inset:0;pointer-events:none;z-index:25}
-    .balloon{position:absolute;top:-10%;width:28px;height:38px;border-radius:14px 14px 14px 14px / 18px 18px 20px 20px;background:#38bdf8;animation:fall linear forwards;box-shadow:0 4px 10px rgba(0,0,0,.3)}
-    .balloon:after{content:"";position:absolute;bottom:-12px;left:50%;width:2px;height:18px;background:#94a3b8;transform:translateX(-50%)}
-    @keyframes fall{to{transform:translateY(120vh);opacity:.95}}
+    .side{background:#111827;border-radius:.5rem;padding:1rem;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative}
+    .score{font-size:15vw;font-weight:bold;cursor:pointer}
+    .minusBtn{margin-top:.5rem;font-size:1.2rem;padding:.5rem 1rem;border-radius:.4rem;border:0;background:#ef4444;color:#fff;cursor:pointer}
+    footer{background:#1f2937;padding:.5rem;display:flex;gap:.5rem;justify-content:center}
+    footer button{padding:.5rem 1rem;border-radius:.5rem;border:0;cursor:pointer}
+    #sets{padding:1rem;text-align:center;font-size:1.2rem}
+    #winnerMsg{padding:1rem;text-align:center;font-size:2rem;color:#facc15;font-weight:bold}
+    .setCounter{position:absolute;top:.5rem;right:.5rem;background:#22c55e;color:#000;font-weight:bold;border-radius:50%;width:2rem;height:2rem;display:flex;align-items:center;justify-content:center}
   </style>
 </head>
 <body>
   <header>
     <h1>🏸 Badminton Poengteller</h1>
-    <div id="sets">Sett: 0–0</div>
+    <button id="fsBtn" onclick="toggleFullscreen()">⛶ Fullskjerm</button>
   </header>
-
+  <div id="sets">Sett: 0–0</div>
   <div class="wrap">
     <div class="side" id="sideA">
-      <div class="badge" id="badgeA">1</div>
-      <div class="name"><input id="nameA" value="Spiller A" /></div>
-      <div class="score" id="scoreA">0</div>
-      <div class="buttons">
-        <button class="plus" id="plusA">+1</button>
-        <button class="minus" id="minusA">−1</button>
-      </div>
+      <div id="setCounterA" class="setCounter" style="display:none">0</div>
+      <input id="nameA" value="Spiller A" style="font-size:1.2rem;text-align:center;margin-bottom:.5rem;border-radius:.3rem;border:0;padding:.2rem .5rem" />
+      <div class="score" id="scoreA" onclick="addPoint('A')">0</div>
+      <button class="minusBtn" onclick="removePoint('A')">−1</button>
     </div>
-
     <div class="side" id="sideB">
-      <div class="badge" id="badgeB">1</div>
-      <div class="name"><input id="nameB" value="Spiller B" /></div>
-      <div class="score" id="scoreB">0</div>
-      <div class="buttons">
-        <button class="plus" id="plusB">+1</button>
-        <button class="minus" id="minusB">−1</button>
-      </div>
+      <div id="setCounterB" class="setCounter" style="display:none">0</div>
+      <input id="nameB" value="Spiller B" style="font-size:1.2rem;text-align:center;margin-bottom:.5rem;border-radius:.3rem;border:0;padding:.2rem .5rem" />
+      <div class="score" id="scoreB" onclick="addPoint('B')">0</div>
+      <button class="minusBtn" onclick="removePoint('B')">−1</button>
     </div>
   </div>
-
-  <div id="finalMsg"></div>
-  <div id="effects"></div>
-
+  <div id="winnerMsg"></div>
   <footer>
-    <button id="resetSetBtn">Nullstill sett</button>
-    <button id="resetMatchBtn">Nullstill kamp</button>
+    <button onclick="swapSides()">Bytt side</button>
+    <button onclick="resetSet()">Nullstill sett</button>
+    <button onclick="resetMatch()">Nullstill kamp</button>
   </footer>
-
   <script>
+    // --- Tilstand ---
     let scoreA=0, scoreB=0;
-    let setsA=0, setsB=0; // best av 3
+    let setsA=0, setsB=0;
     const target=21, cap=30;
+    let currentSet=1;           // 1, 2, 3
+    let swappedAt11=false;      // for sett 3 – bytt kun én gang ved 11
 
-    const $=s=>document.querySelector(s);
-
+    // --- UI-oppdatering ---
     function update(){
-      $('#scoreA').textContent=scoreA;
-      $('#scoreB').textContent=scoreB;
-      $('#sets').textContent=`Sett: ${setsA}–${setsB}`;
-      // Hjørne-badger: vis 1 ved første sett, 2 ved to sett
-      const bA=$('#badgeA'), bB=$('#badgeB');
-      bA.textContent = setsA>0? String(Math.min(setsA,2)) : '1';
-      bB.textContent = setsB>0? String(Math.min(setsB,2)) : '1';
-      bA.style.display = setsA>0 ? 'grid' : 'none';
-      bB.style.display = setsB>0 ? 'grid' : 'none';
+      document.getElementById('scoreA').textContent=scoreA;
+      document.getElementById('scoreB').textContent=scoreB;
+      document.getElementById('sets').textContent=`Sett: ${setsA}–${setsB}`;
+      const counterA=document.getElementById('setCounterA');
+      const counterB=document.getElementById('setCounterB');
+      if(setsA>0){counterA.style.display='flex';counterA.textContent=setsA;}else counterA.style.display='none';
+      if(setsB>0){counterB.style.display='flex';counterB.textContent=setsB;}else counterB.style.display='none';
     }
 
-    function clearEffects(){
-      const fx=$('#effects');
-      while(fx.firstChild) fx.removeChild(fx.firstChild);
-      $('#finalMsg').style.display='none';
-    }
-
-    function launchBalloons(n=50){
-      const fx=$('#effects');
-      const colors=['#38bdf8','#f472b6','#34d399','#facc15','#a78bfa','#f97316'];
-      for(let i=0;i<n;i++){
-        const b=document.createElement('div'); b.className='balloon';
-        b.style.left=(Math.random()*100)+'%';
-        b.style.animationDuration=(6+Math.random()*4)+'s';
-        b.style.background=colors[i%colors.length];
-        fx.appendChild(b);
-        setTimeout(()=>b.remove(),11000);
-      }
-    }
-
+    // --- Poenghåndtering ---
     function addPoint(side){
       if(side==='A') scoreA++; else scoreB++;
-      checkSetEnd(); update();
+      checkSetEnd();
+      update();
     }
     function removePoint(side){
-      if(side==='A' && scoreA>0) scoreA--; if(side==='B' && scoreB>0) scoreB--; update();
+      if(side==='A' && scoreA>0) scoreA--; if(side==='B' && scoreB>0) scoreB--;
+      update();
     }
 
+    // --- Sett/kamp-logikk ---
     function checkSetEnd(){
       const lead=Math.abs(scoreA-scoreB);
+      // Sett ferdig?
       if((scoreA>=target||scoreB>=target)&&(lead>=2||scoreA===cap||scoreB===cap)){
-        // Sett ferdig – bare oppdater sett, INGEN gratulasjon ennå
         if(scoreA>scoreB) setsA++; else setsB++;
-        scoreA=0; scoreB=0; update();
         // Kamp ferdig? (best av 3)
-        if(setsA===2 || setsB===2){
-          const vinner = setsA===2 ? $('#nameA').value : $('#nameB').value;
-          const taper = setsA===2 ? $('#nameB').value : $('#nameA').value;
-          const fm=$('#finalMsg');
-          fm.textContent = `GRATULERER ${vinner}! DU VANT KAMPEN. BRA JOBBA ${taper}, DU GJORDE DITT BESTE.`;
-          fm.style.display='flex';
-          launchBalloons(60);
+        if(setsA===2||setsB===2){
+          const nameA=document.getElementById('nameA').value;
+          const nameB=document.getElementById('nameB').value;
+          const matchWinner=setsA===2?nameA:nameB;
+          const matchLoser=setsA===2?nameB:nameA;
+          document.getElementById('winnerMsg').textContent=`🎉 GRATULERER ${matchWinner.toUpperCase()}! DU VANT KAMPEN! 👏 BRA JOBBA ${matchLoser.toUpperCase()}, DU GJORDE DITT BESTE.`;
         }
+        // Nullstill poeng for nytt sett og bytt side
+        scoreA=0;scoreB=0;
+        currentSet++;
+        swappedAt11=false;
+        swapSides();
+      }
+      // I tredje sett: bytt side ved 11 poeng (kun én gang)
+      if(currentSet===3 && !swappedAt11 && (scoreA===11 || scoreB===11)){
+        swapSides();
+        swappedAt11=true;
       }
     }
 
-    $('#plusA').onclick=()=>addPoint('A');
-    $('#plusB').onclick=()=>addPoint('B');
-    $('#minusA').onclick=()=>removePoint('A');
-    $('#minusB').onclick=()=>removePoint('B');
-    $('#resetSetBtn').onclick=()=>{ scoreA=0; scoreB=0; clearEffects(); update(); };
-    $('#resetMatchBtn').onclick=()=>{ scoreA=0; scoreB=0; setsA=0; setsB=0; clearEffects(); update(); };
+    // --- Verktøy ---
+    function swapSides(){
+      // bytt navn
+      const nameA=document.getElementById('nameA');
+      const nameB=document.getElementById('nameB');
+      const tmpName=nameA.value; nameA.value=nameB.value; nameB.value=tmpName;
+      // bytt score
+      const tmpScore=scoreA; scoreA=scoreB; scoreB=tmpScore;
+      // bytt sett-teller
+      const tmpSets=setsA; setsA=setsB; setsB=tmpSets;
+      update();
+    }
 
+    function resetSet(){
+      scoreA=0;scoreB=0;
+      swappedAt11=false;
+      document.getElementById('winnerMsg').textContent='';
+      update();
+    }
+
+    function resetMatch(){
+      scoreA=0;scoreB=0;setsA=0;setsB=0;currentSet=1;
+      swappedAt11=false;
+      document.getElementById('winnerMsg').textContent='';
+      update();
+    }
+
+    // --- Fullskjerm ---
+    function toggleFullscreen(){
+      const btn=document.getElementById('fsBtn');
+      if(!document.fullscreenElement){
+        document.documentElement.requestFullscreen();
+        if(btn) btn.textContent='⤢ Avslutt fullskjerm';
+      } else {
+        document.exitFullscreen();
+        if(btn) btn.textContent='⛶ Fullskjerm';
+      }
+    }
+
+    // --- Enkle konsoll-tester (kjør runTests() i DevTools for å verifisere) ---
+    function runTests(){
+      const log=(ok,msg)=>console[ok?'log':'error'](ok?'✅ '+msg:'❌ '+msg);
+      try{
+        log(typeof toggleFullscreen==='function','toggleFullscreen er definert');
+        // Bevar tilstand
+        const snapshot={
+          scoreA,scoreB,setsA,setsB,currentSet,swappedAt11,
+          nameA: document.getElementById('nameA').value,
+          nameB: document.getElementById('nameB').value,
+          winnerMsg: document.getElementById('winnerMsg').textContent,
+        };
+        // Test: bytt ved 11 i sett 3
+        scoreA=0;scoreB=0;setsA=1;setsB=1;currentSet=3;swappedAt11=false;
+        document.getElementById('nameA').value='Test A';
+        document.getElementById('nameB').value='Test B';
+        // øk poeng til 11 for A
+        for(let i=0;i<11;i++){ addPoint('A'); }
+        log(swappedAt11===true,'Byttet side ved 11 i sett 3');
+        // Test: ferdig kamp gir gratulasjon
+        scoreA=21; scoreB=0; // tving settvinst
+        checkSetEnd();
+        const msg=document.getElementById('winnerMsg').textContent;
+        log(/GRATULERER/.test(msg),'Gratulasjon vises ved kamp-slutt');
+        // Gjenopprett tilstand
+        scoreA=snapshot.scoreA;scoreB=snapshot.scoreB;setsA=snapshot.setsA;setsB=snapshot.setsB;
+        currentSet=snapshot.currentSet;swappedAt11=snapshot.swappedAt11;
+        document.getElementById('nameA').value=snapshot.nameA;
+        document.getElementById('nameB').value=snapshot.nameB;
+        document.getElementById('winnerMsg').textContent=snapshot.winnerMsg;
+        update();
+        log(true,'Tilstand gjenopprettet etter tester');
+      }catch(e){ console.error('Tester feilet:', e); }
+    }
+
+    // Init
     update();
   </script>
 </body>
