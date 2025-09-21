@@ -5,75 +5,74 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <title>Badminton Poengteller</title>
   <style>
-    :root{ --vh: 1vh; }
+    :root{ --gap: clamp(12px, 3vw, 36px); }
     *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
     html,body{ height:100%; }
     body{ margin:0; font-family:system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background:#0f172a; color:#fff; display:flex; flex-direction:column; max-width:100vw; overflow-x:hidden; }
 
-    header{ background:#1f2937; padding:.5rem 1rem; display:flex; align-items:center; gap:1rem; justify-content:space-between; position:relative; max-width:100vw; overflow:hidden }
+    header{ background:#1f2937; padding:.5rem 1rem; display:flex; align-items:center; gap:1rem; justify-content:space-between; position:relative; }
     header h1{ font-size:1rem; margin:0 }
-    #version{ position:absolute; top:.3rem; right:.5rem; font-size:.75rem; color:#9ca3af; pointer-events:none }
+    #version{ position:absolute; top:.3rem; right:.6rem; font-size:.75rem; color:#9ca3af; pointer-events:none }
 
-    .wrap{ flex:1; display:grid; grid-template-columns:1fr 2px 1fr; column-gap:3rem; padding:1rem; max-width:100vw; align-items:stretch }
-    .divider{ background:#1e293b; }
+    /* Side-by-side layout */
+    .wrap{ flex:1; display:grid; grid-template-columns:1fr 2px 1fr; column-gap:var(--gap); padding:var(--gap); align-items:stretch; }
+    .divider{ width:2px; background:#1e293b; }
 
-    .side{ background:#111827; border-radius:.8rem; padding:1rem; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; position:relative; min-height:0; will-change:transform,opacity }
+    .side{ background:#111827; border-radius:.8rem; padding:clamp(8px, 1.8vw, 16px); display:flex; flex-direction:column; align-items:center; justify-content:flex-start; position:relative; overflow:hidden; will-change:transform,opacity }
 
-    /* Sideswap animasjoner */
-    .swap-enter-left{ animation: enterLeft .35s ease both }
-    .swap-exit-left{ animation: exitLeft .35s ease both }
-    .swap-enter-right{ animation: enterRight .35s ease both }
-    .swap-exit-right{ animation: exitRight .35s ease both }
-    @keyframes exitLeft   { from{opacity:1;transform:translateX(0)}   to{opacity:.15;transform:translateX(-12%)} }
-    @keyframes exitRight  { from{opacity:1;transform:translateX(0)}   to{opacity:.15;transform:translateX(12%)} }
-    @keyframes enterLeft  { from{opacity:.15;transform:translateX(12%)}  to{opacity:1; transform:translateX(0)} }
-    @keyframes enterRight { from{opacity:.15;transform:translateX(-12%)} to{opacity:1; transform:translateX(0)} }
+    /* Horisontal sideswap (glid litt) */
+    .side.swap-exit-left{  animation: exitLeft .35s ease both }
+    .side.swap-exit-right{ animation: exitRight .35s ease both }
+    .side.swap-enter-left{ animation: enterLeft .35s ease both }
+    .side.swap-enter-right{animation: enterRight .35s ease both }
+    @keyframes exitLeft   { from{opacity:1;transform:translateX(0)}   to{opacity:.15;transform:translateX(-14%)} }
+    @keyframes exitRight  { from{opacity:1;transform:translateX(0)}   to{opacity:.15;transform:translateX(14%)} }
+    @keyframes enterLeft  { from{opacity:.15;transform:translateX(14%)}  to{opacity:1; transform:translateX(0)} }
+    @keyframes enterRight { from{opacity:.15;transform:translateX(-14%)} to{opacity:1; transform:translateX(0)} }
 
-    .name{ font-size:1.2rem; margin-bottom:.5rem }
-    .name input{ font:inherit; color:#e5e7eb; background:#1f2937; border:1px solid #0008; border-radius:.4rem; padding:.25rem .5rem; text-align:center; width:100% }
+    .name{ height:64px; display:flex; align-items:center; justify-content:center; width:100%; margin:0 0 .25rem 0; }
+    .name input{ font:inherit; color:#e5e7eb; background:#1f2937; border:1px solid #0008; border-radius:.5rem; padding:.35rem .75rem; text-align:center; width:min(22rem, 90%); }
 
-    .setCounter{ position:absolute; top:.5rem; right:.5rem; background:#22c55e; color:#06210f; font-weight:900; border-radius:999px; padding:.25rem .6rem; min-width:2rem; text-align:center }
+    .setCounter{ position:absolute; top:.5rem; right:.75rem; background:#22c55e; color:#06210f; font-weight:900; border-radius:999px; padding:.2rem .6rem; min-width:2rem; text-align:center }
 
-    .score{ width:100%; display:flex; justify-content:center; align-items:center; text-align:center; font-weight:900; line-height:0.92; cursor:pointer; user-select:none; -webkit-user-select:none; white-space:nowrap; overflow:hidden; font-variant-numeric:tabular-nums; will-change:filter,text-shadow,transform }
-    .score::selection{ background:transparent }
+    .scoreBox{ flex:1 1 auto; width:100%; min-height:0; display:flex; align-items:center; justify-content:center; overflow:hidden }
+    .score{ width:100%; display:flex; justify-content:center; align-items:center; text-align:center; font-weight:900; line-height:0.92; cursor:pointer; user-select:none; -webkit-user-select:none; white-space:nowrap; overflow:hidden; font-variant-numeric:tabular-nums; will-change:transform, text-shadow; padding:0 2vw }
 
-    .digits{ display:flex; gap:var(--dgap, 0.08em); align-items:baseline }
+    .digits{ display:flex; gap:0.08em; align-items:baseline; max-width:100%; overflow:hidden }
     .digit{ display:inline-block; width:1ch; text-align:center }
     .digit.ghost{ visibility:hidden }
 
-    .scoreBox{ flex:1 1 auto; width:100%; min-height:0; display:flex; align-items:center; justify-content:center }
+    .minusBtn{ margin-top:.5rem; font-size:1.2rem; padding:.5rem .9rem; border-radius:.6rem; border:0; background:#ef4444; color:#fff; cursor:pointer }
 
-    .minusBtn{ margin-top:.75rem; font-size:1.4rem; padding:.6rem 1rem; border-radius:.6rem; border:0; background:#ef4444; color:#fff; cursor:pointer }
+    #sets{ padding:.4rem 1rem; text-align:center; font-size:1rem }
+    #winnerMsg{ padding:.75rem 1rem 0; text-align:center; font-size:clamp(1.1rem,3.5vw,2rem); color:#facc15; font-weight:900; white-space:pre-line }
 
-    /* Trykk-glød */
-    .glow{ animation: glowPulse .25s ease-out 1; }
-    @keyframes glowPulse{ 0%{text-shadow:0 0 0 rgba(59,130,246,0); filter:drop-shadow(0 0 0 rgba(59,130,246,0));}
-                           30%{text-shadow:0 0 18px rgba(59,130,246,.85);} 
-                           100%{text-shadow:0 0 0 rgba(59,130,246,0);} }
+    /* Stor glød ved trykk */
+    .pop{ animation: glowBurst .55s ease-out 1; }
+    @keyframes glowBurst{ 0%{text-shadow:0 0 0 rgba(96,165,250,0); transform:scale(1);} 20%{text-shadow:0 0 30px rgba(96,165,250,.95),0 0 70px rgba(59,130,246,.8),0 0 110px rgba(37,99,235,.7); transform:scale(1.08);} 60%{text-shadow:0 0 20px rgba(96,165,250,.55),0 0 50px rgba(59,130,246,.45); transform:scale(1.03);} 100%{text-shadow:0 0 0 rgba(96,165,250,0); transform:scale(1);} }
 
-    /* Måleelement for fontberegning */
-    #measure{ position:absolute; left:-9999px; top:-9999px; visibility:hidden; white-space:nowrap; font-weight:900; line-height:0.92; font-variant-numeric:tabular-nums }
+    /* Måle-modus: slå av transform/anim for presis måling */
+    .measuring .score{ transform:none !important; }
 
-    #sets{ padding:.6rem 1rem; text-align:center; font-size:1.2rem }
-    #winnerMsg{ padding:1rem 1rem 0; text-align:center; font-size:clamp(1.2rem,3.5vw,2rem); color:#facc15; font-weight:900; white-space:pre-line }
+    .score::selection{ background:transparent }
   </style>
 </head>
 <body>
   <header>
     <h1>🏸 Badminton Poengteller</h1>
     <button id="fsBtn" onclick="toggleFullscreen()">⛶ Fullskjerm</button>
-    <div id="version">v4.0R</div>
+    <div id="version">v5.1</div>
   </header>
 
   <div id="sets">Sett: 0-0</div>
 
-  <div class="wrap" id="wrap">
+  <div class="wrap">
     <div class="side" id="sideA">
       <div id="setCounterA" class="setCounter" style="display:none">0</div>
       <div class="name"><input id="nameA" value="Spiller A" /></div>
       <div class="scoreBox">
         <div class="score" id="scoreA" onclick="addPoint('A')">
-          <span class="digits">
+          <span class="digits" id="A_digits">
             <span class="digit" id="A_tens">0</span>
             <span class="digit" id="A_ones">0</span>
           </span>
@@ -89,7 +88,7 @@
       <div class="name"><input id="nameB" value="Spiller B" /></div>
       <div class="scoreBox">
         <div class="score" id="scoreB" onclick="addPoint('B')">
-          <span class="digits">
+          <span class="digits" id="B_digits">
             <span class="digit" id="B_tens">0</span>
             <span class="digit" id="B_ones">0</span>
           </span>
@@ -101,48 +100,71 @@
 
   <div id="winnerMsg"></div>
 
-  <footer>
+  <footer style="text-align:center; padding:.5rem 1rem .9rem; display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap;">
     <button onclick="swapSides()">Bytt side</button>
     <button onclick="resetSet()">Nullstill sett</button>
     <button id="newMatchBtn" onclick="startNewMatch()">Start ny kamp</button>
     <button onclick="resetMatch()">Nullstill kamp</button>
   </footer>
 
-  <span id="measure">88</span>
-
   <script>
-    function setVH(){ document.documentElement.style.setProperty('--vh', (window.innerHeight*0.01)+'px'); }
-    setVH();
-
     let scoreA=0, scoreB=0; let setsA=0, setsB=0; const target=21, cap=30; let currentSet=1; let swappedAt11=false; let locked=false;
-
-    // rAF-basert, enkel og robust resize-kø – alltid re-beregn (også ved krymping)
-    let rafId=null, toId=null;
-    function queueFit(){
-      cancelAnimationFrame(rafId); clearTimeout(toId);
-      rafId = requestAnimationFrame(()=>{
-        resizeScores();
-        toId = setTimeout(resizeScores, 60); // lite etter-pass
-      });
-    }
 
     function update(){
       document.getElementById('sets').textContent = `Sett: ${setsA}-${setsB}`;
+      const counterA=document.getElementById('setCounterA');
+      const counterB=document.getElementById('setCounterB');
+      counterA.style.display = setsA>0 ? 'flex' : 'none';
+      counterB.style.display = setsB>0 ? 'flex' : 'none';
+      if(setsA>0) counterA.textContent = setsA;
+      if(setsB>0) counterB.textContent = setsB;
 
-      const A_t = Math.floor(scoreA/10), A_o=scoreA%10; const B_t=Math.floor(scoreB/10), B_o=scoreB%10;
-      const AT=document.getElementById('A_tens'), AO=document.getElementById('A_ones');
-      const BT=document.getElementById('B_tens'), BO=document.getElementById('B_ones');
-      if(scoreA<10){ AT.textContent='0'; AT.classList.add('ghost'); } else { AT.textContent=String(A_t); AT.classList.remove('ghost'); }
-      AO.textContent=String(A_o);
-      if(scoreB<10){ BT.textContent='0'; BT.classList.add('ghost'); } else { BT.textContent=String(B_t); BT.classList.remove('ghost'); }
-      BO.textContent=String(B_o);
+      const setDigits=(score,prefix)=>{
+        const tens=Math.floor(score/10), ones=score%10;
+        const t=document.getElementById(prefix+'_tens');
+        const o=document.getElementById(prefix+'_ones');
+        if(score<10){ t.textContent='0'; t.classList.add('ghost'); } else { t.textContent=String(tens); t.classList.remove('ghost'); }
+        o.textContent=String(ones);
+      };
+      setDigits(scoreA,'A'); setDigits(scoreB,'B');
     }
 
-    // Glød ved trykk
-    function glow(id){ const el=document.getElementById(id); el.classList.remove('glow'); void el.offsetWidth; el.classList.add('glow'); }
+    // Måle-basert, robust skalering (virker ved økning og KRYMPING)
+    function fitScores(){
+      document.body.classList.add('measuring');
+      const base=100; // px
+      const sA=document.getElementById('scoreA');
+      const sB=document.getElementById('scoreB');
+      sA.style.fontSize=base+'px'; sB.style.fontSize=base+'px';
 
-    function addPoint(side){ if(locked) return; if(side==='A') scoreA++; else scoreB++; checkSetEnd(); update(); glow(side==='A'?'scoreA':'scoreB'); }
-    function removePoint(side){ if(locked) return; if(side==='A'&&scoreA>0) scoreA--; if(side==='B'&&scoreB>0) scoreB--; update(); }
+      // Tilgjengelig høyde for tall = selve scoreBox-høyden (per side)
+      const boxA = document.querySelector('#sideA .scoreBox');
+      const boxB = document.querySelector('#sideB .scoreBox');
+      const availHA = Math.max(40, boxA.clientHeight);
+      const availHB = Math.max(40, boxB.clientHeight);
+
+      // Tilgjengelig bredde = scoreBox-bredde minus innvendig padding på .score
+      const pad = (el)=>{ const cs=getComputedStyle(el); return (parseFloat(cs.paddingLeft)||0)+(parseFloat(cs.paddingRight)||0); };
+      const availWA = Math.max(40, boxA.clientWidth - pad(sA));
+      const availWB = Math.max(40, boxB.clientWidth - pad(sB));
+
+      // Mål faktisk plass i base-størrelse for dagens siffer
+      const aRect = document.getElementById('A_digits').getBoundingClientRect();
+      const bRect = document.getElementById('B_digits').getBoundingClientRect();
+
+      const scaleA = Math.min(availWA / Math.max(1,aRect.width),  availHA / Math.max(1,aRect.height));
+      const scaleB = Math.min(availWB / Math.max(1,bRect.width),  availHB / Math.max(1,bRect.height));
+      const scale  = Math.max(0.01, Math.min(scaleA, scaleB));
+
+      const f = Math.floor(base * scale);
+      sA.style.fontSize=f+'px'; sB.style.fontSize=f+'px';
+      document.body.classList.remove('measuring');
+    }
+
+    function bump(el){ el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); setTimeout(()=>el.classList.remove('pop'),550); }
+
+    function addPoint(side){ if(locked) return; if(side==='A') scoreA++; else scoreB++; checkSetEnd(); update(); bump(document.getElementById(side==='A'?'scoreA':'scoreB')); fitScores(); }
+    function removePoint(side){ if(locked) return; if(side==='A'&&scoreA>0) scoreA--; if(side==='B'&&scoreB>0) scoreB--; update(); fitScores(); }
 
     function checkSetEnd(){
       const lead=Math.abs(scoreA-scoreB);
@@ -152,7 +174,7 @@
           const nameA=document.getElementById('nameA').value; const nameB=document.getElementById('nameB').value;
           const matchWinner=setsA===2?nameA:nameB; const matchLoser=setsA===2?nameB:nameA;
           document.getElementById('winnerMsg').textContent=`🎉 GRATULERER ${matchWinner.toUpperCase()}! DU VANT KAMPEN!\n👏 BRA JOBBA ${matchLoser.toUpperCase()}, DU GJORDE DITT BESTE.`;
-          document.body.classList.add('final'); locked=true; queueFit(); return;
+          locked=true; return;
         }
         scoreA=0; scoreB=0; currentSet++; swappedAt11=false; animateSwapThenSwapData();
       }
@@ -161,83 +183,47 @@
       }
     }
 
-    // Sideswap med liten glide-animasjon
+    // Horisontalt, tydelig sidebytte
     function animateSwapThenSwapData(){
       const a=document.getElementById('sideA');
       const b=document.getElementById('sideB');
-      a.classList.remove('swap-enter-left','swap-exit-left');
-      b.classList.remove('swap-enter-right','swap-exit-right');
       a.classList.add('swap-exit-left');
       b.classList.add('swap-exit-right');
       const onEnd=()=>{
         a.removeEventListener('animationend', onEnd);
-        // bytt data
         const nameA=document.getElementById('nameA'); const nameB=document.getElementById('nameB');
         const tmpName=nameA.value; nameA.value=nameB.value; nameB.value=tmpName;
         const tmpScore=scoreA; scoreA=scoreB; scoreB=tmpScore;
         const tmpSets=setsA; setsA=setsB; setsB=tmpSets;
         update();
-        // enter anim
         a.classList.remove('swap-exit-left'); b.classList.remove('swap-exit-right');
         a.classList.add('swap-enter-left'); b.classList.add('swap-enter-right');
-        queueFit();
+        fitScores();
+        setTimeout(()=>{ a.classList.remove('swap-enter-left'); b.classList.remove('swap-enter-right'); }, 380);
       };
       a.addEventListener('animationend', onEnd);
     }
 
     function swapSides(){ animateSwapThenSwapData(); }
 
-    function resetSet(){ if(locked) return; scoreA=0; scoreB=0; swappedAt11=false; document.getElementById('winnerMsg').textContent=''; update(); queueFit(); }
-    function resetMatch(){ scoreA=0; scoreB=0; setsA=0; setsB=0; currentSet=1; swappedAt11=false; locked=false; document.getElementById('winnerMsg').textContent=''; document.body.classList.remove('final'); update(); queueFit(); }
+    function resetSet(){ if(locked) return; scoreA=0; scoreB=0; swappedAt11=false; document.getElementById('winnerMsg').textContent=''; update(); fitScores(); }
+    function resetMatch(){ scoreA=0; scoreB=0; setsA=0; setsB=0; currentSet=1; swappedAt11=false; locked=false; document.getElementById('winnerMsg').textContent=''; update(); fitScores(); }
     function startNewMatch(){ resetMatch(); }
 
     function toggleFullscreen(){ const btn=document.getElementById('fsBtn'); if(!document.fullscreenElement){ document.documentElement.requestFullscreen(); if(btn) btn.textContent='⤢ Avslutt fullskjerm'; } else { document.exitFullscreen(); if(btn) btn.textContent='⛶ Fullskjerm'; } }
 
-    // --- Fonttilpasning: prøver å ligge så nær 100% av høyden (navn + poeng) som mulig, uten å overskride bredde ---
-    function resizeScores(){
-      const sA=document.getElementById('scoreA');
-      const sB=document.getElementById('scoreB');
-      const nameA=document.querySelector('#sideA .name');
-      const nameB=document.querySelector('#sideB .name');
-      const vh = window.innerHeight || document.documentElement.clientHeight;
-      const nameAH = nameA ? nameA.offsetHeight : 0;
-      const nameBH = nameB ? nameB.offsetHeight : 0;
-      const reservedTop = Math.max(nameAH, nameBH) + 10; // litt luft
-      const maxH = Math.max(40, vh - reservedTop);
-
-      const boxA = document.querySelector('#sideA .scoreBox');
-      const boxB = document.querySelector('#sideB .scoreBox');
-      const minBoxW = Math.min(boxA.clientWidth, boxB.clientWidth);
-
-      // mål referanse «88» i baseFont
-      const meas=document.getElementById('measure');
-      const baseFont=100; meas.style.fontSize=baseFont+'px';
-      meas.innerHTML = '<span class="digits" style="display:flex;gap:0.08em"><span style="display:inline-block;width:1ch">8</span><span style="display:inline-block;width:1ch">8</span></span>';
-      const rect=meas.firstElementChild.getBoundingClientRect();
-      const wBase=rect.width||1, hBase=rect.height||1;
-
-      let nextFont = Math.floor(Math.min(minBoxW/wBase*baseFont, maxH/hBase*baseFont));
-      sA.style.fontSize=nextFont+'px';
-      sB.style.fontSize=nextFont+'px';
-
-      // liten iterativ sikkerhet for å garantere pass i både bredde og høyde
-      for(let i=0;i<24;i++){
-        const aR = sA.querySelector('.digits').getBoundingClientRect();
-        const bR = sB.querySelector('.digits').getBoundingClientRect();
-        const scaleA = Math.min(1, (minBoxW / aR.width) || 1, (maxH / aR.height) || 1);
-        const scaleB = Math.min(1, (minBoxW / bR.width) || 1, (maxH / bR.height) || 1);
-        const scale = Math.min(scaleA, scaleB);
-        if(scale >= 0.999) break;
-        nextFont = Math.max(1, Math.floor(nextFont * scale * 0.996));
-        sA.style.fontSize=nextFont+'px';
-        sB.style.fontSize=nextFont+'px';
+    // Lyttere: skaler alltid både når vinduet blir større og mindre, inkl. mobilrotasjon
+    const queueFit = (()=>{
+      let raf=0, t=0; return function(){
+        cancelAnimationFrame(raf); clearTimeout(t);
+        raf=requestAnimationFrame(()=>{ fitScores(); t=setTimeout(fitScores, 60); });
       }
-    }
+    })();
 
-    // Lyttere
-    window.addEventListener('resize', ()=>{ setVH(); queueFit(); });
-    document.addEventListener('fullscreenchange', ()=> queueFit());
-    if(window.visualViewport){ visualViewport.addEventListener('resize', ()=> queueFit()); }
+    window.addEventListener('resize', queueFit);
+    document.addEventListener('fullscreenchange', queueFit);
+    if(window.visualViewport){ visualViewport.addEventListener('resize', queueFit); }
+    window.addEventListener('orientationchange', ()=>{ setTimeout(queueFit, 60); });
 
     // Init
     update();
