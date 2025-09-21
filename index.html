@@ -15,12 +15,12 @@
     #version{ position:absolute; top:.3rem; right:.6rem; font-size:.75rem; color:#9ca3af; pointer-events:none }
 
     /* Side-by-side layout */
-    .wrap{ flex:1; display:grid; grid-template-columns:1fr 2px 1fr; column-gap:var(--gap); padding:var(--gap); align-items:stretch; }
+    .wrap{ flex:0 0 auto; min-height:100vh; display:grid; grid-template-columns:1fr 2px 1fr; column-gap:var(--gap); padding:var(--gap); align-items:stretch; }
     .divider{ width:2px; background:#1e293b; }
 
-    .side{ background:#111827; border-radius:.8rem; padding:clamp(8px, 1.8vw, 16px); display:flex; flex-direction:column; align-items:center; justify-content:flex-start; position:relative; overflow:hidden; will-change:transform,opacity }
+    .side{ position:relative; background:#111827; border-radius:.8rem; padding:clamp(8px, 1.8vw, 16px); display:flex; flex-direction:column; align-items:center; justify-content:flex-start; overflow:hidden; will-change:transform,opacity }
 
-    /* Horisontal sideswap (glid litt) */
+    /* Horisontal sideswap */
     .side.swap-exit-left{  animation: exitLeft .35s ease both }
     .side.swap-exit-right{ animation: exitRight .35s ease both }
     .side.swap-enter-left{ animation: enterLeft .35s ease both }
@@ -30,8 +30,9 @@
     @keyframes enterLeft  { from{opacity:.15;transform:translateX(14%)}  to{opacity:1; transform:translateX(0)} }
     @keyframes enterRight { from{opacity:.15;transform:translateX(-14%)} to{opacity:1; transform:translateX(0)} }
 
-    .name{ height:64px; display:flex; align-items:center; justify-content:center; width:100%; margin:0 0 .25rem 0; }
-    .name input{ font:inherit; color:#e5e7eb; background:#1f2937; border:1px solid #0008; border-radius:.5rem; padding:.35rem .75rem; text-align:center; width:min(22rem, 90%); }
+    /* Navn begrenset til typisk fornavn (≈15 tegn) */
+    .name{ min-height: clamp(36px, 6vh, 56px); display:flex; align-items:center; justify-content:center; width:100%; margin:0 0 .25rem 0; }
+    .name input{ font:inherit; color:#e5e7eb; background:#1f2937; border:1px solid #0008; border-radius:.5rem; padding:.35rem .75rem; text-align:center; width: min(15ch, 80%); max-width:15ch; overflow:hidden; text-overflow:ellipsis; }
 
     .setCounter{ position:absolute; top:.5rem; right:.75rem; background:#22c55e; color:#06210f; font-weight:900; border-radius:999px; padding:.2rem .6rem; min-width:2rem; text-align:center }
 
@@ -42,26 +43,26 @@
     .digit{ display:inline-block; width:1ch; text-align:center }
     .digit.ghost{ visibility:hidden }
 
-    .minusBtn{ margin-top:.5rem; font-size:1.2rem; padding:.5rem .9rem; border-radius:.6rem; border:0; background:#ef4444; color:#fff; cursor:pointer }
-
     #sets{ padding:.4rem 1rem; text-align:center; font-size:1rem }
     #winnerMsg{ padding:.75rem 1rem 0; text-align:center; font-size:clamp(1.1rem,3.5vw,2rem); color:#facc15; font-weight:900; white-space:pre-line }
 
-    /* Stor glød ved trykk */
     .pop{ animation: glowBurst .55s ease-out 1; }
     @keyframes glowBurst{ 0%{text-shadow:0 0 0 rgba(96,165,250,0); transform:scale(1);} 20%{text-shadow:0 0 30px rgba(96,165,250,.95),0 0 70px rgba(59,130,246,.8),0 0 110px rgba(37,99,235,.7); transform:scale(1.08);} 60%{text-shadow:0 0 20px rgba(96,165,250,.55),0 0 50px rgba(59,130,246,.45); transform:scale(1.03);} 100%{text-shadow:0 0 0 rgba(96,165,250,0); transform:scale(1);} }
 
-    /* Måle-modus: slå av transform/anim for presis måling */
     .measuring .score{ transform:none !important; }
-
     .score::selection{ background:transparent }
+
+    /* Under folden: en ekstra seksjon som starter rett etter 100vh
+       Sticky-knapper blir synlige straks man scroller bittelitt. */
+    .belowFold{ height: calc(100vh + 24px); display:grid; grid-template-columns:1fr 1fr; gap:var(--gap); padding: 0 var(--gap); align-items:flex-start; }
+    .belowFold .minusBtn{ position: sticky; top: 10px; justify-self:center; font-size:1.3rem; padding:.55rem 1rem; border-radius:.6rem; border:0; background:#ef4444; color:#fff; cursor:pointer }
   </style>
 </head>
 <body>
   <header>
     <h1>🏸 Badminton Poengteller</h1>
     <button id="fsBtn" onclick="toggleFullscreen()">⛶ Fullskjerm</button>
-    <div id="version">v5.1</div>
+    <div id="version">v5.3</div>
   </header>
 
   <div id="sets">Sett: 0-0</div>
@@ -78,7 +79,6 @@
           </span>
         </div>
       </div>
-      <button class="minusBtn" onclick="removePoint('A')">−1</button>
     </div>
 
     <div class="divider"></div>
@@ -94,9 +94,14 @@
           </span>
         </div>
       </div>
-      <button class="minusBtn" onclick="removePoint('B')">−1</button>
     </div>
   </div>
+
+  <!-- Minusknapper finnes i en egen seksjon rett under folden -->
+  <section class="belowFold">
+    <button class="minusBtn" onclick="removePoint('A')">−1</button>
+    <button class="minusBtn" onclick="removePoint('B')">−1</button>
+  </section>
 
   <div id="winnerMsg"></div>
 
@@ -129,7 +134,7 @@
       setDigits(scoreA,'A'); setDigits(scoreB,'B');
     }
 
-    // Måle-basert, robust skalering (virker ved økning og KRYMPING)
+    // Måle-basert, robust skalering
     function fitScores(){
       document.body.classList.add('measuring');
       const base=100; // px
@@ -137,18 +142,22 @@
       const sB=document.getElementById('scoreB');
       sA.style.fontSize=base+'px'; sB.style.fontSize=base+'px';
 
-      // Tilgjengelig høyde for tall = selve scoreBox-høyden (per side)
+      const sideA=document.getElementById('sideA');
+      const sideB=document.getElementById('sideB');
+
+      const nameAH = document.querySelector('#sideA .name').offsetHeight;
+      const nameBH = document.querySelector('#sideB .name').offsetHeight;
+      const sidePad = (el)=>{ const cs=getComputedStyle(el); return (parseFloat(cs.paddingTop)||0)+(parseFloat(cs.paddingBottom)||0); };
+
+      const availHA = Math.max(40, sideA.clientHeight - nameAH - sidePad(sideA));
+      const availHB = Math.max(40, sideB.clientHeight - nameBH - sidePad(sideB));
+
       const boxA = document.querySelector('#sideA .scoreBox');
       const boxB = document.querySelector('#sideB .scoreBox');
-      const availHA = Math.max(40, boxA.clientHeight);
-      const availHB = Math.max(40, boxB.clientHeight);
+      const padX = (el)=>{ const cs=getComputedStyle(el); return (parseFloat(cs.paddingLeft)||0)+(parseFloat(cs.paddingRight)||0); };
+      const availWA = Math.max(40, boxA.clientWidth - padX(sA));
+      const availWB = Math.max(40, boxB.clientWidth - padX(sB));
 
-      // Tilgjengelig bredde = scoreBox-bredde minus innvendig padding på .score
-      const pad = (el)=>{ const cs=getComputedStyle(el); return (parseFloat(cs.paddingLeft)||0)+(parseFloat(cs.paddingRight)||0); };
-      const availWA = Math.max(40, boxA.clientWidth - pad(sA));
-      const availWB = Math.max(40, boxB.clientWidth - pad(sB));
-
-      // Mål faktisk plass i base-størrelse for dagens siffer
       const aRect = document.getElementById('A_digits').getBoundingClientRect();
       const bRect = document.getElementById('B_digits').getBoundingClientRect();
 
@@ -183,7 +192,6 @@
       }
     }
 
-    // Horisontalt, tydelig sidebytte
     function animateSwapThenSwapData(){
       const a=document.getElementById('sideA');
       const b=document.getElementById('sideB');
@@ -212,20 +220,12 @@
 
     function toggleFullscreen(){ const btn=document.getElementById('fsBtn'); if(!document.fullscreenElement){ document.documentElement.requestFullscreen(); if(btn) btn.textContent='⤢ Avslutt fullskjerm'; } else { document.exitFullscreen(); if(btn) btn.textContent='⛶ Fullskjerm'; } }
 
-    // Lyttere: skaler alltid både når vinduet blir større og mindre, inkl. mobilrotasjon
-    const queueFit = (()=>{
-      let raf=0, t=0; return function(){
-        cancelAnimationFrame(raf); clearTimeout(t);
-        raf=requestAnimationFrame(()=>{ fitScores(); t=setTimeout(fitScores, 60); });
-      }
-    })();
-
+    const queueFit = (()=>{ let raf=0, t=0; return function(){ cancelAnimationFrame(raf); clearTimeout(t); raf=requestAnimationFrame(()=>{ fitScores(); t=setTimeout(fitScores, 60); }); } })();
     window.addEventListener('resize', queueFit);
     document.addEventListener('fullscreenchange', queueFit);
     if(window.visualViewport){ visualViewport.addEventListener('resize', queueFit); }
     window.addEventListener('orientationchange', ()=>{ setTimeout(queueFit, 60); });
 
-    // Init
     update();
     queueFit();
   </script>
