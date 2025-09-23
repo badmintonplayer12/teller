@@ -1,1 +1,72 @@
-
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<title>Tilskuer</title>
+<style>
+  :root{
+    --gap:clamp(10px,3vw,28px);
+    --divider:2px;
+    --accent:#60a5fa;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{margin:0;background:#0f172a;color:#e5e7eb;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;overflow:hidden;}
+  .wrap{height:100%;display:grid;grid-template-columns:1fr var(--divider) 1fr;column-gap:var(--gap);padding:var(--gap);align-items:stretch;}
+  .divider{background:#1e293b}
+  .side{background:#111827;border-radius:.8rem;display:flex;flex-direction:column;align-items:center;padding:clamp(8px,1.8vw,16px);overflow:hidden;}
+  .top{width:100%;display:flex;align-items:center;justify-content:center;gap:.6rem;min-height:clamp(36px,6vh,56px);margin:.3rem 0 .25rem 0;}
+  .name{background:#1f2937;border:1px solid #0008;border-radius:.6rem;padding:.35rem .9rem;font-weight:700;text-align:center;font-size:clamp(16px,2.4vw,28px);max-width:20ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:text-shadow .6s,color .6s;}
+  .sets{background:var(--accent);color:#061a2e;font-weight:900;border-radius:999px;min-width:2rem;text-align:center;padding:.18rem .62rem;font-size:clamp(14px,2.2vw,20px);box-shadow:0 0 10px rgba(96,165,250,.45),0 0 24px rgba(59,130,246,.35);}
+  .scoreBox{flex:1 1 auto;width:100%;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .score{width:100%;display:flex;justify-content:center;align-items:center;text-align:center;font-weight:900;line-height:.92;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;padding:0 2vw;transition:text-shadow .6s,color .6s;}
+  .digits{display:flex;gap:.08em;align-items:baseline;max-width:100%}
+  .digit{display:inline-block;width:1ch;text-align:center}
+  .ghost{visibility:hidden}
+  .pop{animation:glowPlus .55s ease-out 1}
+  .popMinus{animation:glowMinus .55s ease-out 1}
+  @keyframes glowPlus{0%{text-shadow:0 0 0 rgba(96,165,250,0);transform:scale(1)}20%{text-shadow:0 0 30px rgba(96,165,250,.95),0 0 70px rgba(59,130,246,.8),0 0 110px rgba(37,99,235,.7);transform:scale(1.06)}60%{text-shadow:0 0 20px rgba(96,165,250,.55),0 0 50px rgba(59,130,246,.45);transform:scale(1.02)}100%{text-shadow:0 0 0 rgba(96,165,250,0);transform:scale(1)}}
+  @keyframes glowMinus{0%{text-shadow:0 0 0 rgba(239,68,68,0);transform:scale(1)}20%{text-shadow:0 0 30px rgba(239,68,68,.95),0 0 70px rgba(239,68,68,.7),0 0 110px rgba(185,28,28,.6);transform:scale(.97)}60%{text-shadow:0 0 20px rgba(239,68,68,.5),0 0 50px rgba(185,28,28,.4);transform:scale(.99)}100%{text-shadow:0 0 0 rgba(239,68,68,0);transform:scale(1)}}
+  .winner,.winnerName{color:#ffd700!important;animation:goldPulse 3s ease-in-out infinite}
+  @keyframes goldPulse{0%{text-shadow:0 0 3px rgba(255,215,0,.25),0 0 6px rgba(255,220,50,.2)}50%{text-shadow:0 0 8px rgba(255,215,0,.5),0 0 16px rgba(255,220,50,.4)}100%{text-shadow:0 0 3px rgba(255,215,0,.25),0 0 6px rgba(255,220,50,.2)}}
+  #fsBtn{position:fixed;top:8px;right:8px;z-index:10;background:#0b1224;border:1px solid #122042;color:#e5e7eb;padding:.35rem .6rem;border-radius:.5rem;cursor:pointer;font:12px system-ui}
+</style>
+</head>
+<body>
+<button id="fsBtn" title="Fullskjerm">⛶ Fullskjerm</button>
+<div class="wrap" id="wrap">
+  <div class="side" id="left">
+    <div class="top"><div class="name" id="nameA">Spiller A</div><div class="sets" id="setsA">0</div></div>
+    <div class="scoreBox"><div class="score" id="scoreA"><span class="digits" id="A_digits"><span class="digit" id="A_tens">0</span><span class="digit" id="A_ones">0</span></span></div></div>
+  </div>
+  <div class="divider"></div>
+  <div class="side" id="right">
+    <div class="top"><div class="name" id="nameB">Spiller B</div><div class="sets" id="setsB">0</div></div>
+    <div class="scoreBox"><div class="score" id="scoreB"><span class="digits" id="B_digits"><span class="digit" id="B_tens">0</span><span class="digit" id="B_ones">0</span></span></div></div>
+  </div>
+</div>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-database.js";
+  const firebaseConfig = { apiKey:"AIzaSyC_ApdJ1Xjldak5lw2myQI-6Y08ncU2UtM", authDomain:"badmintonteller.firebaseapp.com", projectId:"badmintonteller", storageBucket:"badmintonteller.firebasestorage.app", messagingSenderId:"776787720081", appId:"1:776787720081:web:6802244ed1a94519760c30", measurementId:"G-9PK8TF32H2" };
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app, "https://badmintonteller-default-rtdb.europe-west1.firebasedatabase.app/");
+  const gameId = new URL(location.href).searchParams.get("game");
+  if(!gameId){alert("Mangler ?game=ID i URL");throw new Error("Missing game id");}
+  const els={nameA:document.getElementById("nameA"),nameB:document.getElementById("nameB"),setsA:document.getElementById("setsA"),setsB:document.getElementById("setsB"),A_tens:document.getElementById("A_tens"),A_ones:document.getElementById("A_ones"),B_tens:document.getElementById("B_tens"),B_ones:document.getElementById("B_ones"),scoreA:document.getElementById("scoreA"),scoreB:document.getElementById("scoreB"),left:document.getElementById("left"),right:document.getElementById("right")};
+  function bumpPlus(el){el.classList.remove("pop");void el.offsetWidth;el.classList.add("pop");setTimeout(()=>el.classList.remove("pop"),560)}
+  function bumpMinus(el){el.classList.remove("popMinus");void el.offsetWidth;el.classList.add("popMinus");setTimeout(()=>el.classList.remove("popMinus"),560)}
+  function setDigits(score,prefix){const tEl=els[prefix+"_tens"],oEl=els[prefix+"_ones"];if(score<10){tEl.textContent="0";tEl.classList.add("ghost");oEl.textContent=String(score)}else{const tens=Math.floor(score/10),ones=score%10;tEl.textContent=String(tens);tEl.classList.remove("ghost");oEl.textContent=String(ones)}}
+  function clearWinners(){els.scoreA.classList.remove("winner");els.scoreB.classList.remove("winner");els.nameA.classList.remove("winnerName","winner");els.nameB.classList.remove("winnerName","winner")}
+  function setWinner(side){clearWinners();if(side==='A'){els.scoreA.classList.add("winner");els.nameA.classList.add("winnerName")}else{els.scoreB.classList.add("winner");els.nameB.classList.add("winnerName")}}
+  function fitScores(){const base=100;[els.scoreA,els.scoreB].forEach(s=>s.style.fontSize=base+"px");const sides=[els.left,els.right],namesH=[els.left.querySelector(".top").offsetHeight,els.right.querySelector(".top").offsetHeight];const availH=sides.map((side,i)=>{const cs=getComputedStyle(side);const pad=(parseFloat(cs.paddingTop)||0)+(parseFloat(cs.paddingBottom)||0);return Math.max(40,side.clientHeight-namesH[i]-pad)});const boxA=els.left.querySelector(".scoreBox"),boxB=els.right.querySelector(".scoreBox"),padX=s=>{const cs=getComputedStyle(s);return(parseFloat(cs.paddingLeft)||0)+(parseFloat(cs.paddingRight)||0)};const availW=[Math.max(40,boxA.clientWidth-padX(els.scoreA)),Math.max(40,boxB.clientWidth-padX(els.scoreB))];const rectA=document.getElementById("A_digits").getBoundingClientRect(),rectB=document.getElementById("B_digits").getBoundingClientRect();const scaleA=Math.min(availW[0]/Math.max(1,rectA.width),availH[0]/Math.max(1,rectA.height)),scaleB=Math.min(availW[1]/Math.max(1,rectB.width),availH[1]/Math.max(1,rectB.height));const f=Math.floor(base*Math.max(.01,Math.min(scaleA,scaleB)));els.scoreA.style.fontSize=f+"px";els.scoreB.style.fontSize=f+"px"}
+  const queueFit=(()=>{let raf=0,t=0;return function(){cancelAnimationFrame(raf);clearTimeout(t);raf=requestAnimationFrame(()=>{fitScores();t=setTimeout(fitScores,60)})}})();
+  window.addEventListener("resize",queueFit);if(window.visualViewport)visualViewport.addEventListener("resize",queueFit);document.addEventListener("fullscreenchange",queueFit);window.addEventListener("orientationchange",()=>setTimeout(queueFit,60));
+  document.getElementById("fsBtn").addEventListener("click",()=>{if(!document.fullscreenElement){document.documentElement.requestFullscreen()}else{document.exitFullscreen()}});
+  let prev={A:0,B:0,setsA:0,setsB:0};
+  onValue(ref(db,`games/${gameId}`),snap=>{const v=snap.val();if(!v)return;els.nameA.textContent=v.names?.A??"Spiller A";els.nameB.textContent=v.names?.B??"Spiller B";const sA=Number(v.sets?.A??0),sB=Number(v.sets?.B??0);els.setsA.textContent=sA;els.setsB.textContent=sB;const a=Number(v.scores?.A??0),b=Number(v.scores?.B??0);if(a!==prev.A){setDigits(a,'A');(a>prev.A?bumpPlus:bumpMinus)(els.scoreA)}else{setDigits(a,'A')}if(b!==prev.B){setDigits(b,'B');(b>prev.B?bumpPlus:bumpMinus)(els.scoreB)}else{setDigits(b,'B')}clearWinners();const finished=(sA===2||sB===2)||(v.msg&&v.msg.trim().length>0);if(finished){if(sA>sB)setWinner('A');else if(sB>sA)setWinner('B')}prev={A:a,B:b,setsA:sA,setsB:sB};queueFit()});
+  queueFit();
+</script>
+</body>
+</html>
