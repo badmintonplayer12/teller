@@ -1,18 +1,15 @@
-<!DOCTYPE html>
-<html lang="no">
-<head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
-<title>Badminton Poengteller</title>
+<!DOCTYPE html><html lang="no"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/><title>Badminton Poengteller</title>
 <!--
-Unified control/spectator
+Badminton Poengteller – unified control/spectator
 - URL: index.html?mode=control | ?mode=spectator&game=ID
-- Kebab-meny i control. Minimal UI: kun navn + poeng. 
-- Stabil game-id pr. kontrollbruker (localStorage badm_game_id_v1)
-- Deling: QR (ekte hvis QRCode finnes, ellers pseudo), Kopier, Åpne, Web Share
-- Long-press (~800ms) for −1 (uten +1 ved slipp)
-- Regler: 21 win-by-2, cap 30, best-of-3, autoswap ved 11 i sett 3
-- Swap anim m/ DOM reorder; autoskalering; Firebase v8 (fallback lokalt)
+- Minimal UI (kun navn+poeng). Kebab-meny (⋮) i control.
+- Stabil game-id per kontroll-bruker (localStorage badm_game_id_v1).
+- Delingspanel: Ekte QR via qrcode.min.js (CDN). Hvis lib mangler → bare lenke.
+- Long-press (~800ms) for −1, uten +1 ved slipp (Chrome/Windows fix).
+- BWF: 21 (win by 2, cap 30), best av 3, autoswap i sett 3 ved 11.
+- Tabular digits, +1 blå glow, −1 rød glow, vinner gullpuls.
+- Bytt-side anim som også reordner DOM. Autoskalering (ingen horisontal overflow).
+- Firebase Realtime DB v8 compat; lokal fallback hvis blokkert.
 -->
 <style>
 :root{--gap:clamp(12px,3vw,36px);--divider:2px;--scrollGap:clamp(16px,2.2vw,40px);--accent:#60a5fa;--minus:#ef4444}
@@ -27,13 +24,12 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Aria
 .wrap.swap-go .right{transform:translateX(calc(-100% - var(--gap) - var(--divider)))}
 .no-trans .side{transition:none!important}
 .name{min-height:clamp(36px,6vh,56px);display:flex;align-items:center;justify-content:center;width:100%;margin:.6rem 0 .25rem 0;position:relative}
-.name .combo{position:relative;display:inline-flex;align-items:center}
 .name input{font:inherit;color:#e5e7eb;background:#111827;border:1px solid #0008;border-radius:.5rem;padding:.35rem .75rem;text-align:center;width:min(18ch,92%);max-width:18ch;overflow:hidden;text-overflow:ellipsis;transition:color .6s,text-shadow .6s}
 .name input:disabled{opacity:.95;cursor:default}
 .setCounter{position:absolute;right:-.35rem;top:50%;transform:translate(0,-50%);background:var(--accent);color:#061a2e;font-weight:900;border-radius:999px;padding:.18rem .62rem;min-width:2rem;text-align:center;box-shadow:0 0 10px rgba(96,165,250,.45),0 0 24px rgba(59,130,246,.35);display:none}
 @media(max-width:520px){.setCounter{right:-.15rem}}
 .scoreBox{flex:1 1 auto;width:100%;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.score{pointer-events:auto;width:100%;display:flex;justify-content:center;align-items:center;text-align:center;font-weight:900;line-height:.92;cursor:pointer;white-space:nowrap;overflow:hidden;font-variant-numeric:tabular-nums;will-change:transform,text-shadow;padding:0 2vw;transition:color .6s,text-shadow .6s}
+.score{width:100%;display:flex;justify-content:center;align-items:center;text-align:center;font-weight:900;line-height:.92;cursor:pointer;white-space:nowrap;overflow:hidden;font-variant-numeric:tabular-nums;will-change:transform,text-shadow;padding:0 2vw;transition:color .6s,text-shadow .6s}
 .digits{display:flex;gap:.08em;align-items:baseline;max-width:100%;overflow:hidden}
 .digit{display:inline-block;width:1ch;text-align:center}
 .digit.ghost{visibility:hidden}
@@ -43,29 +39,16 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Aria
 @keyframes minusBurst{0%{text-shadow:0 0 0 rgba(239,68,68,0);transform:scale(1)}20%{text-shadow:0 0 30px rgba(239,68,68,.95),0 0 70px rgba(239,68,68,.7),0 0 110px rgba(185,28,28,.6);transform:scale(0.96)}60%{text-shadow:0 0 20px rgba(239,68,68,.5),0 0 50px rgba(185,28,28,.4);transform:scale(0.985)}100%{text-shadow:0 0 0 rgba(239,68,68,0);transform:scale(1)}}
 .winner,.winnerName{color:#ffd700!important;animation:goldPulse 3s ease-in-out infinite}
 @keyframes goldPulse{0%{text-shadow:0 0 3px rgba(255,215,0,.25),0 0 6px rgba(255,220,50,.2)}50%{text-shadow:0 0 8px rgba(255,215,0,.5),0 0 16px rgba(255,220,50,.4)}100%{text-shadow:0 0 3px rgba(255,215,0,.25),0 0 6px rgba(255,220,50,.2)}}
-#sets{padding:.35rem 1rem .2rem;text-align:center;font-size:1rem}
+#sets{display:none}
 #winnerMsg{padding:.4rem 1rem 0;text-align:center;font-size:clamp(1.1rem,3.5vw,2rem);color:#facc15;font-weight:900;white-space:pre-line}
 .summary{margin:.8rem var(--gap) 0;background:#0b1224;border:1px solid #0b1224;border-radius:.8rem;padding:1rem;display:none}
 .summary h3{margin:.2rem 0 .6rem 0;font-size:1.05rem}
 .summary table{width:100%;border-collapse:collapse}
 .summary th,.summary td{text-align:center;padding:.4rem .3rem;border-bottom:1px solid #1e293b}
 .summary tfoot td{font-weight:700}
-.history{margin:.8rem var(--gap) var(--gap);background:#0b1224;border:1px solid #0b1224;border-radius:.8rem;padding:1rem;display:none}
-.history h3{margin:.2rem 0 .6rem 0;font-size:1.05rem}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.5rem .8rem;margin:.2rem 0 .8rem 0}
-.stat{background:#0f1a33;border:1px solid #122042;border-radius:.6rem;padding:.6rem .7rem;text-align:center}
-.muted{opacity:.85}
-.history table{width:100%;border-collapse:collapse}
-.history th,.history td{text-align:center;padding:.4rem .3rem;border-bottom:1px solid #1e293b}
-.history .leader{display:grid;grid-template-columns:1fr auto;gap:.35rem .6rem;align-items:center}
-.history .leader div{padding:.15rem .25rem;border-bottom:1px dashed #243147}
-.history table td.actions{white-space:nowrap}
-.clickArea{position:absolute;top:0;bottom:0;width:calc(50% - var(--scrollGap));z-index:3;background:transparent;pointer-events:none}
-.areas-active .clickArea{pointer-events:auto;touch-action:pan-y}
-.clickArea.left{left:0}
-.clickArea.right{right:0}
+.history{display:none}
 
-/* Kebab floating button (control) */
+/* Kebab floating button */
 #kebab{position:fixed;top:10px;right:10px;z-index:50;background:#0f172a;border:1px solid #233454;border-radius:.6rem;padding:.35rem .55rem;cursor:pointer;display:none}
 #kebab:focus{outline:2px solid #60a5fa}
 #kebab svg{display:block;width:20px;height:20px}
@@ -79,31 +62,34 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Aria
 /* Share dialog */
 #shareMask{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:60}
 #shareCard{background:#0b1224;border:1px solid #122042;border-radius:.8rem;padding:1rem;max-width:92vw;width:min(560px,92vw)}
-#qrBox{display:block;margin:.5rem auto;background:#0f172a;border:1px solid #233454;border-radius:.4rem;padding:.5rem;min-width:240px;text-align:center}
+#qrBox{display:flex;align-items:center;justify-content:center;background:#ffffff;border:1px solid #233454;border-radius:.4rem;padding:12px;min-width:280px;min-height:280px}
+#qrBox canvas,#qrBox img{image-rendering:pixelated;image-rendering:crisp-edges}
 .shareRow{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;margin-top:.5rem}
 .button{font:inherit;border:0;border-radius:.5rem;padding:.45rem .7rem;cursor:pointer;background:#243147;color:#e5e7eb;border:1px solid #32425f}
 .button.ghost{background:transparent}
 #toast{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);background:#111827;border:1px solid #233454;color:#e5e7eb;padding:.45rem .7rem;border-radius:.5rem;z-index:70;display:none}
-</style>
-</head>
+
+.clickArea{position:absolute;top:0;bottom:0;width:calc(50% - var(--scrollGap));z-index:3;background:transparent;pointer-events:none}
+.areas-active .clickArea{pointer-events:auto;touch-action:pan-y}
+.clickArea.left{left:0}.clickArea.right{right:0}
+</style></head>
 <body>
 
-<!-- (Skjult status) -->
-<div id="sets" aria-live="polite" style="display:none">Sett: 0-0</div>
+<div id="sets" aria-live="polite">Sett: 0-0</div>
 
 <div class="wrap" id="wrap">
   <div class="clickArea left" id="leftArea" aria-label="Legg til poeng venstre"></div>
   <div class="clickArea right" id="rightArea" aria-label="Legg til poeng høyre"></div>
 
   <div class="side left" id="sideA">
-    <div class="name"><div class="combo"><input id="nameA" value="Spiller A" autocomplete="off" placeholder="Spiller A"/></div><div id="setCounterA" class="setCounter">0</div></div>
+    <div class="name"><input id="nameA" value="Spiller A" autocomplete="off" placeholder="Spiller A"/><div id="setCounterA" class="setCounter">0</div></div>
     <div class="scoreBox"><div class="score" id="scoreA"><span class="digits" id="A_digits"><span class="digit" id="A_tens">0</span><span class="digit" id="A_ones">0</span></span></div></div>
   </div>
 
   <div class="divider"></div>
 
   <div class="side right" id="sideB">
-    <div class="name"><div class="combo"><input id="nameB" value="Spiller B" autocomplete="off" placeholder="Spiller B"/></div><div id="setCounterB" class="setCounter">0</div></div>
+    <div class="name"><input id="nameB" value="Spiller B" autocomplete="off" placeholder="Spiller B"/><div id="setCounterB" class="setCounter">0</div></div>
     <div class="scoreBox"><div class="score" id="scoreB"><span class="digits" id="B_digits"><span class="digit" id="B_tens">0</span><span class="digit" id="B_ones">0</span></span></div></div>
   </div>
 </div>
@@ -124,10 +110,10 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Aria
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
 </div>
 
-<!-- Kebab panel -->
+<!-- Kebab menu panel -->
 <div id="menuPanel" role="menu" aria-label="Hovedmeny">
   <div class="menuItem" id="miShare" role="menuitem">🔗 Del…</div>
-  <div class="menuItem" id="miEditNames" role="menuitem">✏️ Rediger spillernavn</div>
+  <div class="menuItem" id="miTempUnlock" role="menuitem">✏️ Rediger spillernavn (midlertidig)</div>
   <div class="menuItem" id="miNewMatch" role="menuitem">🆕 Start ny kamp</div>
   <div class="menuItem" id="miResetSet" role="menuitem">♻️ Nullstill sett</div>
   <div class="menuItem" id="miSwap" role="menuitem">⇄ Bytt side</div>
@@ -144,7 +130,7 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Aria
       <button id="shareClose" class="button ghost" aria-label="Lukk">✕</button>
     </div>
     <div id="qrBox" aria-label="QR-kode"></div>
-    <div style="text-align:center;word-break:break-all;margin-top:.25rem;font-size:.85rem;color:#93c5fd" id="shareUrl"></div>
+    <div id="shareUrl" style="text-align:center;word-break:break-all;margin-top:.5rem;font-size:.9rem;color:#93c5fd"></div>
     <div class="shareRow">
       <button id="btnCopy" class="button">Kopier lenke</button>
       <button id="btnOpenSpectator" class="button">Åpne tilskuer</button>
@@ -157,29 +143,22 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Aria
 
 <script>
 (function(){
-  // ---------- Robust mode/params ----------
-  function readQueryParam(name){
-    try{
-      var m = location.search.match(new RegExp('(?:^|[?&])'+name+'=([^&]+)'));
-      return m ? decodeURIComponent(m[1]) : null;
-    }catch(_){ return null }
-  }
-  var MODE = (readQueryParam('mode') || 'control').toLowerCase();
-  var IS_SPECTATOR = (MODE === 'spectator');
-
   // ---------- Helpers ----------
   function $(s){return document.querySelector(s)}
   function $all(s){return Array.prototype.slice.call(document.querySelectorAll(s)||[])}
   function toast(msg){var t=$('#toast');if(!t)return;t.textContent=msg;t.style.display='block';setTimeout(function(){t.style.display='none'},1400)}
   var LONGPRESS_MS=800,MOVE_THRESH=16;
   var LS_MATCHES='badm_matches_v1',LS_LAST='badm_last_names_v1',LS_LIVE='badm_live_v1',LS_GAMEID='badm_game_id_v1';
+  var params=(function(){try{return new URL(location.href).searchParams}catch(e){return{get:function(){return null}}}})();
+  var MODE=((params.get('mode')||'control')+'').toLowerCase();
+  var IS_SPECTATOR=MODE==='spectator';
 
   // ---------- State ----------
   var scoreA=0,scoreB=0,setsA=0,setsB=0,target=21,cap=30,currentSet=1,swappedAt11=false,locked=false,swapping=false;
   var setHistory=[];var namesSavedThisMatch=false;
-  var tempNamesUnlocked=false; // ny: midlertidig navne-opplåsing til neste poeng
+  var tempNamesUnlocked=false; // kebab: midlertidig navne-redigering, låses ved neste poeng
 
-  // ---------- Layout & side ----------
+  // ---------- DOM / side-ordre ----------
   function setSidesDomTo(isALeft){
     var wrap=$('#wrap'),sideA=$('#sideA'),sideB=$('#sideB'),divider=document.querySelector('.divider');
     if(!(wrap&&sideA&&sideB&&divider))return;
@@ -215,10 +194,10 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Aria
 
   // ---------- Score UI ----------
   function setDigits(sc,p){var t=Math.floor(sc/10),o=sc%10,te=$('#'+p+'_tens'),oe=$('#'+p+'_ones');if(sc<10){te.textContent='0';te.classList.add('ghost')}else{te.textContent=String(t);te.classList.remove('ghost')}oe.textContent=String(o)}
-  function updateScores(){setDigits(scoreA,'A');setDigits(scoreB,'B');updateEditableState();saveLiveState()}
+  function updateScores(){setDigits(scoreA,'A');setDigits(scoreB,'B');var setsEl=$('#sets');setsEl.textContent='Sett: '+setsA+'-'+setsB;var cA=$('#setCounterA'),cB=$('#setCounterB');cA.style.display=setsA>0?'flex':'none';cB.style.display=setsB>0?'flex':'none';if(setsA>0)cA.textContent=setsA;if(setsB>0)cB.textContent=setsB;updateEditableState();saveLiveState()}
   
   
-function fitScores(){
+  function fitScores(){
   document.body.classList.add('measuring');
   var base=100, sA=$('#scoreA'), sB=$('#scoreB');
   if(!sA||!sB){ document.body.classList.remove('measuring'); return; }
@@ -258,80 +237,40 @@ function fitScores(){
   document.body.classList.remove('measuring');
   saveLiveState();
 }
-
-
-
   var queueFit=(function(){var raf=0,t=0;return function(){cancelAnimationFrame(raf);clearTimeout(t);raf=requestAnimationFrame(function(){fitScores();t=setTimeout(fitScores,60)})}})();
   addEventListener('resize',queueFit);document.addEventListener('fullscreenchange',queueFit);if(window.visualViewport)visualViewport.addEventListener('resize',queueFit);
   addEventListener('orientationchange',function(){setTimeout(queueFit,60)});
-
   function bumpPlus(el){if(!el)return;el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop');setTimeout(function(){el.classList.remove('pop')},550)}
   function bumpMinus(el){if(!el)return;el.classList.remove('popMinus');void el.offsetWidth;el.classList.add('popMinus');setTimeout(function(){el.classList.remove('popMinus')},550)}
   function clearWinner(){['#scoreA','#scoreB'].forEach(function(sel){var e=$(sel);if(e)e.classList.remove('winner')});['#nameA','#nameB'].forEach(function(sel){var e=$(sel);if(e)e.classList.remove('winnerName')})}
 
-  // ---------- Editing / click-areas ----------
+  // ---------- Editable / click-areas ----------
   function updateEditableState(){
     var nameA=$('#nameA'),nameB=$('#nameB');
-    var editable = tempNamesUnlocked || (scoreA===0&&scoreB===0&&setsA===0&&setsB===0&&currentSet===1&&!locked&&!IS_SPECTATOR);
+    var atStart=(scoreA===0&&scoreB===0&&setsA===0&&setsB===0&&currentSet===1&&!locked);
+    var editable=!IS_SPECTATOR && (atStart || tempNamesUnlocked);
     nameA.disabled=!editable;nameB.disabled=!editable;
     if(editable)document.body.classList.add('editing');else document.body.classList.remove('editing');
     if(!editable&&!IS_SPECTATOR)document.body.classList.add('areas-active');else document.body.classList.remove('areas-active');
   }
 
-  function unlockNamesTemporarily(){
-    if(IS_SPECTATOR) return;
-    tempNamesUnlocked = true;
-    updateEditableState();
-    toast('Navn kan redigeres – låses ved neste poeng');
-  }
-  function relockNamesIfTemp(){
-    if(!tempNamesUnlocked) return;
-    tempNamesUnlocked = false;
-    updateEditableState();
-  }
-
   // ---------- Points & Logic ----------
-  function maybeSaveNamesOnStart(){
-    if(namesSavedThisMatch)return;
-    var editable=(scoreA===0&&scoreB===0&&setsA===0&&setsB===0&&currentSet===1&&!locked);
-    if(!editable){
-      var nA=$('#nameA').value||'Spiller A',nB=$('#nameB').value||'Spiller B';
-      saveLastNames(nA,nB);namesSavedThisMatch=true;
-    }
-  }
-  function addPoint(s){
-    if(locked||swapping||IS_SPECTATOR)return;
-    if(s==='A')scoreA++;else scoreB++;
-    relockNamesIfTemp();
-    maybeSaveNamesOnStart();
-    checkSetEnd();updateScores();bumpPlus($(s==='A'?'#scoreA':'#scoreB'));fitScores();
-    if(window.pushStateThrottled)window.pushStateThrottled();
-  }
-  function removePoint(s){
-    if(locked||swapping||IS_SPECTATOR)return;
-    if(s==='A'&&scoreA>0)scoreA--;if(s==='B'&&scoreB>0)scoreB--;
-    relockNamesIfTemp();
-    updateScores();bumpMinus($(s==='A'?'#scoreA':'#scoreB'));fitScores();
-    if(window.pushStateThrottled)window.pushStateThrottled();
-  }
+  function maybeSaveNamesOnStart(){if(namesSavedThisMatch)return;var atStart=(scoreA===0&&scoreB===0&&setsA===0&&setsB===0&&currentSet===1&&!locked);if(!atStart){var nA=$('#nameA').value||'Spiller A',nB=$('#nameB').value||'Spiller B';saveLastNames(nA,nB);namesSavedThisMatch=true}}
+  function addPoint(s){if(locked||swapping||IS_SPECTATOR)return;if(s==='A')scoreA++;else scoreB++;tempNamesUnlocked=false;maybeSaveNamesOnStart();checkSetEnd();updateScores();bumpPlus($(s==='A'?'#scoreA':'#scoreB'));fitScores();if(window.pushStateThrottled)window.pushStateThrottled()}
+  function removePoint(s){if(locked||swapping||IS_SPECTATOR)return;if(s==='A'&&scoreA>0)scoreA--;if(s==='B'&&scoreB>0)scoreB--;tempNamesUnlocked=false;updateScores();bumpMinus($(s==='A'?'#scoreA':'#scoreB'));fitScores();if(window.pushStateThrottled)window.pushStateThrottled()}
   function addPointByPosition(pos){var isA=document.querySelector('.side.left').id==='sideA';addPoint((pos==='left')?(isA?'A':'B'):(isA?'B':'A'))}
   function removePointByPosition(pos){var isA=document.querySelector('.side.left').id==='sideA';removePoint((pos==='left')?(isA?'A':'B'):(isA?'B':'A'))}
 
   function fmtDate(ts){var d=new Date(ts);return d.toLocaleString(undefined,{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}
   function pushSetToHistory(a,b){setHistory.push({set:currentSet,a:a,b:b,winner:a>b?'A':(b>a?'B':'-')});saveLiveState()}
-  function renderSummary(finalWinner){
-    var body=$('#summaryBody');var nA=$('#nameA').value||'Spiller A',nB=$('#nameB').value||'Spiller B';
+  function renderSummary(finalWinner){var box=$('#matchSummary');var body=$('#summaryBody');var nA=$('#nameA').value||'Spiller A',nB=$('#nameB').value||'Spiller B';
     $('#sumNameA').textContent=nA;$('#sumNameB').textContent=nB;$('#sumMeta').textContent='Spilt: '+fmtDate(Date.now());
     body.innerHTML='';for(var i=0;i<setHistory.length;i++){var r=setHistory[i];var tr=document.createElement('tr');['set','a','b'].forEach(function(k){var td=document.createElement('td');td.textContent=String(r[k]);tr.appendChild(td)});var tdW=document.createElement('td');tdW.textContent=r.winner==='A'?nA:(r.winner==='B'?nB:'—');tr.appendChild(tdW);body.appendChild(tr)}
-    $('#summaryWinner').textContent='Kampvinner: '+finalWinner;$('#matchSummary').style.display='block';saveLiveState()
+    $('#summaryWinner').textContent='Kampvinner: '+finalWinner;box.style.display='block';saveLiveState()
   }
-  function checkSetEnd(){
-    var lead=Math.abs(scoreA-scoreB);
-    if((scoreA>=target||scoreB>=target)&&(lead>=2||scoreA===cap||scoreB===cap)){
+  function checkSetEnd(){var lead=Math.abs(scoreA-scoreB);if((scoreA>=target||scoreB>=target)&&(lead>=2||scoreA===cap||scoreB===cap)){
       pushSetToHistory(scoreA,scoreB);if(scoreA>scoreB)setsA++;else setsB++;
-      if(setsA===2||setsB===2){
-        var nameA=$('#nameA').value||'Spiller A',nameB=$('#nameB').value||'Spiller B';
-        var winner=setsA===2?nameA:nameB;var loser=setsA===2?nameB:nameA;
+      if(setsA===2||setsB===2){var nameA=$('#nameA').value||'Spiller A',nameB=$('#nameB').value||'Spiller B';var winner=setsA===2?nameA:nameB;var loser=setsA===2?nameB:nameA;
         $('#winnerMsg').textContent='🎉 GRATULERER '+winner.toUpperCase()+'! DU VANT KAMPEN!\n👏 BRA JOBBA '+loser.toUpperCase()+', DU GJORDE DITT BESTE.';
         if(setsA===2){$('#scoreA').classList.add('winner');$('#nameA').classList.add('winnerName')}else{$('#scoreB').classList.add('winner');$('#nameB').classList.add('winnerName')}
         locked=true;document.body.classList.remove('areas-active');renderSummary(winner);saveMatchToHistory();return
@@ -342,7 +281,7 @@ function fitScores(){
     saveLiveState()
   }
 
-  // ---------- History & stats ----------
+  // ---------- History & Stats (vises via meny) ----------
   function loadMatches(){try{var raw=localStorage.getItem(LS_MATCHES);if(!raw)return[];var arr=JSON.parse(raw);return Array.isArray(arr)?arr:[]}catch(e){return[]}}
   function saveMatches(list){try{localStorage.setItem(LS_MATCHES,JSON.stringify(list.slice(0,50)))}catch(e){}}
   function saveMatchToHistory(){var nA=$('#nameA').value||'Spiller A',nB=$('#nameB').value||'Spiller B';var winner=setsA===2?nA:nB;var obj={ts:Date.now(),names:{A:nA,B:nB},sets:setHistory.slice(),winner:winner};var arr=loadMatches();arr.unshift(obj);arr=arr.slice(0,50);saveMatches(arr);saveLastNames(nA,nB);renderHistory();clearLiveState()}
@@ -353,13 +292,15 @@ function fitScores(){
       if(score[0]===2||score[1]===2)stats.straight++;else stats.three++
     }
     stats.avgMargin=stats.sets?(marginSum/stats.sets):0;return stats}
-  function renderStats(arr){
-    var s=fmtStats(arr);var el=document.getElementById('stats');
-    if(!el){el=document.createElement('div');el.id='stats';el.className='stats';var h=document.createElement('div');h.className='history';h.innerHTML='<h3>Siste 50 kamper & oversikt</h3><div style="height:.6rem"></div>';h.appendChild(el);var leader=document.createElement('div');leader.id='leaderboard';h.appendChild(leader);var tbl=document.createElement('table');tbl.innerHTML='<thead><tr><th>#</th><th>Dato</th><th>Spiller A</th><th>Spiller B</th><th>Sett</th><th>Vinner</th><th>Handling</th></tr></thead><tbody id="historyBody"></tbody>';h.appendChild(tbl);document.body.appendChild(h)}
+  function renderStats(arr){var s=fmtStats(arr);var el=document.getElementById('stats');if(!el){el=document.createElement('div');el.id='stats';el.className='stats';var h=document.createElement('div');h.className='history';h.innerHTML='<h3>Siste 50 kamper & oversikt</h3><div style="height:.6rem"></div>';h.appendChild(el);var leader=document.createElement('div');leader.id='leaderboard';h.appendChild(leader);var tbl=document.createElement('table');tbl.innerHTML='<thead><tr><th>#</th><th>Dato</th><th>Spiller A</th><th>Spiller B</th><th>Sett</th><th>Vinner</th><th>Handling</th></tr></thead><tbody id="historyBody"></tbody>';h.appendChild(tbl);document.body.appendChild(h)}
     function card(label,val){var d=document.createElement('div');d.className='stat';d.innerHTML='<div class="muted" style="font-size:.8rem">'+label+'</div><div style="font-size:1.15rem;font-weight:700">'+val+'</div>';return d}
     el.innerHTML='';el.appendChild(card('Kamper lagret',s.matches));el.appendChild(card('Sett spilt',s.sets));el.appendChild(card('2–0-kamper',s.straight));el.appendChild(card('3-settskamper',s.three));el.appendChild(card('Deuce-sett (≥20–20)',String(s.deuceSets)));el.appendChild(card('Snitt seiersmargin/sett',s.avgMargin.toFixed(2)));
-    if(s.maxTotalSet){ el.appendChild( card('Høyest poengsum i sett', String(s.maxTotalSet.a) + '-' + String(s.maxTotalSet.b)) ); }
-
+    
+    if (s.maxTotalSet) {
+  el.appendChild(
+    card('Høyest poengsum i sett', String(s.maxTotalSet.a) + '-' + String(s.maxTotalSet.b))
+  );
+}
     var arr=loadMatches(),winMap={};for(var i=0;i<arr.length;i++){var w=arr[i].winner||'';winMap[w]=(winMap[w]||0)+1}
     var leaderDiv=document.getElementById('leaderboard');leaderDiv.innerHTML='<h4 style="margin:.2rem 0 .4rem 0">Seiersoversikt</h4>';
     var entries=[];for(var k in winMap)if(Object.prototype.hasOwnProperty.call(winMap,k))entries.push([k,winMap[k]]);
@@ -378,7 +319,7 @@ function fitScores(){
     }
     document.querySelector('.history').style.display='block';
   }
-  function renderHistory(){/* no-op (vis via renderStats) */ }
+  function renderHistory(){}
 
   function saveLastNames(a,b){try{localStorage.setItem(LS_LAST,JSON.stringify([a,b]))}catch(e){}}
   function clearLiveState(){try{localStorage.removeItem(LS_LIVE)}catch(e){}}
@@ -402,9 +343,8 @@ function fitScores(){
   // ---------- Fullscreen ----------
   function toggleFullscreen(){if(!document.fullscreenElement){document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen()}else{document.exitFullscreen&&document.exitFullscreen()}}
 
-  // ---------- Long-press −1 (uten +1 ved slipp) ----------
-  function bindLongPressOne(el,action){
-    var tid=0,px=0,py=0,down=false,done=false,scrollY0=0;var suppressUntil=0;
+  // ---------- Long-press −1 uten +1 ved slipp ----------
+  function bindLongPressOne(el,action){var tid=0,px=0,py=0,down=false,done=false,scrollY0=0;var suppressUntil=0;
     function vibrate(m){try{if(navigator.vibrate)navigator.vibrate(m)}catch(_){}} 
     function start(x,y){down=true;done=false;px=x;py=y;scrollY0=window.scrollY;clearTimeout(tid);tid=setTimeout(function(){if(!down||done)return;done=true;suppressUntil=performance.now()+1500;action();vibrate(60)},LONGPRESS_MS)}
     function cancel(){down=false;clearTimeout(tid)}
@@ -415,46 +355,65 @@ function fitScores(){
   }
   function bindTap(el,fn){el.addEventListener('click',fn)}
 
-  // ---------- Kebab ----------
+  // ---------- Kebab Meny ----------
   var kebab=$('#kebab'), panel=$('#menuPanel');
   function togglePanel(){panel.style.display=(panel.style.display==='block')?'none':'block'}
   function closePanel(){panel.style.display='none'}
-  kebab.addEventListener('click',function(e){e.stopPropagation();if(IS_SPECTATOR)return;togglePanel()});
-  kebab.addEventListener('keydown',function(e){if(IS_SPECTATOR)return;if(e.key==='Enter'||e.key===' '){e.preventDefault();togglePanel()}});
+  kebab.addEventListener('click',function(e){e.stopPropagation();togglePanel()});
+  kebab.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();togglePanel()}});
   document.addEventListener('click',function(e){if(!panel.contains(e.target)&&e.target!==kebab)closePanel()});
   document.addEventListener('keydown',function(e){if(e.key==='Escape'){closePanel();closeShare()}});
 
-  // Menu actions
+  // Menu items
   $('#miShare').addEventListener('click',function(){closePanel();openShare()});
-  $('#miEditNames').addEventListener('click',function(){closePanel();unlockNamesTemporarily()});
+  $('#miTempUnlock').addEventListener('click',function(){closePanel();tempNamesUnlocked=true;updateEditableState();toast('Navn kan redigeres til neste poeng')});
   $('#miNewMatch').addEventListener('click',function(){closePanel();startNewMatch()});
   $('#miResetSet').addEventListener('click',function(){closePanel();resetSet()});
   $('#miSwap').addEventListener('click',function(){closePanel();swapSides()});
   $('#miFullscreen').addEventListener('click',function(){closePanel();toggleFullscreen()});
   $('#miStats').addEventListener('click',function(){closePanel();renderStats(loadMatches())});
 
-  // ---------- Deling (QR/pseudo + copy/open/share) ----------
-  var shareMask=$('#shareMask'), shareUrlEl=$('#shareUrl');
-  $('#shareClose').addEventListener('click',closeShare);
-  function openShare(){
-    var url=spectatorUrlFor(ensureStableGameId());
-    shareUrlEl.textContent=url;
-    var box=document.getElementById('qrBox');box.innerHTML='';
-    if (window.QRCode){
-      new QRCode(box,{text:url,width:220,height:220,colorDark:"#ffffff",colorLight:"#0f172a",correctLevel:QRCode.CorrectLevel.H});
-    } else {
-      var c=document.createElement('canvas');c.width=240;c.height=240;box.appendChild(c);
-      var ctx=c.getContext('2d');ctx.fillStyle='#0f172a';ctx.fillRect(0,0,c.width,c.height);ctx.fillStyle='#fff';
-      var cells=33,cell=Math.floor(c.width/cells);
-      for(var y=0;y<cells;y++){for(var x=0;x<cells;x++){if(((x*y)+x+y)%7===0||x%11===0&&y%3===0||y%13===0&&x%5===0){ctx.fillRect(x*cell,y*cell,cell-1,cell-1)}}}
-      var m=3;function finder(px,py){ctx.fillRect(px,py,7*cell,7*cell);ctx.clearRect(px+cell,py+cell,5*cell,5*cell);ctx.fillRect(px+2*cell,py+2*cell,3*cell,3*cell)}
-      finder(m*cell,m*cell);finder((cells-m-7)*cell,m*cell);finder(m*cell,(cells-m-7)*cell);
-      ctx.fillStyle='#93c5fd';ctx.font='12px system-ui';var txt=url;ctx.fillText((txt.length>38?txt.slice(0,38)+'…':txt),8,c.height-8);
-    }
-    shareMask.style.display='flex';
-    $('#btnWebShare').style.display=(navigator.share?'inline-block':'none');
+  // ---------- Deling (ekte QR via CDN; ellers bare lenke) ----------
+  function loadScriptOnce(src, cb){
+    if (document.querySelector('script[data-dyn="'+src+'"]')) { cb(); return; }
+    var s=document.createElement('script');
+    s.src=src; s.async=true; s.setAttribute('data-dyn', src);
+    s.onload=function(){ cb(); };
+    s.onerror=function(){ cb(new Error('load-fail')); };
+    document.head.appendChild(s);
   }
-  function closeShare(){shareMask.style.display='none'}
+  function ensureQrLib(cb){
+    if (window.QRCode) { cb(null); return; }
+    loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js',
+      function(err){ cb((!err && window.QRCode) ? null : new Error('no-lib')); });
+  }
+  function openShare(){
+    var url = spectatorUrlFor(ensureStableGameId());
+    var shareUrlEl = document.getElementById('shareUrl');
+    var box = document.getElementById('qrBox');
+    shareUrlEl.textContent = url;
+    box.innerHTML = ''; // tom container
+
+    ensureQrLib(function(err){
+      if (!err && window.QRCode){
+        new QRCode(box, {
+          text: url,
+          width: 280,
+          height: 280,
+          colorDark: "#000000",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.Q
+        });
+      } else {
+        box.innerHTML = '<div style="color:#fbbf24;text-align:center">QR-kode utilgjengelig. Kopier lenken under.</div>';
+      }
+      document.getElementById('shareMask').style.display='flex';
+      var wsb=document.getElementById('btnWebShare');
+      if (wsb) wsb.style.display = (navigator.share ? 'inline-block' : 'none');
+    });
+  }
+  function closeShare(){document.getElementById('shareMask').style.display='none'}
+  $('#shareClose').addEventListener('click',closeShare);
 
   function copyToClipboard(text){
     if(navigator.clipboard && window.isSecureContext){return navigator.clipboard.writeText(text)}
@@ -462,24 +421,21 @@ function fitScores(){
     return Promise.reject(new Error('copy-fallback-failed'))
   }
   $('#btnCopy').addEventListener('click',function(){
-    var url=shareUrlEl.textContent;copyToClipboard(url).then(function(){toast('Lenke kopiert');if(window.pushStateNow)window.pushStateNow()})
-    .catch(function(){toast('Kopier mislyktes – marker og trykk Ctrl+C');var sel=window.getSelection();var r=document.createRange();r.selectNodeContents(shareUrlEl);sel.removeAllRanges();sel.addRange(r);});
+    var url=$('#shareUrl').textContent;copyToClipboard(url).then(function(){toast('Lenke kopiert');if(window.pushStateNow)window.pushStateNow()})
+    .catch(function(){toast('Kopier mislyktes – marker og trykk Ctrl+C');var sel=window.getSelection();var r=document.createRange();r.selectNodeContents($('#shareUrl'));sel.removeAllRanges();sel.addRange(r);});
   });
-  $('#btnOpenSpectator').addEventListener('click',function(){var url=shareUrlEl.textContent;window.open(url,'_blank');if(window.pushStateNow)window.pushStateNow()});
-  $('#btnWebShare').addEventListener('click',function(){
-    if(!navigator.share)return;var url=shareUrlEl.textContent;
-    navigator.share({title:'Tilskuervy',text:'Badminton tilskuervy',url:url}).catch(function(){});
-  });
+  $('#btnOpenSpectator').addEventListener('click',function(){var url=$('#shareUrl').textContent;window.open(url,'_blank');if(window.pushStateNow)window.pushStateNow()});
+  $('#btnWebShare').addEventListener('click',function(){if(!navigator.share)return;var url=$('#shareUrl').textContent;navigator.share({title:'Tilskuervy',text:'Badminton tilskuervy',url:url}).catch(function(){})});
 
-  // ---------- Stabil game-id & URL ----------
-  function readUrlGame(){var g=readQueryParam('game');return g&&String(g).trim()?g:null}
+  // ---------- Stabil Game ID + URLs ----------
+  function readUrlGame(){var g=params.get('game');return g&&String(g).trim()?g:null}
   function getStoredGameId(){try{return localStorage.getItem(LS_GAMEID)||null}catch(e){return null}}
   function setStoredGameId(g){try{localStorage.setItem(LS_GAMEID,g)}catch(e){}}
   function makeId(n){n=n||8;var a='ABCDEFGHJKLMNPQRSTUVXYZ23456789',out='';for(var i=0;i<n;i++)out+=a.charAt(Math.floor(Math.random()*a.length));return out}
   function ensureStableGameId(){var fromUrl=readUrlGame();if(fromUrl){setStoredGameId(fromUrl);return fromUrl}var stored=getStoredGameId();if(stored)return stored;var g=makeId(8);setStoredGameId(g);return g}
   function spectatorUrlFor(g){try{var u=new URL(location.href);u.searchParams.set('mode','spectator');u.searchParams.set('game',g);return u.toString()}catch(e){return location.origin+location.pathname+'?mode=spectator&game='+encodeURIComponent(g)}}
 
-  // ---------- Firebase v8 ----------
+  // ---------- Firebase (v8 compat) ----------
   window.pushStateThrottled=null;window.pushStateNow=null;
   function domScore(prefix){var tens=document.getElementById(prefix+'_tens'),ones=document.getElementById(prefix+'_ones');if(tens&&ones){var t=(tens.textContent||'0').trim();var o=(ones.textContent||'0').trim();var n=parseInt(t+o,10);return isNaN(n)?0:n}return 0}
   function getSets(prefix){var el=document.getElementById(prefix==='A'?'setCounterA':'setCounterB');return (el&&el.style.display!=='none')?Number(el.textContent||0):0}
@@ -497,18 +453,22 @@ function fitScores(){
       var conf={apiKey:'AIzaSyC_ApdJ1Xjldak5lw2myQI-6Y08ncU2UtM',authDomain:'badmintonteller.firebaseapp.com',projectId:'badmintonteller',storageBucket:'badmintonteller.firebasestorage.app',messagingSenderId:'776787720081',appId:'1:776787720081:web:6802244ed1a94519760c30',measurementId:'G-9PK8TF32H2',databaseURL:'https://badmintonteller-default-rtdb.europe-west1.firebasedatabase.app/'};
       if(!firebase.apps.length)firebase.initializeApp(conf);var db=firebase.database();
       if(IS_SPECTATOR){
-        setSidesDomTo(true);
+        // husk forrige verdier for selektiv bump
+        var prevA=null, prevB=null;
         db.ref('games/'+readUrlGame()).on('value',function(snap){
           var v=snap.val();if(!v)return;
+          // sett sideposisjon før digits for å unngå feil bump
+          if(typeof v.isALeft==='boolean')setSidesDomTo(v.isALeft);
           $('#nameA').value=(v.names&&v.names.A)||'Spiller A';
           $('#nameB').value=(v.names&&v.names.B)||'Spiller B';
           setsA=Number((v.sets&&v.sets.A)||0);setsB=Number((v.sets&&v.sets.B)||0);
           var a=Number((v.scores&&v.scores.A)||0),b=Number((v.scores&&v.scores.B)||0);
-          var pa=scoreA,pb=scoreB;scoreA=a;scoreB=b;updateScores();
-          if(a!==pa)((a>pa)?bumpPlus:bumpMinus)($('#scoreA'));
-          if(b!==pb)((b>pb)?bumpPlus:bumpMinus)($('#scoreB'));
+          scoreA=a;scoreB=b;updateScores();
+          // kun bump den som endret seg
+          if(prevA!==null && a!==prevA)((a>prevA)?bumpPlus:bumpMinus)($('#scoreA'));
+          if(prevB!==null && b!==prevB)((b>prevB)?bumpPlus:bumpMinus)($('#scoreB'));
+          prevA=a; prevB=b;
           clearWinner();
-          if(typeof v.isALeft==='boolean')setSidesDomTo(v.isALeft);
           $('#winnerMsg').textContent=v.msg||'';
           queueFit();
         })
@@ -525,7 +485,7 @@ function fitScores(){
 
   // ---------- Resets ----------
   function resetSet(){scoreA=0;scoreB=0;swappedAt11=false;updateScores();fitScores();saveLiveState();if(window.pushStateThrottled)window.pushStateThrottled()}
-  function startNewMatch(){scoreA=0;scoreB=0;setsA=0;setsB=0;currentSet=1;swappedAt11=false;locked=false;setHistory=[];$('#winnerMsg').textContent='';clearWinner();$('#matchSummary').style.display='none';document.body.classList.remove('areas-active');updateEditableState();updateScores();fitScores();saveLiveState();if(window.pushStateThrottled)window.pushStateThrottled()}
+  function startNewMatch(){scoreA=0;scoreB=0;setsA=0;setsB=0;currentSet=1;swappedAt11=false;locked=false;setHistory=[];$('#winnerMsg').textContent='';clearWinner();$('#matchSummary').style.display='none';document.body.classList.remove('areas-active');tempNamesUnlocked=false;updateEditableState();updateScores();fitScores();saveLiveState();if(window.pushStateThrottled)window.pushStateThrottled()}
 
   // ---------- Init ----------
   function init(){
@@ -553,52 +513,5 @@ function fitScores(){
   // Expose (debug)
   window.startNewMatch=startNewMatch;window.resetSet=resetSet;window.swapSides=swapSides;
 
-})();
-
-function openShare(){
-  var url = spectatorUrlFor(ensureStableGameId());
-  document.getElementById('shareUrl').textContent = url;
-  var box = document.getElementById('qrBox');
-  box.innerHTML = '';
-
-  if (window.QRCode) {
-    // ekte QR lib tilgjengelig
-    new QRCode(box, {
-      text: url,
-      width: 220,
-      height: 220,
-      colorDark: "#ffffff",
-      colorLight: "#0f172a",
-      correctLevel: QRCode.CorrectLevel.H
-    });
-  } else {
-    // fallback: pseudo-QR på canvas
-    var c = document.createElement('canvas');
-    c.width = 220; c.height = 220;
-    box.appendChild(c);
-    var ctx = c.getContext('2d');
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(0,0,c.width,c.height);
-    ctx.fillStyle = '#fff';
-    var cells=33,cell=Math.floor(c.width/cells);
-    for(var y=0;y<cells;y++){
-      for(var x=0;x<cells;x++){
-        if(((x*y)+x+y)%7===0) ctx.fillRect(x*cell,y*cell,cell-1,cell-1);
-      }
-    }
-    ctx.fillStyle='#93c5fd';
-    ctx.font='12px system-ui';
-    ctx.fillText(url.slice(0,32)+'…',8,c.height-8);
-  }
-
-  document.getElementById('shareMask').style.display='flex';
-  document.getElementById('btnWebShare').style.display=(navigator.share?'inline-block':'none');
-}
-
-
-
-</script>
-
-<!-- Lim inn ekte qrcode.min.js etter dette hvis ønskelig -->
-</body>
-</html>
+})();</script>
+</body></html>
