@@ -584,7 +584,7 @@ function setSidesDomTo(isALeftTarget){
     updateNameChips();
   }
   }
-  function startVisualSwap(){
+  function startVisualSwap(done){
   if(swapping) return;
   swapping = true;
 
@@ -618,7 +618,14 @@ function setSidesDomTo(isALeftTarget){
       updateNameChips();
     }
 
-    fitScores(); swapping=false; saveLiveState(); pushStateThrottled();
+    fitScores();
+    swapping = false;
+    saveLiveState();
+    (typeof pushStateNow === 'function' ? pushStateNow() : pushStateThrottled()); // flush isALeft nå
+
+    if (typeof done === 'function') {  // …så kan vi gjøre "etter-animasjon"
+      try { done(); } catch(_) {}
+    }
   }
   function onEnd(e){ if(e.target!==left&&e.target!==right) return; complete() }
 
@@ -878,26 +885,34 @@ function checkSetEnd(){
 function advanceToNextSet(){
   if (!betweenSets) return;
 
-  // Nullstill for nytt sett
-  scoreA = 0; scoreB = 0;
-  currentSet++;
-  swappedAt11 = false;
-
-  // Rydd pause-state
-  betweenSets = false;
-  pendingSetWinner = null;
-  locked = false;
-
+  // Lås under animasjonen og skjul knappen
+  locked = true;
   var ns = document.getElementById('nextSetBtn');
   if (ns) ns.style.display = 'none';
 
-  // Bytt side før første poeng i settet
-  startVisualSwap();
+  // Forbered ny setttilstand (men ikke rør poeng før etter swap)
+  currentSet++;
+  swappedAt11 = false;
 
-  updateScores();
-  fitScores();
-  saveLiveState();
-  pushStateThrottled();
+  startVisualSwap(function afterSwap(){
+    // Nå er animasjonen ferdig – nullstill poeng
+    scoreA = 0;
+    scoreB = 0;
+
+    betweenSets = false;
+    pendingSetWinner = null;
+    locked = false;
+
+    updateScores();
+    fitScores();
+    saveLiveState();
+
+    // Vent litt lenger enn CSS-transition (1s) før vi sender 0–0 til RTDB
+    setTimeout(function(){
+      if (typeof pushStateNow === 'function') pushStateNow();
+      else pushStateThrottled();
+    }, 1050); // justér om du endrer animasjonsvarighet
+  });
 }
 
 /* ===== History + recent names ===== */
@@ -1268,6 +1283,8 @@ function showMatch() {
 
 /* ===== Spectator helpers/state ===== */
 var __spectPrev = { isALeft: null, A: null, B: null, setsA: null, setsB: null };
+var __spectIsSwapping = false;     // ny
+var __spectPendingZero = false;    // ny
 
 function setNameChipsDirect(Aname, Bname){
   var ca = document.getElementById('nameA_chip');
@@ -1277,14 +1294,16 @@ function setNameChipsDirect(Aname, Bname){
 }
 
 // Swap-ANIMASJON for spectator (ingen modal-synk)
-function startVisualSwapSpectator(){
+function startVisualSwapSpectator(done){
   var wrap = document.getElementById('wrap');
   var left = document.querySelector('.side.left');
   var right = document.querySelector('.side.right');
   var div = document.querySelector('.divider');
-  if (!(wrap && left && right && div)) return;
+  if (!(wrap && left && right && div)) { if (typeof done==='function') done(); return; }
 
   if (wrap.classList.contains('swap-go')) return;
+
+  __spectIsSwapping = true; // <— NYTT
 
   wrap.classList.add('swap-go');
   var finished = false;
@@ -1301,6 +1320,19 @@ function startVisualSwapSpectator(){
     }catch(e){}
     wrap.classList.remove('swap-go'); void wrap.offsetWidth; wrap.classList.remove('no-trans');
     fitScores();
+
+    __spectIsSwapping = false; // <— NYTT
+
+    // Hvis vi utsatte 0–0, påfør det nå – uten glød
+    if (__spectPendingZero) {
+      __spectPendingZero = false;
+      scoreA = 0; scoreB = 0;
+      updateScores();
+      document.getElementById('A_digits')?.classList.remove('pop','popMinus');
+      document.getElementById('B_digits')?.classList.remove('pop','popMinus');
+    }
+
+    if (typeof done==='function') { try{ done(); }catch(_){} }
   }
   function onEnd(e){
     if (e.target !== left && e.target !== right) return;
@@ -1347,6 +1379,19 @@ var sB = Number((v.sets && v.sets.B) || 0);
 
 var isSetChange = (prevSA != null && (sA !== prevSA || sB !== prevSB));
 
+// NY: kjenn igjen "reset til 0–0"
+var dropToZero = (a === 0 && b === 0) && ((prevA > 0) || (prevB > 0));
+
+var wantSwap = (__spectPrev.isALeft !== null) && (__spectPrev.isALeft !== nextIsALeft); // ny
+
+// Hold igjen 0–0 til etter animasjonen
+if (dropToZero && (wantSwap || __spectIsSwapping)) {
+  __spectPendingZero = true;
+  // behold gamle poeng på skjermen mens vi animerer bytte
+  a = (typeof prevA === 'number') ? prevA : a;
+  b = (typeof prevB === 'number') ? prevB : b;
+}
+
 scoreA = a; scoreB = b;
 setsA = sA; setsB = sB;
 // (valgfritt) oppdater også currentSet om du vil vise det senere:
@@ -1366,15 +1411,13 @@ if (__spectPrev.isALeft === null) {
 // 4) Poeng -> oppdater og bump KUN siden som endret seg
 updateScores();
 
-// Bump bare når det IKKE er sett-overgang og IKKE en sett-reset
+// Ikke glød ved sett-overgang eller ved 0–0-reset
+var suppressBumps = isSetChange || dropToZero;
+
 var elA = document.getElementById('A_digits');
 var elB = document.getElementById('B_digits');
 
-var bothDropped = (prevA != null && prevB != null) && (a < prevA) && (b < prevB);
-var resetToZero = (prevA != null && prevB != null) && (a === 0 && b === 0) && ((prevA + prevB) >= 2);
-var isSetReset = isSetChange || bothDropped || resetToZero;
-
-if (!isSetReset) {
+if (!suppressBumps) {
   if (prevA != null && a !== prevA) ((a > prevA) ? bumpPlus : bumpMinus)(elA);
   if (prevB != null && b !== prevB) ((b > prevB) ? bumpPlus : bumpMinus)(elB);
 } else {
