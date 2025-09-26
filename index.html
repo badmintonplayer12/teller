@@ -37,9 +37,9 @@ body.no-scroll{overflow-y:hidden}
 @media (max-width:520px){ .setCounter{ right:-.15rem } }
 
 /* scores */
-.scoreBox{flex:1 1 auto;width:100%;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.score{width:100%;display:flex;justify-content:center;align-items:center;text-align:center;font-weight:900;line-height:.92;cursor:pointer;white-space:nowrap;overflow:hidden;font-variant-numeric:tabular-nums;will-change:transform,text-shadow;padding:0 2vw;transition:color .6s,text-shadow .6s}
-.digits{display:flex;gap:.08em;align-items:baseline;max-width:100%;overflow:hidden}
+.scoreBox{flex:1 1 auto;width:100%;min-height:0;display:flex;align-items:center;justify-content:center;overflow:visible}
+.score{width:100%;display:flex;justify-content:center;align-items:center;text-align:center;font-weight:900;line-height:.92;cursor:pointer;white-space:nowrap;overflow:visible;font-variant-numeric:tabular-nums;will-change:transform,text-shadow;padding:0 2vw;transition:color .6s,text-shadow .6s}
+.digits{display:flex;gap:.08em;align-items:baseline;max-width:100%;overflow:visible}
 .digit{display:inline-block;width:1ch;text-align:center}
 .digit.ghost{visibility:hidden}
 
@@ -81,18 +81,44 @@ body.no-scroll{overflow-y:hidden}
 
 /* Name modal (separate screen) */
 #nameMask{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6);z-index:65}
-.nameCard{background:#0b1224;border:1px solid #122042;border-radius:1rem;padding:1rem 1.2rem;width:min(560px,92vw)}
+.nameCard{background:#0b1224;border:1px solid #122042;border-radius:1rem;padding:1rem 1.2rem;width:min(560px,92vw);max-width:calc(100vw - 2rem)}
 .nameRow{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
-.nameField{display:flex;flex-direction:column;gap:.3rem}
+.nameField{display:flex;flex-direction:column;gap:.3rem;min-width:0}
 .nameField label{font-size:.85rem;color:#93c5fd}
-.nameField input{font:inherit;background:#111827;color:#e5e7eb;border:1px solid #233454;border-radius:.6rem;padding:.5rem .7rem}
-.autocomplete{position:relative;display:inline-block;width:100%}
-.autocomplete input{padding-right:2.5rem}
+.nameField input{font:inherit;background:#111827;color:#e5e7eb;border:1px solid #233454;border-radius:.6rem;padding:.5rem .7rem;width:100%;box-sizing:border-box}
+.autocomplete{position:relative;display:block;width:100%}
+.autocomplete input{padding-right:2.5rem;width:100%;box-sizing:border-box}
 .dropdown-btn{position:absolute;right:.5rem;top:50%;transform:translateY(-50%);background:none;border:none;color:#94a3b8;cursor:pointer;font-size:.8rem;padding:.2rem;border-radius:.2rem;transition:color .2s}
 .dropdown-btn:hover{color:#e2e8f0;background:rgba(255,255,255,.1)}
-.autocomplete-items{position:absolute;border:1px solid #233454;border-bottom:none;border-top:none;z-index:99;top:100%;left:0;right:0;max-height:200px;overflow-y:auto;background:#111827;border-radius:0 0 .6rem .6rem}
-.autocomplete-items div{padding:.5rem .7rem;cursor:pointer;background-color:#111827;border-bottom:1px solid #233454;color:#e5e7eb}
-.autocomplete-items div:hover{background-color:#1e293b}
+/* Dropdown i flukt med input-feltet */
+.autocomplete-items{
+  position: absolute;
+  /* trekk den opp 1px så kantene møtes uten "glippe" */
+  top: calc(100% - 1px);
+  left: 0;
+  right: 0;
+
+  /* samme kant som input, men uten top-kant */
+  border: 1px solid #233454;
+  border-top: none;
+
+  /* samme radius som input – kun nede */
+  border-radius: 0 0 .6rem .6rem;
+
+  background: #111827;
+  box-shadow: 0 8px 24px rgba(0,0,0,.35);
+  overflow: hidden;            /* klipp runde hjørner riktig */
+  z-index: 1000;               /* over annet innhold i modalen */
+  max-height: 200px;           /* behold høydebegrensning */
+  /* fjern eventuelle interne margins/padding som kan skape skjevhet */
+  margin: 0;
+}
+
+.autocomplete-items div{
+  padding: .6rem .8rem;
+  border-bottom: 1px solid #233454;
+}
+.autocomplete-items div:last-child{ border-bottom: 0; }
 .autocomplete-active{background-color:#60a5fa !important;color:#061a2e !important}
 .modalActions{display:flex;gap:.6rem;justify-content:flex-end;margin-top:1rem}
 
