@@ -1,0 +1,241 @@
+/* Modal Base Styles */
+.modalMask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modalBox {
+  background: #0f172a;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  border: 1px solid #1e293b;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #1e293b;
+}
+
+.modalHeader h2 {
+  margin: 0;
+  color: #e2e8f0;
+  font-size: 1.5rem;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  transition: color 0.2s;
+}
+
+.closeBtn:hover {
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.modalContent {
+  margin-bottom: 1.5rem;
+}
+
+.modalActions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btnPrimary {
+  background: var(--accent);
+  color: #061a2e;
+}
+
+.btnPrimary:hover {
+  background: #60a5fa;
+  transform: translateY(-1px);
+}
+
+.btnSecondary {
+  background: #374151;
+  color: #e2e8f0;
+}
+
+.btnSecondary:hover {
+  background: #4b5563;
+  transform: translateY(-1px);
+}
+
+/* Summary Modal */
+.summaryModal {
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.winnerAnnouncement {
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: rgba(96, 165, 250, 0.1);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+.summaryTable {
+  margin: 1rem 0;
+}
+
+.summaryTable h3 {
+  margin: 0 0 0.8rem 0;
+  font-size: 1.1rem;
+  color: #e2e8f0;
+}
+
+.summaryTable table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.summaryTable th,
+.summaryTable td {
+  padding: 0.6rem 0.8rem;
+  text-align: center;
+  border-bottom: 1px solid rgba(30, 41, 59, 0.5);
+}
+
+.summaryTable th {
+  background: rgba(30, 41, 59, 0.8);
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.summaryTable td {
+  color: #e2e8f0;
+}
+
+.summaryTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.summaryTable tbody tr:hover {
+  background: rgba(30, 41, 59, 0.3);
+}
+
+/* Name modal (separate screen) */
+#nameMask{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6);z-index:65}
+.nameCard{background:#0b1224;border:1px solid #122042;border-radius:1rem;padding:1rem 1.2rem;width:min(560px,92vw);max-width:calc(100vw - 2rem)}
+.nameRow{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+.nameField{display:flex;flex-direction:column;gap:.3rem;min-width:0}
+.nameField label{font-size:.85rem;color:#93c5fd}
+.nameField input{font:inherit;background:#111827;color:#e5e7eb;border:1px solid #233454;border-radius:.6rem;padding:.5rem .7rem;width:100%;box-sizing:border-box}
+.autocomplete{position:relative;display:block;width:100%}
+.autocomplete input{padding-right:2.5rem;width:100%;box-sizing:border-box}
+.dropdown-btn{position:absolute;right:.5rem;top:50%;transform:translateY(-50%);background:none;border:none;color:#94a3b8;cursor:pointer;font-size:.8rem;padding:.2rem;border-radius:.2rem;transition:color .2s}
+.dropdown-btn:hover{color:#e2e8f0;background:rgba(255,255,255,.1)}
+/* Dropdown i flukt med input-feltet */
+.autocomplete-items{
+  position: absolute;
+  /* trekk den opp 1px så kantene møtes uten "glippe" */
+  top: calc(100% - 1px);
+  left: 0;
+  right: 0;
+
+  /* samme kant som input, men uten top-kant */
+  border: 1px solid #233454;
+  border-top: none;
+
+  /* samme radius som input – kun nede */
+  border-radius: 0 0 .6rem .6rem;
+
+  background: #111827;
+  box-shadow: 0 8px 24px rgba(0,0,0,.35);
+  overflow: hidden;            /* klipp runde hjørner riktig */
+  z-index: 1000;               /* over annet innhold i modalen */
+  max-height: 200px;           /* behold høydebegrensning */
+  /* fjern eventuelle interne margins/padding som kan skape skjevhet */
+  margin: 0;
+}
+
+.autocomplete-items div{
+  padding: .6rem .8rem;
+  border-bottom: 1px solid #233454;
+}
+.autocomplete-items div:last-child{ border-bottom: 0; }
+.autocomplete-active{background-color:#60a5fa !important;color:#061a2e !important}
+
+/* Summary Button */
+.summaryBtn {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: #061a2e;
+  border: none;
+  border-radius: 2rem;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 25px rgba(96, 165, 250, 0.4);
+  transition: all 0.3s ease;
+  z-index: 10;
+  animation: pulse 2s infinite;
+}
+
+.summaryBtn:hover {
+  background: #60a5fa;
+  transform: translateX(-50%) translateY(-2px);
+  box-shadow: 0 12px 35px rgba(96, 165, 250, 0.6);
+}
+
+.summaryBtn:active {
+  transform: translateX(-50%) translateY(0);
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 8px 25px rgba(96, 165, 250, 0.4);
+  }
+  50% {
+    box-shadow: 0 8px 25px rgba(96, 165, 250, 0.8);
+  }
+  100% {
+    box-shadow: 0 8px 25px rgba(96, 165, 250, 0.4);
+  }
+}
+

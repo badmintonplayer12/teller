@@ -1,0 +1,39 @@
+/* layout */
+.wrap{flex:1 1 auto;min-height:100vh;display:grid;grid-template-columns:1fr var(--divider) 1fr;column-gap:var(--gap);padding:var(--gap);align-items:stretch;overflow:hidden;position:relative}
+.divider{width:var(--divider);background:#1e293b;z-index:2}
+.side{position:relative;background:#0f172a;border-radius:.8rem;padding:clamp(8px,1.8vw,16px);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow:hidden;will-change:transform;transition:transform 1s ease;z-index:1}
+.wrap.swap-go .left{transform:translateX(calc(100% + var(--gap) + var(--divider)))}
+.wrap.swap-go .right{transform:translateX(calc(-100% - var(--gap) - var(--divider)))}
+.no-trans .side{transition:none!important}
+
+/* name chips */
+.name{min-height:clamp(36px,6vh,56px);display:flex;align-items:center;justify-content:center;width:100%;margin:.6rem 0 .25rem 0;position:relative}
+.name .chip{background:#111827;border:1px solid #0008;border-radius:.5rem;min-width:12ch;max-width:22ch;padding:.35rem .8rem}
+.name .chip span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.setCounter{position:absolute;right:-.35rem;top:50%;transform:translate(0,-50%);background:var(--accent);color:#061a2e;font-weight:900;border-radius:999px;padding:.18rem .62rem;min-width:2rem;text-align:center;box-shadow:0 0 10px rgba(96,165,250,.45),0 0 24px rgba(59,130,246,.35);display:none}
+@media (max-width:520px){ .setCounter{ right:-.15rem } }
+
+/* scores */
+.scoreBox{flex:1 1 auto;width:100%;min-height:0;display:flex;align-items:center;justify-content:center;overflow:visible}
+.score{width:100%;display:flex;justify-content:center;align-items:center;text-align:center;font-weight:900;line-height:.92;cursor:pointer;white-space:nowrap;overflow:visible;font-variant-numeric:tabular-nums;will-change:transform,text-shadow;padding:0 2vw;transition:color .6s,text-shadow .6s}
+.digits{display:flex;gap:.08em;align-items:baseline;max-width:100%;overflow:visible}
+.digit{display:inline-block;width:1ch;text-align:center}
+.digit.ghost{visibility:hidden}
+
+/* animations */
+.pop{animation:glowBurst .55s ease-out 1}
+.popMinus{animation:minusBurst .55s ease-out 1}
+@keyframes glowBurst{0%{text-shadow:0 0 0 rgba(96,165,250,0);transform:scale(1)}20%{text-shadow:0 0 30px rgba(96,165,250,.95),0 0 70px rgba(59,130,246,.8),0 0 110px rgba(37,99,235,.7);transform:scale(1.08)}60%{text-shadow:0 0 20px rgba(96,165,250,.55),0 0 50px rgba(59,130,246,.45);transform:scale(1.03)}100%{text-shadow:0 0 0 rgba(96,165,250,0);transform:scale(1)}}
+@keyframes minusBurst{0%{text-shadow:0 0 0 rgba(239,68,68,0);transform:scale(1)}20%{text-shadow:0 0 30px rgba(239,68,68,.95),0 0 70px rgba(239,68,68,.7),0 0 110px rgba(185,28,28,.6);transform:scale(0.96)}60%{text-shadow:0 0 20px rgba(239,68,68,.5),0 0 50px rgba(185,28,28,.4);transform:scale(0.985)}100%{text-shadow:0 0 0 rgba(239,68,68,0);transform:scale(1)}}
+.winner,.winnerName{color:#ffd700!important;animation:goldPulse 3s ease-in-out infinite}
+@keyframes goldPulse{0%{text-shadow:0 0 3px rgba(255,215,0,.25),0 0 6px rgba(255,220,50,.2)}50%{text-shadow:0 0 8px rgba(255,215,0,.5),0 0 16px rgba(255,220,50,.4)}100%{text-shadow:0 0 3px rgba(255,215,0,.25),0 0 6px rgba(255,220,50,.2)}}
+
+#sets{padding:.35rem 1rem .2rem;text-align:center;font-size:1rem;display:none}
+#winnerMsg{padding:.4rem 1rem 0;text-align:center;font-size:clamp(1.1rem,3.5vw,2rem);color:#facc15;font-weight:900;white-space:pre-line}
+
+/* click areas */
+.clickArea{position:absolute;top:0;bottom:0;width:calc(50% - 24px);z-index:3;background:transparent;pointer-events:none}
+.areas-active .clickArea{pointer-events:auto;touch-action:pan-y}
+.clickArea.left{left:0}
+.clickArea.right{right:0}
+

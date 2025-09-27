@@ -1,0 +1,1 @@
+Please use ai to generate an ai transition prompt so i can start a new conversation thread. This one is too long. Please summarize the work we have done already, context is important. Preserve the advanced directive also. If you need to create a json to maintain as much context as possible please do so. I cannot lose any important context or things we have decided on. Thank you
