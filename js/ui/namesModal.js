@@ -87,8 +87,16 @@ export function autocomplete(input, listId) {
     list.style.display = "block";
     matches.forEach(function(match) {
       var div = document.createElement("div");
-      div.innerHTML = "<strong>" + match.substr(0, val.length) + "</strong>" + match.substr(val.length);
-      div.innerHTML += "<input type='hidden' value='" + match + "'>";
+      var strong = document.createElement("strong");
+      strong.textContent = match.substr(0, val.length);
+      var remainder = document.createTextNode(match.substr(val.length));
+      div.appendChild(strong);
+      div.appendChild(remainder);
+
+      var hiddenInput = document.createElement("input");
+      hiddenInput.type = "hidden";
+      hiddenInput.value = match;
+      div.appendChild(hiddenInput);
       div.addEventListener("click", function(e) {
         input.value = this.getElementsByTagName("input")[0].value;
         list.style.display = "none";
