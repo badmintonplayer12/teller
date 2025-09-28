@@ -5,7 +5,7 @@ import { loadMatches, saveMatches, saveLastNames, loadLastNames } from '../servi
 import { initShare, openShare, closeShare } from './share.js';
 import { renderStats, showMatch } from './statsView.js';
 import { setupMenu, renderMenu } from './menu.js';
-import { setupSplash, showSplash, hideSplash, syncSplashButtons } from './splash.js';
+import { setupSplash, showSplash, hideSplash, syncSplashButtons, setSplashContinueState } from './splash.js';
 import { setupTournamentSetup, showTournamentSetup } from './tournamentSetup.js';
 import { setupFirebase, pushStateThrottled, pushStateNow, spectatorShareUrl } from '../services/firebase.js';
 import { setSpectatorDependencies } from '../services/spectator.js';
@@ -64,10 +64,15 @@ export function startMatchFlow(opts){
   opts = opts || {};
   const restored = !!opts.restored;
   const skipSplash = !!opts.skipSplash;
+  const continueMatch = !!opts.continueMatch;
   let handledStart = false;
 
   if(!state.IS_SPECTATOR){
-    if(!restored && !skipSplash){
+    if(continueMatch){
+      handledStart = true;
+    }
+
+    if(!restored && !skipSplash && !continueMatch){
       if(state.playMode === 'tournament'){
         showTournamentSetup();
       }else{
@@ -480,6 +485,7 @@ function startNewMatch(opts){
   fitScores();
   saveState();
   pushStateThrottled();
+  setSplashContinueState({ visible: false });
   
   if(skipSplash){
     // Quick start - go directly to name modal
@@ -628,12 +634,3 @@ export function restoreFromStorage(){
 }
 
 export { updateScores, renderSummary, closeSummaryModal, resetSet, startNewMatch };
-
-
-
-
-
-
-
-
-

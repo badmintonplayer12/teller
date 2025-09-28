@@ -3,6 +3,7 @@ import { $ } from '../dom.js';
 
 let splashMask;
 let splashStartBtn;
+let splashContinueBtn;
 let disciplineButtons = [];
 let modeButtons = [];
 let startCallback = function(){};
@@ -11,6 +12,7 @@ let saveState = function(){};
 function ensureElements(){
   if(!splashMask) splashMask = document.getElementById('splashMask');
   if(!splashStartBtn) splashStartBtn = document.getElementById('splashStartBtn');
+  if(!splashContinueBtn) splashContinueBtn = document.getElementById('splashContinueBtn');
   if(!disciplineButtons.length && splashMask) disciplineButtons = Array.from(splashMask.querySelectorAll('[data-discipline]'));
   if(!modeButtons.length && splashMask) modeButtons = Array.from(splashMask.querySelectorAll('[data-mode]'));
   return !!splashMask;
@@ -60,6 +62,15 @@ export function setupSplash(options){
       setTimeout(function(){ splashStartBtn.disabled = false; }, 400);
     });
   }
+  if(splashContinueBtn){
+    splashContinueBtn.addEventListener('click', function(){
+      if(splashContinueBtn.disabled) return;
+      splashContinueBtn.disabled = true;
+      hideSplash();
+      startCallback({ fromSplash: true, continueMatch: true, skipSplash: true, restored: true });
+      setTimeout(function(){ splashContinueBtn.disabled = false; }, 400);
+    });
+  }
 }
 
 export function syncSplashButtons(){
@@ -89,4 +100,17 @@ export function hideSplash(){
   splashMask.classList.remove('show');
   splashMask.setAttribute('aria-hidden', 'true');
   document.body.classList.remove('splash-open');
+}
+
+export function setSplashContinueState(options){
+  if(!ensureElements()) return;
+  const visible = !!(options && options.visible);
+  if(splashContinueBtn){
+    splashContinueBtn.style.display = visible ? 'block' : 'none';
+    splashContinueBtn.setAttribute('aria-hidden', visible ? 'false' : 'true');
+    splashContinueBtn.tabIndex = visible ? 0 : -1;
+    if(options && options.label){
+      splashContinueBtn.textContent = options.label;
+    }
+  }
 }
