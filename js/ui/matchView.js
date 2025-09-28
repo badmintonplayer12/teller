@@ -1,488 +1,629 @@
-import { state } from '../state/matchState.js';
-import { saveLiveState, restoreLiveState, clearLiveState } from '../state/matchState.js';
-import { fitScores, queueFit, bumpPlus, bumpMinus, swapSides, setSidesDomTo, clearWinner, isALeft } from './layout.js';
-import { readABFromModalInputs, writeModalInputsFromAB, updateNameChips, showNameModal, hideNameModal, updateEditableState, onSaveNames, autocomplete } from './namesModal.js';
-import { loadMatches, saveMatches, saveLastNames, pushPrev, getRecentNames } from '../services/storage.js';
-import { openShare, closeShare } from './share.js';
+import { state, saveLiveState, restoreLiveState, clearLiveState } from '../state/matchState.js';
+import { setDigits, fitScores, queueFit, bumpPlus, bumpMinus, swapSides, setLayoutDependencies, readABFromModalInputs, writeModalInputsFromAB, clearWinner, isALeft, startVisualSwap, setSidesDomTo } from './layout.js';
+import { showNameModal, hideNameModal, updateEditableState, updateNameChips, autocomplete, onSaveNames } from './namesModal.js';
+import { loadMatches, saveMatches, saveLastNames, loadLastNames } from '../services/storage.js';
+import { initShare, openShare, closeShare } from './share.js';
 import { renderStats, showMatch } from './statsView.js';
-import { setupFirebase, getStateForSync, pushStateThrottled, pushStateNow, spectatorShareUrl } from '../services/firebase.js';
-import { bindSpectatorHandlers } from '../services/rtdbLive.js';
+import { setupMenu, renderMenu } from './menu.js';
+import { setupSplash, showSplash, hideSplash, syncSplashButtons } from './splash.js';
+import { setupFirebase, pushStateThrottled, pushStateNow, spectatorShareUrl } from '../services/firebase.js';
+import { setSpectatorDependencies } from '../services/spectator.js';
+import { toast, setBodyScroll, $ } from '../dom.js';
 import { LONGPRESS_MS, MOVE_THRESH } from '../constants.js';
-import { $, toast } from './dom.js';
 
-// Set up dependencies for other modules
-import { setLayoutDependencies } from './layout.js';
-import { setNamesModalDependencies } from './namesModal.js';
-import { setRtdbLiveDependencies } from '../services/rtdbLive.js';
+const saveState = () => saveLiveState(readABFromModalInputs);
 
-export function mount() {
-  // Set up cross-module dependencies
-  setLayoutDependencies({
-    saveLiveState: () => saveLiveState(readABFromModalInputs),
-    pushStateThrottled,
-    pushStateNow,
-    updateNameChips
-  });
-  
-  setNamesModalDependencies({
-    saveLastNames
-  });
-  
-  setRtdbLiveDependencies({
-    updateScores
-  });
+setLayoutDependencies({
+  saveLiveState: saveState,
+  pushStateThrottled: () => pushStateThrottled(),
+  pushStateNow: () => pushStateNow(),
+  updateNameChips
+});
 
-  // Initialize Firebase and spectator mode if needed
-  setupFirebase();
-  
-  if (state.IS_SPECTATOR) {
-    const gid = new URL(location.href).searchParams.get('game');
-    if (gid && window.firebase) {
-      const db = firebase.database();
-      const ref = db.ref('games/' + gid);
-      bindSpectatorHandlers(ref);
-    }
+let menuHandlers;
+let shareInitialized = false;
+
+export function mount(){
+  setupMenu({ isSpectator: state.IS_SPECTATOR });
+  menuHandlers = buildMenuHandlers();
+  renderMenu(state.VIEW_MODE, menuHandlers);
+
+  if(!shareInitialized){
+    initShare({ getShareUrl: spectatorShareUrl });
+    shareInitialized = true;
   }
 
-  // Set up event listeners
-  setupEventListeners();
-  
-  // Set up resize handlers
+  bindCoreEvents();
+  bindModalEvents();
+  bindSummaryEvents();
+
   addEventListener('resize', queueFit);
-  if (window.visualViewport) visualViewport.addEventListener('resize', queueFit);
-  addEventListener('orientationchange', function() { setTimeout(queueFit, 60) });
+  if(window.visualViewport) window.visualViewport.addEventListener('resize', queueFit);
+  addEventListener('orientationchange', function(){ setTimeout(queueFit, 60); });
+
+  setupSplash({ onStart: startMatchFlow, saveState: saveState });
+
+  setupFirebase({ updateScores });
+  setSpectatorDependencies({ updateScores });
+
+  if(state.IS_SPECTATOR){
+    document.body.classList.remove('areas-active');
+    const menu = document.getElementById('menuPanel');
+    if(menu) menu.style.display = 'none';
+  }else{
+    maybeShowKebabHint();
+  }
+
+  updateScores();
+  fitScores();
 }
 
-function setupEventListeners() {
-  // Long-press and tap bindings
-  if (!state.IS_SPECTATOR) {
-    bindLongPressOne($('#scoreA'), function() { removePoint('A'); });
-    bindLongPressOne($('#scoreB'), function() { removePoint('B'); });
-    bindTap($('#scoreA'), function() { addPoint('A'); });
-    bindTap($('#scoreB'), function() { addPoint('B'); });
-    bindLongPressOne($('#leftArea'), function() { removePointByPosition('left'); });
-    bindLongPressOne($('#rightArea'), function() { removePointByPosition('right'); });
-    bindTap($('#leftArea'), function() { addPointByPosition('left'); });
-    bindTap($('#rightArea'), function() { addPointByPosition('right'); });
+export function startMatchFlow(opts){
+  opts = opts || {};
+  const restored = !!opts.restored;
+  const skipSplash = !!opts.skipSplash;
+
+  if(!state.IS_SPECTATOR){
+    if(!restored && !skipSplash){
+      const last = loadLastNames();
+      const nameAInput = document.getElementById('nameA');
+      const nameBInput = document.getElementById('nameB');
+      if(nameAInput) nameAInput.value = (last && last[0]) || 'Spiller A';
+      if(nameBInput) nameBInput.value = (last && last[1]) || 'Spiller B';
+      showNameModal(true);
+    }else if(!state.allowScoring){
+      showNameModal(true);
+    }
+    updateNameChips();
   }
 
-  // Name modal bindings
+  updateEditableState();
+  saveState();
+}
+
+function bindCoreEvents(){
+  if(!state.IS_SPECTATOR){
+    bindLongPressOne($('#scoreA'), () => removePoint('A'));
+    bindLongPressOne($('#scoreB'), () => removePoint('B'));
+    bindTap($('#scoreA'), () => addPoint('A'));
+    bindTap($('#scoreB'), () => addPoint('B'));
+    bindLongPressOne($('#leftArea'), () => removePointByPosition('left'));
+    bindLongPressOne($('#rightArea'), () => removePointByPosition('right'));
+    bindTap($('#leftArea'), () => addPointByPosition('left'));
+    bindTap($('#rightArea'), () => addPointByPosition('right'));
+  }
+
+  const nameAInput = document.getElementById('nameA');
+  const nameBInput = document.getElementById('nameB');
+  const nameA1Input = document.getElementById('nameA1');
+  const nameA2Input = document.getElementById('nameA2');
+  const nameB1Input = document.getElementById('nameB1');
+  const nameB2Input = document.getElementById('nameB2');
+  const teamNameAInput = document.getElementById('teamNameA');
+  const teamNameBInput = document.getElementById('teamNameB');
+  
+  if(nameAInput) autocomplete(nameAInput, 'nameA-list');
+  if(nameBInput) autocomplete(nameBInput, 'nameB-list');
+  if(nameA1Input) autocomplete(nameA1Input, 'nameA1-list');
+  if(nameA2Input) autocomplete(nameA2Input, 'nameA2-list');
+  if(nameB1Input) autocomplete(nameB1Input, 'nameB1-list');
+  if(nameB2Input) autocomplete(nameB2Input, 'nameB2-list');
+  
+  // Add event listeners for team name inputs to update chips
+  if(teamNameAInput) {
+    teamNameAInput.addEventListener('input', updateNameChips);
+    teamNameAInput.addEventListener('blur', updateNameChips);
+  }
+  if(teamNameBInput) {
+    teamNameBInput.addEventListener('input', updateNameChips);
+    teamNameBInput.addEventListener('blur', updateNameChips);
+  }
+}
+
+function bindModalEvents(){
   const cancel = $('#btnCancelNames');
-  if (cancel) cancel.addEventListener('click', hideNameModal);
-  
-  const save = $('#btnSaveNames');
-  if (save) save.addEventListener('click', function() { 
-    onSaveNames(() => saveLiveState(readABFromModalInputs), pushStateThrottled); 
-    hideNameModal(); 
-  });
-  
-  const start = $('#btnStart');
-  if (start) start.addEventListener('click', function() { 
-    onSaveNames(() => saveLiveState(readABFromModalInputs), pushStateThrottled); 
-    state.allowScoring = true; 
-    state.nameEditMode = false; 
-    saveLiveState(readABFromModalInputs); 
-    pushStateThrottled(); 
+  if(cancel) cancel.addEventListener('click', hideNameModal);
+
+  const saveBtn = $('#btnSaveNames');
+  if(saveBtn) saveBtn.addEventListener('click', function(){
+    onSaveNames(saveState, () => pushStateThrottled());
   });
 
-  // Initialize autocomplete for both name fields
-  const nameA = document.getElementById('nameA');
-  const nameB = document.getElementById('nameB');
-  if (nameA) autocomplete(nameA, 'nameA-list');
-  if (nameB) autocomplete(nameB, 'nameB-list');
+  const startBtn = $('#btnStart');
+  if(startBtn) startBtn.addEventListener('click', function(){
+    onSaveNames(saveState, () => pushStateThrottled());
+    state.allowScoring = true;
+    state.nameEditMode = false;
+    saveState();
+  });
+}
 
-  // Summary modal bindings
+function bindSummaryEvents(){
   const closeBtn = document.getElementById('summaryClose');
   const closeSummaryBtn = document.getElementById('btnCloseSummary');
   const newMatchBtn = document.getElementById('btnNewMatch');
+  const quickStartBtn = document.getElementById('btnQuickStart');
   const showSummaryBtn = document.getElementById('showSummaryBtn');
   const mask = document.getElementById('summaryMask');
+  const nextSetBtn = document.getElementById('nextSetBtn');
 
-  if (closeBtn) closeBtn.addEventListener('click', closeSummaryModal);
-  if (closeSummaryBtn) closeSummaryBtn.addEventListener('click', closeSummaryModal);
-  if (newMatchBtn) newMatchBtn.addEventListener('click', async function() { await closeSummaryModal(); startNewMatch(); });
-  if (showSummaryBtn) showSummaryBtn.addEventListener('click', async function() { 
-    const n = readABFromModalInputs();
-    const nA = n.A, nB = n.B;
-    const winnerName = (state.setsA === 2) ? nA : nB;
-    await renderSummary(winnerName);
+  if(closeBtn) closeBtn.addEventListener('click', closeSummaryModal);
+  if(closeSummaryBtn) closeSummaryBtn.addEventListener('click', closeSummaryModal);
+  if(newMatchBtn) newMatchBtn.addEventListener('click', function(){ closeSummaryModal(); startNewMatch(); });
+  if(quickStartBtn) quickStartBtn.addEventListener('click', function(){ 
+    closeSummaryModal(); 
+    if(state.playMode === 'tournament'){
+      // In tournament mode, keep same format but reset scores
+      startNewMatch({ skipSplash: true });
+    } else {
+      // In single match mode, use quick start
+      startNewMatch({ skipSplash: true });
+    }
   });
-  if (mask) mask.addEventListener('click', async function(e) { if (e.target === mask) await closeSummaryModal(); });
+  if(showSummaryBtn) showSummaryBtn.addEventListener('click', function(){
+    const names = readABFromModalInputs();
+    const aDisplay = typeof names.A === 'string' ? names.A : names.A?.display || names.A?.players?.join(' / ') || 'Spiller A';
+    const bDisplay = typeof names.B === 'string' ? names.B : names.B?.display || names.B?.players?.join(' / ') || 'Spiller B';
+    const winnerName = (state.setsA === 2) ? aDisplay : bDisplay;
+    renderSummary(winnerName);
+  });
+  if(mask) mask.addEventListener('click', function(e){ if(e.target === mask) closeSummaryModal(); });
+  if(nextSetBtn) nextSetBtn.addEventListener('click', function(){ if(!state.IS_SPECTATOR) advanceToNextSet(); });
 
-  // Next Set Button bindings
-  const ns = document.getElementById('nextSetBtn');
-  if (ns) ns.addEventListener('click', async function() { if (!state.IS_SPECTATOR) await advanceToNextSet(); });
-
-  document.addEventListener('keydown', function(e) {
-    if (state.IS_SPECTATOR) return;
-    if (state.betweenSets && (e.key === 'Enter' || e.key === ' ' || e.key.toLowerCase() === 'n')) {
+  document.addEventListener('keydown', function(e){
+    if(state.IS_SPECTATOR) return;
+    if(state.betweenSets && (e.key === 'Enter' || e.key === ' ' || e.key.toLowerCase() === 'n')){
       e.preventDefault();
       advanceToNextSet();
     }
   });
 }
 
-// Score logic
-export function setDigits(sc, p) {
-  const t = Math.floor(sc / 10), o = sc % 10;
-  const te = $('#' + p + '_tens'), oe = $('#' + p + '_ones');
-  if (sc < 10) {
-    te.textContent = '0';
-    te.classList.add('ghost');
-  } else {
-    te.textContent = String(t);
-    te.classList.remove('ghost');
-  }
-  oe.textContent = String(o);
-}
-
-export function updateScores() {
-  setDigits(state.scoreA, 'A'); 
+function updateScores(){
+  setDigits(state.scoreA, 'A');
   setDigits(state.scoreB, 'B');
 
-  const cA = document.getElementById('setCounterA');
-  const cB = document.getElementById('setCounterB');
-  if (cA) { cA.textContent = String(state.setsA); cA.style.display = (state.setsA > 0 ? 'flex' : 'none'); }
-  if (cB) { cB.textContent = String(state.setsB); cB.style.display = (state.setsB > 0 ? 'flex' : 'none'); }
+  const counterA = document.getElementById('setCounterA');
+  const counterB = document.getElementById('setCounterB');
+  if(counterA){
+    counterA.textContent = String(state.setsA);
+    counterA.style.display = state.setsA > 0 ? 'flex' : 'none';
+  }
+  if(counterB){
+    counterB.textContent = String(state.setsB);
+    counterB.style.display = state.setsB > 0 ? 'flex' : 'none';
+  }
 
   const setsEl = document.getElementById('sets');
-  if (setsEl) { setsEl.textContent = 'Sett: ' + state.setsA + '-' + state.setsB; }
+  if(setsEl){
+    setsEl.textContent = 'Sett: ' + state.setsA + '-' + state.setsB;
+    setsEl.style.display = (state.setsA + state.setsB) > 0 ? 'block' : 'none';
+  }
 
   updateEditableState();
-  saveLiveState(readABFromModalInputs);
+  saveState();
 }
 
-export function addPoint(s) {
-  if (!state.allowScoring || state.locked || state.swapping || state.IS_SPECTATOR) return;
-  if (s === 'A') state.scoreA++; else state.scoreB++;
+function maybeSaveNamesOnStart(){
+  if(state.namesSavedThisMatch) return;
+  const atStart = (state.scoreA === 0 && state.scoreB === 0 && state.setsA === 0 && state.setsB === 0 && state.currentSet === 1 && !state.locked);
+  if(!atStart){
+    const names = readABFromModalInputs();
+    saveLastNames(names.A, names.B);
+    state.namesSavedThisMatch = true;
+  }
+}
+
+function addPoint(side){
+  if(!state.allowScoring || state.locked || state.swapping || state.IS_SPECTATOR) return;
+  if(side === 'A') state.scoreA++; else state.scoreB++;
   maybeSaveNamesOnStart();
   checkSetEnd();
   updateScores();
-  bumpPlus($(s === 'A' ? '#scoreA' : '#scoreB'));
+  bumpPlus(document.getElementById(side === 'A' ? 'A_digits' : 'B_digits'));
   fitScores();
   pushStateThrottled();
 }
 
-export function removePoint(s) {
-  if (!state.allowScoring || state.locked || state.swapping || state.IS_SPECTATOR) return;
-  if (s === 'A' && state.scoreA > 0) state.scoreA--;
-  if (s === 'B' && state.scoreB > 0) state.scoreB--;
+function removePoint(side){
+  if(!state.allowScoring || state.locked || state.swapping || state.IS_SPECTATOR) return;
+  if(side === 'A' && state.scoreA > 0) state.scoreA--;
+  if(side === 'B' && state.scoreB > 0) state.scoreB--;
   updateScores();
-  bumpMinus($(s === 'A' ? '#scoreA' : '#scoreB'));
+  bumpMinus(document.getElementById(side === 'A' ? 'A_digits' : 'B_digits'));
   fitScores();
   pushStateThrottled();
 }
 
-export function addPointByPosition(pos) {
-  const isA = document.querySelector('.side.left').id === 'sideA';
-  addPoint((pos === 'left') ? (isA ? 'A' : 'B') : (isA ? 'B' : 'A'));
+function addPointByPosition(pos){
+  const aLeft = isALeft();
+  addPoint((pos === 'left') ? (aLeft ? 'A' : 'B') : (aLeft ? 'B' : 'A'));
 }
 
-export function removePointByPosition(pos) {
-  const isA = document.querySelector('.side.left').id === 'sideA';
-  removePoint((pos === 'left') ? (isA ? 'A' : 'B') : (isA ? 'B' : 'A'));
+function removePointByPosition(pos){
+  const aLeft = isALeft();
+  removePoint((pos === 'left') ? (aLeft ? 'A' : 'B') : (aLeft ? 'B' : 'A'));
 }
 
-// Set logic
-export function pushSetToHistory(a, b) {
-  const w = (a > b) ? 'A' : (b > a ? 'B' : '-');
-  state.setHistory.push({ set: state.currentSet, a: a, b: b, winner: w });
-  console.log('Sett lagret:', { set: state.currentSet, a: a, b: b, winner: w });
-  console.log('setHistory nå:', state.setHistory);
-  saveLiveState(readABFromModalInputs);
+function pushSetToHistory(a, b){
+  const winner = (a > b) ? 'A' : (b > a ? 'B' : '-');
+  state.setHistory.push({ set: state.currentSet, a: a, b: b, winner: winner });
+  saveState();
 }
 
-export function checkSetEnd() {
+function renderSummary(finalWinnerName){
+  const names = readABFromModalInputs();
+  const sumNameA = document.getElementById('sumNameA');
+  const sumNameB = document.getElementById('sumNameB');
+  
+  // Handle both string and object formats
+  const aDisplay = typeof names.A === 'string' ? names.A : names.A?.display || names.A?.players?.join(' / ') || 'Spiller A';
+  const bDisplay = typeof names.B === 'string' ? names.B : names.B?.display || names.B?.players?.join(' / ') || 'Spiller B';
+  
+  if(sumNameA) sumNameA.textContent = aDisplay;
+  if(sumNameB) sumNameB.textContent = bDisplay;
+
+  // Update player names row for double format
+  const playersRow = document.getElementById('summaryPlayersRow');
+  const sumPlayersA = document.getElementById('sumPlayersA');
+  const sumPlayersB = document.getElementById('sumPlayersB');
+  
+  if(state.matchDiscipline === 'double' && typeof names.A === 'object' && names.A.players) {
+    // Show player names row for double format
+    if(playersRow) playersRow.style.display = 'table-row';
+    
+    // Show individual player names
+    const aPlayers = names.A.players.join(' / ');
+    const bPlayers = names.B.players.join(' / ');
+    
+    if(sumPlayersA) sumPlayersA.textContent = aPlayers;
+    if(sumPlayersB) sumPlayersB.textContent = bPlayers;
+  } else {
+    // Hide player names row for single format
+    if(playersRow) playersRow.style.display = 'none';
+  }
+
+  // Update format indicator
+  const formatIndicator = document.getElementById('summaryFormat');
+  if(formatIndicator){
+    const formatText = state.matchDiscipline === 'double' ? '(Dobbel)' : '(Singel)';
+    formatIndicator.textContent = formatText;
+  }
+  
+  // Update quick start button text based on play mode
+  const quickStartBtn = document.getElementById('btnQuickStart');
+  if(quickStartBtn){
+    if(state.playMode === 'tournament'){
+      quickStartBtn.textContent = '⚡ Neste kamp';
+    } else {
+      quickStartBtn.textContent = '⚡ Hurtigstart';
+    }
+  }
+
+  const body = document.getElementById('summaryBody');
+  if(body){
+    body.innerHTML = '';
+    state.setHistory.forEach(function(set){
+      const tr = document.createElement('tr');
+      const tdSet = document.createElement('td'); tdSet.textContent = String(set.set); tr.appendChild(tdSet);
+      const tdA = document.createElement('td'); tdA.textContent = String(set.a); tr.appendChild(tdA);
+      const tdB = document.createElement('td'); tdB.textContent = String(set.b); tr.appendChild(tdB);
+      const tdW = document.createElement('td');
+      const winnerDisplay = set.winner === 'A' ? aDisplay : (set.winner === 'B' ? bDisplay : '—');
+      tdW.textContent = winnerDisplay;
+      tr.appendChild(tdW);
+      body.appendChild(tr);
+    });
+  }
+
+  const winnerEl = document.getElementById('summaryWinner');
+  if(winnerEl) winnerEl.textContent = finalWinnerName ? ('🎉 ' + finalWinnerName + ' vant kampen! 🎉') : '';
+
+  const mask = document.getElementById('summaryMask');
+  if(mask){
+    mask.style.display = 'flex';
+    setBodyScroll(true);
+  }
+  saveState();
+}
+
+function buildWinnerMsg(winnerName, loserName){
+  return '🎉 GRATULERER ' + winnerName.toUpperCase() + '! DU VANT KAMPEN!\n' +
+         '👏 BRA JOBBA ' + loserName.toUpperCase() + ', DU GJORDE DITT BESTE.';
+}
+
+function checkSetEnd(){
   const leadOk = Math.abs(state.scoreA - state.scoreB) >= 2 || state.scoreA === state.cap || state.scoreB === state.cap;
-
-  if ((state.scoreA >= state.target || state.scoreB >= state.target) && leadOk) {
-    // Hvem vant settet?
+  if((state.scoreA >= state.target || state.scoreB >= state.target) && leadOk){
     const winner = (state.scoreA > state.scoreB) ? 'A' : 'B';
-
-    // Logg settet (til historikk/tabell)
     pushSetToHistory(state.scoreA, state.scoreB);
 
-    // Blir kampen avgjort av dette settet?
     const willFinish = (winner === 'A') ? (state.setsA + 1 >= 2) : (state.setsB + 1 >= 2);
+    if(willFinish){
+      if(winner === 'A') state.setsA++; else state.setsB++;
+      state.locked = true;
+      state.betweenSets = false;
+      state.pendingSetWinner = null;
 
-    if (willFinish) {
-      // Oppdater sett-teller og avslutt kampen NÅ (ingen "Neste sett"-knapp)
-      if (winner === 'A') state.setsA++; else state.setsB++;
-      state.locked = true; state.betweenSets = false; state.pendingSetWinner = null;
+      const names = readABFromModalInputs();
+      const aDisplay = typeof names.A === 'string' ? names.A : names.A?.display || names.A?.players?.join(' / ') || 'Spiller A';
+      const bDisplay = typeof names.B === 'string' ? names.B : names.B?.display || names.B?.players?.join(' / ') || 'Spiller B';
+      const winnerName = winner === 'A' ? aDisplay : bDisplay;
+      const loserName = winner === 'A' ? bDisplay : aDisplay;
+      const msg = buildWinnerMsg(winnerName, loserName);
+      const msgEl = document.getElementById('winnerMsg');
+      if(msgEl) msgEl.textContent = msg;
 
-      const n = readABFromModalInputs();
-      const wName = (winner === 'A') ? n.A : n.B;
-      const lName = (winner === 'A') ? n.B : n.A;
-
-      $('#winnerMsg').textContent =
-        '🎉 GRATULERER ' + wName.toUpperCase() + '! DU VANT KAMPEN!\n' +
-        '👏 BRA JOBBA ' + lName.toUpperCase() + ', DU GJORDE DITT BESTE.';
-
-      if (winner === 'A') {
-        $('#scoreA')?.classList.add('winner');
-        $('#nameA_chip')?.classList.add('winnerName');
-      } else {
-        $('#scoreB')?.classList.add('winner');
-        $('#nameB_chip')?.classList.add('winnerName');
+      if(winner === 'A'){
+        document.getElementById('scoreA')?.classList.add('winner');
+        document.getElementById('nameA_chip')?.classList.add('winnerName');
+      }else{
+        document.getElementById('scoreB')?.classList.add('winner');
+        document.getElementById('nameB_chip')?.classList.add('winnerName');
       }
 
-      // Vis sammendragsknappen
       const summaryBtn = document.getElementById('showSummaryBtn');
-      if (summaryBtn) summaryBtn.style.display = 'block';
+      if(summaryBtn) summaryBtn.style.display = 'block';
 
-      // Lagre kampen i historikk
-      const obj = { ts: Date.now(), names: { A: n.A, B: n.B }, sets: state.setHistory.slice(), winner: wName };
-      const arr = loadMatches(); arr.unshift(obj); saveMatches(arr); saveLastNames(n.A, n.B);
+      const matchObj = { ts: Date.now(), names: { A: aDisplay, B: bDisplay }, sets: state.setHistory.slice(), winner: winnerName };
+      const arr = loadMatches();
+      arr.unshift(matchObj);
+      saveMatches(arr);
+      saveLastNames(aDisplay, bDisplay);
 
-      updateScores(); fitScores(); saveLiveState(readABFromModalInputs); pushStateThrottled();
+      updateScores();
+      fitScores();
+      saveState();
+      pushStateThrottled();
       return;
     }
 
-    // --- Sett pause mellom sett (stopp på 21) ---
-    // Øk sett-telleren NÅ, men behold 21–x på skjermen
-    if (winner === 'A') state.setsA++; else state.setsB++;
+    if(winner === 'A') state.setsA++; else state.setsB++;
     state.pendingSetWinner = winner;
     state.betweenSets = true;
     state.locked = true;
 
-    // Vis "Neste sett" bare i kontroll-modus
-    const ns = document.getElementById('nextSetBtn');
-    if (ns && !state.IS_SPECTATOR) ns.style.display = 'block';
-
-    updateScores(); fitScores(); saveLiveState(readABFromModalInputs); pushStateThrottled();
-    return;
-  }
-
-  // Autoswap ved 11 i tredje sett (uendret)
-  if (state.currentSet === 3 && !state.swappedAt11 && (state.scoreA === 11 || state.scoreB === 11)) {
-    swapSides();
-    state.swappedAt11 = true;
-  }
-
-  saveLiveState(readABFromModalInputs);
-}
-
-export async function advanceToNextSet() {
-  if (!state.betweenSets) return;
-
-  // Lås under animasjonen og skjul knappen
-  state.locked = true;
-  const ns = document.getElementById('nextSetBtn');
-  if (ns) ns.style.display = 'none';
-
-  // Forbered ny setttilstand (men ikke rør poeng før etter swap)
-  state.currentSet++;
-  state.swappedAt11 = false;
-
-  // Use the layout module's swap function
-  const { startVisualSwap } = await import('./layout.js');
-  startVisualSwap(function afterSwap() {
-    // Nå er animasjonen ferdig – nullstill poeng
-    state.scoreA = 0;
-    state.scoreB = 0;
-
-    state.betweenSets = false;
-    state.pendingSetWinner = null;
-    state.locked = false;
+    const nextSetBtn = document.getElementById('nextSetBtn');
+    if(nextSetBtn && !state.IS_SPECTATOR) nextSetBtn.style.display = 'block';
 
     updateScores();
     fitScores();
-    saveLiveState(readABFromModalInputs);
+    saveState();
+    pushStateThrottled();
+    return;
+  }
 
-    // Vent litt lenger enn CSS-transition (1s) før vi sender 0–0 til RTDB
-    setTimeout(function() {
-      if (typeof pushStateNow === 'function') pushStateNow();
-      else pushStateThrottled();
-    }, 1050); // justér om du endrer animasjonsvarighet
+  if(state.currentSet === 3 && !state.swappedAt11 && (state.scoreA === 11 || state.scoreB === 11)){
+    startVisualSwap();
+    state.swappedAt11 = true;
+  }
+
+  saveState();
+}
+
+function advanceToNextSet(){
+  if(!state.betweenSets) return;
+  state.locked = true;
+  const nextSetBtn = document.getElementById('nextSetBtn');
+  if(nextSetBtn) nextSetBtn.style.display = 'none';
+
+  state.currentSet++;
+  state.swappedAt11 = false;
+
+  startVisualSwap(function(){
+    state.scoreA = 0;
+    state.scoreB = 0;
+    state.betweenSets = false;
+    state.pendingSetWinner = null;
+    state.locked = false;
+    updateScores();
+    fitScores();
+    saveState();
+    setTimeout(function(){ pushStateNow(); }, 1050);
   });
 }
 
-// Reset functions
-export function resetSet() {
-  state.betweenSets = false; state.pendingSetWinner = null;
-  const ns = document.getElementById('nextSetBtn');
-  if (ns) ns.style.display = 'none';
-  state.scoreA = 0; state.scoreB = 0; state.swappedAt11 = false;
-  updateScores(); fitScores(); saveLiveState(readABFromModalInputs); pushStateThrottled();
+function resetSet(){
+  state.betweenSets = false;
+  state.pendingSetWinner = null;
+  state.scoreA = 0;
+  state.scoreB = 0;
+  state.swappedAt11 = false;
+  const nextSetBtn = document.getElementById('nextSetBtn');
+  if(nextSetBtn) nextSetBtn.style.display = 'none';
+  updateScores();
+  fitScores();
+  saveState();
+  pushStateThrottled();
 }
 
-export function startNewMatch() {
-  state.betweenSets = false; state.pendingSetWinner = null;
-  const ns = document.getElementById('nextSetBtn');
-  if (ns) ns.style.display = 'none';
-  state.scoreA = 0; state.scoreB = 0; state.setsA = 0; state.setsB = 0; state.currentSet = 1; state.swappedAt11 = false; state.locked = false; state.setHistory = [];
-  $('#winnerMsg').textContent = '';
-  clearWinner(); closeSummaryModal();
+function startNewMatch(opts){
+  opts = opts || {};
+  const skipSplash = !!opts.skipSplash;
+  
+  state.betweenSets = false;
+  state.pendingSetWinner = null;
+  state.scoreA = 0;
+  state.scoreB = 0;
+  state.setsA = 0;
+  state.setsB = 0;
+  state.currentSet = 1;
+  state.swappedAt11 = false;
+  state.locked = false;
+  state.setHistory = [];
+  state.namesSavedThisMatch = false;
+  state.allowScoring = false;
+  state.nameEditMode = false;
+
+  const nextSetBtn = document.getElementById('nextSetBtn');
+  if(nextSetBtn) nextSetBtn.style.display = 'none';
   const summaryBtn = document.getElementById('showSummaryBtn');
-  if (summaryBtn) summaryBtn.style.display = 'none';
+  if(summaryBtn) summaryBtn.style.display = 'none';
+  const winnerMsg = document.getElementById('winnerMsg');
+  if(winnerMsg) winnerMsg.textContent = '';
+  clearWinner();
+  closeSummaryModal();
   document.body.classList.remove('areas-active');
-  state.allowScoring = false; state.nameEditMode = false;
-  updateEditableState(); updateScores(); fitScores(); saveLiveState(readABFromModalInputs); pushStateThrottled();
-  showNameModal(true);
-}
 
-// Summary modal
-export async function renderSummary(finalWinnerName) {
-  console.log('renderSummary() kalt med winner:', finalWinnerName);
-  console.log('setHistory lengde:', state.setHistory.length);
-  console.log('setHistory innhold:', state.setHistory);
-
-  const n = readABFromModalInputs();
-  const nA = n.A, nB = n.B;
-
-  const hA = document.getElementById('sumNameA');
-  const hB = document.getElementById('sumNameB');
-  if (hA) hA.textContent = nA;
-  if (hB) hB.textContent = nB;
-
-  const body = document.getElementById('summaryBody');
-  if (!body) {
-    console.log('FEIL: summaryBody element ikke funnet!');
-    return;
-  }
-  body.innerHTML = '';
-
-  for (let i = 0; i < state.setHistory.length; i++) {
-    const s = state.setHistory[i];
-    const tr = document.createElement('tr');
-
-    const tdSet = document.createElement('td'); tdSet.textContent = String(s.set); tr.appendChild(tdSet);
-    const tdA = document.createElement('td'); tdA.textContent = String(s.a); tr.appendChild(tdA);
-    const tdB = document.createElement('td'); tdB.textContent = String(s.b); tr.appendChild(tdB);
-    const tdW = document.createElement('td');
-    tdW.textContent = s.winner === 'A' ? nA : (s.winner === 'B' ? nB : '—');
-    tr.appendChild(tdW);
-
-    body.appendChild(tr);
-    console.log('Rad lagt til:', s);
-  }
-
-  const winEl = document.getElementById('summaryWinner');
-  if (winEl) winEl.textContent = finalWinnerName ? ('🎉 ' + finalWinnerName + ' vant kampen! 🎉') : '';
-
-  // Vis modal
-  const mask = document.getElementById('summaryMask');
-  if (mask) {
-    mask.style.display = 'flex';
-    const { setBodyScroll } = await import('./dom.js');
-    setBodyScroll(true);
-    console.log('summaryMask satt til display: flex');
+  updateEditableState();
+  updateScores();
+  fitScores();
+  saveState();
+  pushStateThrottled();
+  
+  if(skipSplash){
+    // Quick start - go directly to name modal
+    showNameModal(true);
   } else {
-    console.log('FEIL: summaryMask element ikke funnet!');
+    // Normal flow - show splash
+    showSplash();
   }
-  saveLiveState(readABFromModalInputs);
 }
 
-export async function closeSummaryModal() {
+function closeSummaryModal(){
   const mask = document.getElementById('summaryMask');
-  if (mask) {
+  if(mask){
     mask.style.display = 'none';
-    const { setBodyScroll } = await import('./dom.js');
     setBodyScroll(false);
   }
 }
 
-// Fullscreen
-export function toggleFullscreen() {
-  if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
-  } else {
-    document.exitFullscreen && document.exitFullscreen();
+function bindLongPressOne(el, action){
+  if(!el) return;
+  let timer = 0;
+  let startX = 0;
+  let startY = 0;
+  let down = false;
+  let didLong = false;
+  let scrollY0 = 0;
+  let swallowNextClick = false;
+
+  function vibrate(ms){
+    try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(_){ }
   }
-}
 
-// Long-press/tap binding
-export function bindLongPressOne(el, action) {
-  let tid = 0, px = 0, py = 0, down = false, didLong = false, scrollY0 = 0;
-  let swallowNextClick = false; // <- blokker kun neste click etter long-press
-
-  function vibrate(m) { try { if (navigator.vibrate) navigator.vibrate(m) } catch (_) {} }
-
-  function start(x, y) {
-    down = true; didLong = false;
-    px = x; py = y; scrollY0 = window.scrollY;
-    clearTimeout(tid);
-    tid = setTimeout(function() {
-      if (!down || didLong) return;
+  function start(x, y){
+    down = true;
+    didLong = false;
+    startX = x;
+    startY = y;
+    scrollY0 = window.scrollY;
+    clearTimeout(timer);
+    timer = setTimeout(function(){
+      if(!down || didLong) return;
       didLong = true;
-      swallowNextClick = true;   // blokker release-klikket én gang
+      swallowNextClick = true;
       action();
       vibrate(60);
     }, LONGPRESS_MS);
   }
 
-  function cancel() { down = false; clearTimeout(tid) }
+  function cancel(){
+    down = false;
+    clearTimeout(timer);
+  }
 
-  // Blokker bare DET FØRSTE klikket etter en long-press-release
-  el.addEventListener('click', function(e) {
-    if (swallowNextClick) {
-      swallowNextClick = false;          // brukt opp
+  el.addEventListener('click', function(e){
+    if(swallowNextClick){
+      swallowNextClick = false;
       e.stopPropagation();
       e.preventDefault();
     }
   }, true);
 
-  el.addEventListener('pointerdown', function(e) {
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
-    if (el.setPointerCapture) el.setPointerCapture(e.pointerId);
-    // Ny gest: sørg for at vi IKKE lenger blokkerer – muliggjør umiddelbar +1
+  el.addEventListener('pointerdown', function(e){
+    if(e.pointerType === 'mouse' && e.button !== 0) return;
+    if(el.setPointerCapture) el.setPointerCapture(e.pointerId);
     swallowNextClick = false;
     start(e.clientX, e.clientY);
   }, { passive: true });
 
-  el.addEventListener('pointermove', function(e) {
-    if (!down) return;
-    if (Math.hypot(e.clientX - px, e.clientY - py) > MOVE_THRESH ||
-      Math.abs(window.scrollY - scrollY0) > 2) {
+  el.addEventListener('pointermove', function(e){
+    if(!down) return;
+    if(Math.hypot(e.clientX - startX, e.clientY - startY) > MOVE_THRESH || Math.abs(window.scrollY - scrollY0) > 2){
       cancel();
     }
   }, { passive: true });
 
-  ['pointerup', 'pointercancel', 'pointerleave', 'lostpointercapture', 'blur']
-    .forEach(function(ev) {
-      el.addEventListener(ev, function() { cancel() }, { passive: true });
-    });
+  ['pointerup','pointercancel','pointerleave','lostpointercapture','blur'].forEach(function(evt){
+    el.addEventListener(evt, cancel, { passive: true });
+  });
 }
 
-export function bindTap(el, fn) { el && el.addEventListener('click', fn) }
-
-// Helper functions
-function maybeSaveNamesOnStart() {
-  if (state.namesSavedThisMatch) return;
-  const atStart = (state.scoreA === 0 && state.scoreB === 0 && state.setsA === 0 && state.setsB === 0 && state.currentSet === 1 && !state.locked);
-  if (!atStart) {
-    const n = readABFromModalInputs();
-    saveLastNames(n.A, n.B);
-    state.namesSavedThisMatch = true;
-  }
+function bindTap(el, fn){
+  if(el) el.addEventListener('click', fn);
 }
 
-// Menu handlers
-export function getMenuHandlers() {
+function maybeShowKebabHint(){
+  try{
+    if(!localStorage.getItem('badm_kebab_tip_v1')){
+      const kebab = document.getElementById('kebab');
+      if(kebab){
+        kebab.classList.add('pulse');
+        setTimeout(function(){
+          kebab.classList.remove('pulse');
+          localStorage.setItem('badm_kebab_tip_v1', '1');
+        }, 2600);
+      }
+    }
+  }catch(_){ }
+}
+
+function buildMenuHandlers(){
   return {
-    onShare: () => openShare(spectatorShareUrl),
+    onShare: () => openShare(),
     onNewMatch: startNewMatch,
     onResetSet: resetSet,
     onSwap: swapSides,
     onEditNames: () => showNameModal(false),
     onClear: () => {
-      try {
-        localStorage.clear();
-        toast('Lagret data slettet');
-      } catch (e) {
-        toast('Kunne ikke slette');
-      }
+      try{ localStorage.clear(); toast('Lagret data slettet'); }
+      catch(_){ toast('Kunne ikke slette'); }
       location.reload();
     },
     onFullscreen: toggleFullscreen,
-    onStats: () => renderStats(loadMatches(), (mode) => { state.VIEW_MODE = mode; }, renderMenu),
-    onBackToMatch: async () => {
-      const { setBodyScroll } = await import('./dom.js');
-      showMatch(() => { state.VIEW_MODE = 'match'; }, renderMenu, setBodyScroll, updateEditableState, fitScores);
-    },
-    onCloseShare: closeShare
+    onStats: () => renderStats(loadMatches(), mode => { state.VIEW_MODE = mode; }, renderMenu, menuHandlers),
+    onBackToMatch: () => {
+      showMatch();
+      state.VIEW_MODE = 'match';
+      renderMenu(state.VIEW_MODE, menuHandlers);
+      updateEditableState();
+      fitScores();
+    }
   };
 }
 
-// Placeholder for renderMenu - will be imported when needed
-let renderMenu;
+function toggleFullscreen(){
+  if(!document.fullscreenElement){
+    if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+  }else{
+    if(document.exitFullscreen) document.exitFullscreen();
+  }
+}
+
+export function applyRestoredState(){
+  updateScores();
+  fitScores();
+  const mask = document.getElementById('summaryMask');
+  if(mask && mask.style.display === 'flex') setBodyScroll(true);
+}
+
+export function restoreFromStorage(){
+  return restoreLiveState({
+    writeModalInputsFromAB: writeModalInputsFromAB,
+    updateNameChips: updateNameChips,
+    setSidesDomTo: setSidesDomTo,
+    syncSplashButtons: syncSplashButtons
+  });
+}
+
+export { updateScores, renderSummary, closeSummaryModal, resetSet, startNewMatch };
+
+
+
+
+
+
+
+
+

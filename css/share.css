@@ -1,0 +1,5 @@
+#shareMask{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:60}
+#shareCard{background:#0b1224;border:1px solid #122042;border-radius:.8rem;padding:1rem;max-width:92vw;width:min(560px,92vw)}
+#qrBox{display:block;margin:.5rem auto;background:#0f172a;border:1px solid #233454;border-radius:.4rem;padding:.5rem;min-width:240px;text-align:center}
+.shareRow{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;margin-top:.5rem}
+#shareUrl{text-align:center;word-break:break-all;margin-top:.25rem;font-size:.85rem;color:#93c5fd}
