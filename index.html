@@ -42,6 +42,29 @@ vNext highlights
     </div>
   </div>
 
+<div id="tournamentMask" class="modalMask" style="display:none" aria-hidden="true">
+  <div class="modalBox tournamentModal" role="dialog" aria-labelledby="tournamentTitle" aria-modal="true">
+    <div class="modalHeader">
+      <h2 id="tournamentTitle">Sett opp turnering</h2>
+      <button id="tournamentClose" class="closeBtn" aria-label="Lukk">&times;</button>
+    </div>
+    <div class="modalContent">
+      <label class="tournamentLabel" for="tournamentName">Turneringsnavn</label>
+      <input id="tournamentName" class="tournamentNameInput" placeholder="Turneringsnavn" autocomplete="off"/>
+      <div class="tournamentSection">
+        <div class="participantsHeader">
+          <h3>Deltakere</h3>
+          <button type="button" id="tournamentAddParticipant" class="button addParticipantBtn">Legg til deltaker</button>
+        </div>
+        <ul id="tournamentParticipants" class="participantsList"></ul>
+      </div>
+    </div>
+    <div class="modalActions">
+      <button id="tournamentBack" class="button ghost">Tilbake</button>
+      <button id="tournamentContinue" class="button" disabled>Fortsett</button>
+    </div>
+  </div>
+</div>
 <div class="wrap" id="wrap">
   <div class="clickArea left" id="leftArea" aria-label="Legg til poeng venstre"></div>
   <div class="clickArea right" id="rightArea" aria-label="Legg til poeng høyre"></div>
@@ -225,6 +248,7 @@ vNext highlights
 <script type="module" src="./js/main.js"></script>
 </body>
 </html>
+
 
 
 

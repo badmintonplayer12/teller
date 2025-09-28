@@ -6,6 +6,7 @@ import { initShare, openShare, closeShare } from './share.js';
 import { renderStats, showMatch } from './statsView.js';
 import { setupMenu, renderMenu } from './menu.js';
 import { setupSplash, showSplash, hideSplash, syncSplashButtons } from './splash.js';
+import { setupTournamentSetup, showTournamentSetup } from './tournamentSetup.js';
 import { setupFirebase, pushStateThrottled, pushStateNow, spectatorShareUrl } from '../services/firebase.js';
 import { setSpectatorDependencies } from '../services/spectator.js';
 import { toast, setBodyScroll, $ } from '../dom.js';
@@ -42,6 +43,7 @@ export function mount(){
   addEventListener('orientationchange', function(){ setTimeout(queueFit, 60); });
 
   setupSplash({ onStart: startMatchFlow, saveState: saveState });
+  setupTournamentSetup();
 
   setupFirebase({ updateScores });
   setSpectatorDependencies({ updateScores });
@@ -62,16 +64,24 @@ export function startMatchFlow(opts){
   opts = opts || {};
   const restored = !!opts.restored;
   const skipSplash = !!opts.skipSplash;
+  let handledStart = false;
 
   if(!state.IS_SPECTATOR){
     if(!restored && !skipSplash){
-      const last = loadLastNames();
-      const nameAInput = document.getElementById('nameA');
-      const nameBInput = document.getElementById('nameB');
-      if(nameAInput) nameAInput.value = (last && last[0]) || 'Spiller A';
-      if(nameBInput) nameBInput.value = (last && last[1]) || 'Spiller B';
-      showNameModal(true);
-    }else if(!state.allowScoring){
+      if(state.playMode === 'tournament'){
+        showTournamentSetup();
+      }else{
+        const last = loadLastNames();
+        const nameAInput = document.getElementById('nameA');
+        const nameBInput = document.getElementById('nameB');
+        if(nameAInput) nameAInput.value = (last && last[0]) || 'Spiller A';
+        if(nameBInput) nameBInput.value = (last && last[1]) || 'Spiller B';
+        showNameModal(true);
+      }
+      handledStart = true;
+    }
+
+    if(!handledStart && !state.allowScoring){
       showNameModal(true);
     }
     updateNameChips();
