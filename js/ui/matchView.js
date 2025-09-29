@@ -970,13 +970,21 @@ function toggleFullscreen(){
 export function applyRestoredState(){
   updateScores();
   fitScores();
+  
+  // Rebuild menu for tournament mode after restore
+  if(state.playMode === 'tournament' && state.tournamentData){
+    menuHandlers = buildMenuHandlers();
+    renderMenu(state.VIEW_MODE, menuHandlers);
+    updateTournamentActionButtons();
+  }
+  
   const mask = document.getElementById('summaryMask');
   if(mask && mask.style.display === 'flex') setBodyScroll(true);
 }
 
 export function restoreFromStorage(){
   return restoreLiveState({
-    writeModalInputsFromAB: writeModalInputsFromAB,
+    writeModalInputsFromNames: writeModalInputsFromAB,
     updateNameChips: updateNameChips,
     setSidesDomTo: setSidesDomTo,
     syncSplashButtons: syncSplashButtons
