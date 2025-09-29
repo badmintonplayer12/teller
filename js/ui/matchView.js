@@ -1,4 +1,4 @@
-import { state, saveLiveState, restoreLiveState, clearLiveState } from '../state/matchState.js';
+import { state, saveLiveState, restoreLiveState, clearLiveState, namesState, normalizeNameEntry, alignNamesState } from '../state/matchState.js';
 import { setDigits, fitScores, queueFit, bumpPlus, bumpMinus, swapSides, setLayoutDependencies, readABFromModalInputs, writeModalInputsFromAB, clearWinner, isALeft, startVisualSwap, setSidesDomTo } from './layout.js';
 import { showNameModal, hideNameModal, updateEditableState, updateNameChips, autocomplete, onSaveNames } from './namesModal.js';
 import { loadMatches, saveMatches, saveLastNames, loadLastNames } from '../services/storage.js';
@@ -832,6 +832,13 @@ export function startTournamentMatch(matchId){
 
   // Set player names
   writeModalInputsFromAB(match.playerA || 'Spiller A', match.playerB || 'Spiller B');
+  
+  // Sync modal values to namesState
+  const seededNames = readABFromModalInputs();
+  namesState.A = normalizeNameEntry(seededNames.A, 'A', state.matchDiscipline);
+  namesState.B = normalizeNameEntry(seededNames.B, 'B', state.matchDiscipline);
+  alignNamesState(state.matchDiscipline);
+  
   updateNameChips();
 
   // Mark names as saved and enable scoring
@@ -984,10 +991,10 @@ export function applyRestoredState(){
 
 export function restoreFromStorage(){
   return restoreLiveState({
-    writeModalInputsFromNames: writeModalInputsFromAB,
-    updateNameChips: updateNameChips,
-    setSidesDomTo: setSidesDomTo,
-    syncSplashButtons: syncSplashButtons
+    writeModalInputsFromNames: names => writeModalInputsFromAB(names.A, names.B),
+    updateNameChips,
+    setSidesDomTo,
+    syncSplashButtons
   });
 }
 
