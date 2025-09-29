@@ -440,7 +440,9 @@ function maybeSaveNamesOnStart(){
   const atStart = (state.scoreA === 0 && state.scoreB === 0 && state.setsA === 0 && state.setsB === 0 && state.currentSet === 1 && !state.locked);
   if(!atStart){
     const names = readABFromModalInputs();
-    saveLastNames(names.A, names.B);
+    const aDisplay = typeof names.A === 'string' ? names.A : names.A?.display || names.A?.players?.join(' / ') || 'Spiller A';
+    const bDisplay = typeof names.B === 'string' ? names.B : names.B?.display || names.B?.players?.join(' / ') || 'Spiller B';
+    saveLastNames(aDisplay, bDisplay);
     state.namesSavedThisMatch = true;
   }
 }
