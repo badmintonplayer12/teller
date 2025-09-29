@@ -91,6 +91,68 @@ function startFirstMatch(){
   });
 }
 
+function createPlayerCard(playerName, side, matchState, isWinner, isWalkoverWinner) {
+  const card = document.createElement('div');
+  card.className = 'playerCard';
+  
+  // Handle null/placeholder values
+  let displayName = playerName;
+  if (playerName === null) {
+    displayName = 'Walkover';
+  } else if (typeof playerName === 'string' && (playerName.includes('Vinner') || playerName.includes('Taper'))) {
+    displayName = playerName; // Keep placeholder strings as-is
+  }
+  
+  // Player name
+  const nameElement = document.createElement('div');
+  nameElement.className = 'playerName';
+  nameElement.textContent = displayName;
+  
+  // Score
+  const scoreElement = document.createElement('div');
+  scoreElement.className = 'playerScore';
+  
+  if (!matchState) {
+    scoreElement.textContent = '0';
+  } else if (matchState.status === 'completed' && matchState.finalScore) {
+    scoreElement.textContent = side === 'A' ? matchState.finalScore.scoreA : matchState.finalScore.scoreB;
+  } else if (matchState.status === 'walkover') {
+    scoreElement.textContent = isWalkoverWinner ? 'W' : '0';
+  } else {
+    scoreElement.textContent = side === 'A' ? matchState.scoreA : matchState.scoreB;
+  }
+  
+  // Set info
+  const setInfoElement = document.createElement('div');
+  setInfoElement.className = 'playerSetInfo';
+  
+  if (!matchState) {
+    setInfoElement.textContent = '0 sett';
+  } else if (matchState.status === 'completed' && matchState.finalScore) {
+    const sets = side === 'A' ? matchState.finalScore.setsA : matchState.finalScore.setsB;
+    setInfoElement.textContent = `${sets} sett`;
+  } else if (matchState.status === 'walkover') {
+    setInfoElement.textContent = isWalkoverWinner ? '1 sett' : '0 sett';
+  } else {
+    const sets = side === 'A' ? matchState.setsA : matchState.setsB;
+    setInfoElement.textContent = `${sets} sett`;
+  }
+  
+  // Assemble card
+  card.appendChild(nameElement);
+  card.appendChild(scoreElement);
+  card.appendChild(setInfoElement);
+  
+  // Add winner styling
+  if (isWinner || isWalkoverWinner) {
+    card.classList.add('winner');
+    // Add fade-in animation for winner badge
+    setTimeout(() => card.classList.add('winner-visible'), 100);
+  }
+  
+  return card;
+}
+
 export function renderTournamentOverview(){
   if(!state.tournamentData || !state.tournamentData.matches) {
     return;
@@ -130,78 +192,83 @@ export function renderTournamentOverview(){
       const matchItem = document.createElement('li');
       matchItem.className = 'tournamentMatch';
       
-      let playerAText = match.playerA;
-      let playerBText = match.playerB;
+      // Create match header
+      const matchHeader = document.createElement('div');
+      matchHeader.className = 'matchHeader';
+      matchHeader.textContent = `Kamp ${index + 1}`;
       
-      // Handle null values (walkover)
-      if (playerAText === null) playerAText = 'Walkover';
-      if (playerBText === null) playerBText = 'Walkover';
-      
-      // Handle placeholder strings (already formatted)
-      if (typeof playerAText === 'string' && (playerAText.includes('Vinner') || playerAText.includes('Taper'))) {
-        // Keep as is - it's already a placeholder string
-      }
-      if (typeof playerBText === 'string' && (playerBText.includes('Vinner') || playerBText.includes('Taper'))) {
-        // Keep as is - it's already a placeholder string
-      }
-      
-      // Create match info text
-      let matchText;
-      if (playerBText === 'Walkover') {
-        matchText = `Kamp ${index + 1}: ${playerAText} (walkover)`;
-      } else if (playerAText === 'Walkover') {
-        matchText = `Kamp ${index + 1}: ${playerBText} (walkover)`;
-      } else {
-        matchText = `Kamp ${index + 1}: ${playerAText} vs ${playerBText}`;
-      }
-      
-      // Add match info text
-      const matchInfoSpan = document.createElement('span');
-      matchInfoSpan.textContent = matchText;
-      
-      // Add match status
-      const matchStatus = document.createElement('div');
-      matchStatus.className = 'matchStatus';
+      // Create player cards container
+      const playerCardsContainer = document.createElement('div');
+      playerCardsContainer.className = 'playerCardsContainer';
       
       const matchState = state.tournamentData.matchStates?.[match.id];
+      const isCompleted = matchState?.status === 'completed';
+      const isWalkover = matchState?.status === 'walkover';
+      const winner = isCompleted ? (matchState.finalScore.setsA > matchState.finalScore.setsB ? 'A' : 'B') : 
+                   isWalkover ? matchState.walkoverWinner : null;
+      
+      // Create player A card
+      const playerACard = createPlayerCard(
+        match.playerA, 
+        'A', 
+        matchState, 
+        winner === 'A',
+        isWalkover && matchState.walkoverWinner === 'A'
+      );
+      
+      // Create player B card
+      const playerBCard = createPlayerCard(
+        match.playerB, 
+        'B', 
+        matchState, 
+        winner === 'B',
+        isWalkover && matchState.walkoverWinner === 'B'
+      );
+      
+      // Create VS indicator
+      const vsIndicator = document.createElement('div');
+      vsIndicator.className = 'vsIndicator';
+      vsIndicator.textContent = 'vs';
+      
+      playerCardsContainer.appendChild(playerACard);
+      playerCardsContainer.appendChild(vsIndicator);
+      playerCardsContainer.appendChild(playerBCard);
+      
+      // Create status line
+      const statusLine = document.createElement('div');
+      statusLine.className = 'matchStatusLine';
+      
       if (!matchState) {
-        matchStatus.textContent = 'Venter på start';
-      } else if (matchState.status === 'completed') {
-        if (matchState.finalScore) {
-          matchStatus.textContent = `Ferdig: ${matchState.finalScore.scoreA}–${matchState.finalScore.scoreB} (${matchState.finalScore.setsA}-${matchState.finalScore.setsB})`;
-        } else {
-          matchStatus.textContent = 'Ferdig';
-        }
-      } else if (matchState.status === 'walkover') {
+        statusLine.textContent = 'Venter på start';
+      } else if (isCompleted) {
+        const winnerName = winner === 'A' ? match.playerA : match.playerB;
+        statusLine.innerHTML = `Avsluttet – ${winnerName} vant <span class="statusIndicator"></span>`;
+      } else if (isWalkover) {
         const winnerName = matchState.walkoverWinner === 'A' ? match.playerA : match.playerB;
-        matchStatus.textContent = `Walkover – ${winnerName}`;
+        statusLine.innerHTML = `Walkover – ${winnerName} vant <span class="statusIndicator"></span>`;
       } else {
-        matchStatus.textContent = `Pågår: ${matchState.scoreA}–${matchState.scoreB} (sett ${matchState.currentSet}, ${matchState.setsA}-${matchState.setsB})`;
+        statusLine.textContent = `Pågår – sett ${matchState.currentSet}`;
       }
       
-      // Create info container
-      const matchInfoContainer = document.createElement('div');
-      matchInfoContainer.className = 'tournamentMatchInfo';
-      matchInfoContainer.appendChild(matchInfoSpan);
-      matchInfoContainer.appendChild(matchStatus);
-      
-      matchItem.appendChild(matchInfoContainer);
-      
-      // Add "Gå til kamp" button
+      // Create action button
       const startMatchBtn = document.createElement('button');
       startMatchBtn.className = 'tournamentMatchBtn';
       startMatchBtn.textContent = 'Gå til kamp';
       startMatchBtn.dataset.matchId = match.id;
       
       // Disable button for completed or walkover matches
-      if (matchState?.status === 'completed' || matchState?.status === 'walkover') {
+      if (isCompleted || isWalkover) {
         startMatchBtn.disabled = true;
-        startMatchBtn.textContent = matchState.status === 'walkover' ? 'Walkover' : 'Ferdig';
+        startMatchBtn.textContent = isWalkover ? 'Walkover' : 'Ferdig';
         startMatchBtn.classList.add('disabled');
       } else {
         startMatchBtn.addEventListener('click', () => handleStartMatch(match.id));
       }
       
+      // Assemble match item
+      matchItem.appendChild(matchHeader);
+      matchItem.appendChild(playerCardsContainer);
+      matchItem.appendChild(statusLine);
       matchItem.appendChild(startMatchBtn);
       
       // Check if this is the target match for scrolling
