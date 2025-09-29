@@ -134,9 +134,13 @@ export function autocomplete(input, listId){
       hidden.value = match;
       div.appendChild(hidden);
       div.addEventListener('click', function(){
-        input.value = this.querySelector('input').value;
+        const selectedName = this.querySelector('input').value;
+        input.value = selectedName;
         list.style.display = 'none';
         updateNameChips();
+        // Save the selected name to storage for autocomplete
+        pushPrev(selectedName);
+        updateDropdownButtons();
       });
       list.appendChild(div);
     });
@@ -197,7 +201,7 @@ export function toggleDropdown(fieldId){
   }
 
   // Filter out team names and only show individual player names
-  var recent = getRecentNames(6).filter(function(name){
+  var recent = getRecentNames(8).filter(function(name){
     return !name.includes(' / '); // Skip team names
   });
   list.innerHTML = '';
@@ -214,6 +218,9 @@ export function toggleDropdown(fieldId){
       input.value = name;
       list.style.display = 'none';
       updateNameChips();
+      // Save the selected name to storage for autocomplete
+      pushPrev(name);
+      updateDropdownButtons();
     });
     list.appendChild(div);
   });
@@ -228,8 +235,12 @@ export function onSaveNames(saveLiveState, pushStateThrottled){
   
   saveLastNames(aDisplay, bDisplay);
   
-  // Also save individual player names for autocomplete (if double format)
-  if(state.matchDiscipline === 'double' && typeof names.A === 'object' && names.A.players) {
+  // Also save individual player names for autocomplete
+  if(state.matchDiscipline === 'single') {
+    // For single format, save the display names as individual players
+    if(aDisplay && aDisplay.trim()) pushPrev(aDisplay.trim());
+    if(bDisplay && bDisplay.trim()) pushPrev(bDisplay.trim());
+  } else if(state.matchDiscipline === 'double' && typeof names.A === 'object' && names.A.players) {
     names.A.players.forEach(player => {
       if(player && player.trim()) pushPrev(player.trim());
     });

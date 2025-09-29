@@ -1,9 +1,11 @@
 import { state } from './state/matchState.js';
 import { mount, startMatchFlow, restoreFromStorage, applyRestoredState } from './ui/matchView.js';
 import { showSplash, hideSplash, setSplashContinueState } from './ui/splash.js';
+import { setupStatsModal } from './ui/statsView.js';
 
 function boot(){
   mount();
+  setupStatsModal();
 
   const restored = restoreFromStorage();
   if(restored) applyRestoredState();

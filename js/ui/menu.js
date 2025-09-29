@@ -44,6 +44,8 @@ export function renderMenu(mode, handlers){
   var html = '';
   if(mode === 'match'){
     html += menuItem('miShare', '🔗 Del…', menuHandlers.onShare);
+    html += menuItem('miTournamentOverview', '📋 Kampoversikt', menuHandlers.onTournamentOverview);
+    html += menuItem('miFinishMatch', '✅ Ferdigstill kamp', menuHandlers.onFinishMatch);
     html += menuItem('miNewMatch', '🆕 Start ny kamp', menuHandlers.onNewMatch);
     html += menuItem('miResetSet', '♻️ Nullstill sett', menuHandlers.onResetSet);
     html += menuItem('miSwap', '⇄ Bytt side', menuHandlers.onSwap);
@@ -92,6 +94,8 @@ function handlerIdFor(key){
     case 'onClear': return 'miClearStorage';
     case 'onFullscreen': return 'miFullscreen';
     case 'onStats': return 'miStats';
+    case 'onTournamentOverview': return 'miTournamentOverview';
+    case 'onFinishMatch': return 'miFinishMatch';
     case 'onBackToMatch': return 'miBackToMatch';
     default: return null;
   }

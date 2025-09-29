@@ -8,22 +8,20 @@ let lastHandlers = null;
 let onModeChange = null;
 
 function ensureStatsShell(){
-  var host = document.getElementById('statsHost');
-  if(host) return host;
-  host = document.createElement('div');
-  host.id = 'statsHost';
-  host.className = 'summary';
-  host.style.display = 'none';
-  host.innerHTML = '<h3>Alle kamper & oversikt</h3>'+
-    '<div id="stats" class="stats"></div>'+
-    '<div id="leaderboard"></div>'+
-    '<div style="height:.6rem"></div>'+
-    '<table>'+
-      '<thead><tr><th>#</th><th>Dato</th><th>Spiller A</th><th>Spiller B</th><th>Sett</th><th>Vinner</th><th>Handling</th></tr></thead>'+
-      '<tbody id="historyBody"></tbody>'+
-    '</table>';
-  document.body.appendChild(host);
-  return host;
+  var panelBody = document.getElementById('statsPanelBody');
+  if(!panelBody) return null;
+  
+  if(!panelBody.hasChildNodes()) {
+    panelBody.innerHTML = '<h3>Alle kamper & oversikt</h3>'+
+      '<div id="stats" class="stats"></div>'+
+      '<div id="leaderboard"></div>'+
+      '<div style="height:.6rem"></div>'+
+      '<table>'+
+        '<thead><tr><th>#</th><th>Dato</th><th>Spiller A</th><th>Spiller B</th><th>Sett</th><th>Vinner</th><th>Handling</th></tr></thead>'+
+        '<tbody id="historyBody"></tbody>'+
+      '</table>';
+  }
+  return panelBody;
 }
 
 export function fmtStats(matches){
@@ -71,17 +69,18 @@ export function renderStats(matches, modeChangeCb, renderMenuFn, handlers){
   lastHandlers = handlers || lastHandlers;
 
   var host = ensureStatsShell();
-  host.style.display = 'block';
+  if(!host) return;
 
-  var wrap = document.querySelector('.wrap');
-  if(wrap) wrap.style.display = 'none';
-
-  var summaryBtn = document.getElementById('showSummaryBtn');
-  if(summaryBtn) summaryBtn.style.display = 'none';
+  // Show stats modal
+  var mask = document.getElementById('statsMask');
+  if(mask) {
+    mask.style.display = 'flex';
+    mask.setAttribute('aria-hidden', 'false');
+    setBodyScroll(false);
+  }
 
   state.VIEW_MODE = 'stats';
   document.body.classList.add('stats-mode');
-  setBodyScroll(true);
 
   if(typeof onModeChange === 'function') onModeChange('stats');
   if(lastRenderMenu) lastRenderMenu('stats', lastHandlers);
@@ -168,20 +167,35 @@ export function renderStats(matches, modeChangeCb, renderMenuFn, handlers){
 }
 
 export function showMatch(){
-  var wrap = document.querySelector('.wrap');
-  if(wrap) wrap.style.display = '';
-
-  var statsHost = document.getElementById('statsHost');
-  if(statsHost) statsHost.style.display = 'none';
-
-  document.body.classList.remove('stats-mode');
-  setBodyScroll(false);
+  // Hide stats modal
+  var mask = document.getElementById('statsMask');
+  if(mask) {
+    mask.style.display = 'none';
+    mask.setAttribute('aria-hidden', 'true');
+    setBodyScroll(true);
+  }
 
   state.VIEW_MODE = 'match';
+  document.body.classList.remove('stats-mode');
   if(typeof onModeChange === 'function') onModeChange('match');
   if(lastRenderMenu) lastRenderMenu('match', lastHandlers);
 
   fitScores();
+}
+
+export function setupStatsModal(){
+  const closeBtn = document.getElementById('statsClose');
+  const mask = document.getElementById('statsMask');
+  
+  if(closeBtn) {
+    closeBtn.addEventListener('click', showMatch);
+  }
+  
+  if(mask) {
+    mask.addEventListener('click', function(e) {
+      if(e.target === mask) showMatch();
+    });
+  }
 }
 
 function statCard(label, value){

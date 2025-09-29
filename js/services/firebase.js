@@ -26,7 +26,6 @@ export function getStateForSync(){
     sets: { A: state.setsA, B: state.setsB },
     currentSet: state.currentSet,
     isALeft: document.querySelector('.side.left')?.id === 'sideA',
-    msg: document.getElementById('winnerMsg')?.textContent || '',
     online: true,
     format: { discipline: state.matchDiscipline, playMode: state.playMode }
   };

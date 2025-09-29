@@ -21,7 +21,6 @@
 .winner,.winnerName{color:#ffd700!important;animation:goldPulse 3s ease-in-out infinite}
 @keyframes goldPulse{0%{text-shadow:0 0 3px rgba(255,215,0,.25),0 0 6px rgba(255,220,50,.2)}50%{text-shadow:0 0 8px rgba(255,215,0,.5),0 0 16px rgba(255,220,50,.4)}100%{text-shadow:0 0 3px rgba(255,215,0,.25),0 0 6px rgba(255,220,50,.2)}}
 #sets{padding:.35rem 1rem .2rem;text-align:center;font-size:1rem;display:none}
-#winnerMsg{padding:.4rem 1rem 0;text-align:center;font-size:clamp(1.1rem,3.5vw,2rem);color:#facc15;font-weight:900;white-space:pre-line}
 .clickArea{position:absolute;top:0;bottom:0;width:calc(50% - 24px);z-index:3;background:transparent;pointer-events:none}
 .areas-active .clickArea{pointer-events:auto;touch-action:pan-y}
 .clickArea.left{left:0}

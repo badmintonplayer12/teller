@@ -7,10 +7,16 @@ import { renderStats, showMatch } from './statsView.js';
 import { setupMenu, renderMenu } from './menu.js';
 import { setupSplash, showSplash, hideSplash, syncSplashButtons, setSplashContinueState } from './splash.js';
 import { setupTournamentSetup, showTournamentSetup } from './tournamentSetup.js';
+import { setupTournamentOverview, hideTournamentOverview, renderTournamentOverview } from './tournamentOverview.js';
 import { setupFirebase, pushStateThrottled, pushStateNow, spectatorShareUrl } from '../services/firebase.js';
 import { setSpectatorDependencies } from '../services/spectator.js';
 import { toast, setBodyScroll, $ } from '../dom.js';
 import { LONGPRESS_MS, MOVE_THRESH } from '../constants.js';
+
+function openFinishDialog(){
+  const settled = (state.setsA >= 2 || state.setsB >= 2);
+  showFinishDialog(!settled);
+}
 
 const saveState = () => saveLiveState(readABFromModalInputs);
 
@@ -44,6 +50,7 @@ export function mount(){
 
   setupSplash({ onStart: startMatchFlow, saveState: saveState });
   setupTournamentSetup();
+  setupTournamentOverview();
 
   setupFirebase({ updateScores });
   setSpectatorDependencies({ updateScores });
@@ -117,12 +124,78 @@ function bindCoreEvents(){
   const teamNameAInput = document.getElementById('teamNameA');
   const teamNameBInput = document.getElementById('teamNameB');
   
-  if(nameAInput) autocomplete(nameAInput, 'nameA-list');
-  if(nameBInput) autocomplete(nameBInput, 'nameB-list');
-  if(nameA1Input) autocomplete(nameA1Input, 'nameA1-list');
-  if(nameA2Input) autocomplete(nameA2Input, 'nameA2-list');
-  if(nameB1Input) autocomplete(nameB1Input, 'nameB1-list');
-  if(nameB2Input) autocomplete(nameB2Input, 'nameB2-list');
+  if(nameAInput) {
+    autocomplete(nameAInput, 'nameA-list');
+    // Save name when user types manually
+    nameAInput.addEventListener('blur', function(){
+      const name = this.value.trim();
+      if(name && name.length > 0){
+        import('../services/storage.js').then(function(module){
+          module.pushPrev(name);
+        });
+      }
+    });
+  }
+  if(nameBInput) {
+    autocomplete(nameBInput, 'nameB-list');
+    // Save name when user types manually
+    nameBInput.addEventListener('blur', function(){
+      const name = this.value.trim();
+      if(name && name.length > 0){
+        import('../services/storage.js').then(function(module){
+          module.pushPrev(name);
+        });
+      }
+    });
+  }
+  if(nameA1Input) {
+    autocomplete(nameA1Input, 'nameA1-list');
+    // Save name when user types manually
+    nameA1Input.addEventListener('blur', function(){
+      const name = this.value.trim();
+      if(name && name.length > 0){
+        import('../services/storage.js').then(function(module){
+          module.pushPrev(name);
+        });
+      }
+    });
+  }
+  if(nameA2Input) {
+    autocomplete(nameA2Input, 'nameA2-list');
+    // Save name when user types manually
+    nameA2Input.addEventListener('blur', function(){
+      const name = this.value.trim();
+      if(name && name.length > 0){
+        import('../services/storage.js').then(function(module){
+          module.pushPrev(name);
+        });
+      }
+    });
+  }
+  if(nameB1Input) {
+    autocomplete(nameB1Input, 'nameB1-list');
+    // Save name when user types manually
+    nameB1Input.addEventListener('blur', function(){
+      const name = this.value.trim();
+      if(name && name.length > 0){
+        import('../services/storage.js').then(function(module){
+          module.pushPrev(name);
+        });
+      }
+    });
+  }
+  if(nameB2Input) {
+    autocomplete(nameB2Input, 'nameB2-list');
+    // Save name when user types manually
+    nameB2Input.addEventListener('blur', function(){
+      const name = this.value.trim();
+      if(name && name.length > 0){
+        import('../services/storage.js').then(function(module){
+          module.pushPrev(name);
+        });
+      }
+    });
+  }
   
   // Add event listeners for team name inputs to update chips
   if(teamNameAInput) {
@@ -158,9 +231,26 @@ function bindSummaryEvents(){
   const closeSummaryBtn = document.getElementById('btnCloseSummary');
   const newMatchBtn = document.getElementById('btnNewMatch');
   const quickStartBtn = document.getElementById('btnQuickStart');
+  const finishMatchBtn = document.getElementById('btnFinishMatch');
   const showSummaryBtn = document.getElementById('showSummaryBtn');
   const mask = document.getElementById('summaryMask');
   const nextSetBtn = document.getElementById('nextSetBtn');
+
+  // Handle tournament mode button click
+  if(finishMatchBtn) {
+    finishMatchBtn.addEventListener('click', function(){
+      if(state.playMode !== 'tournament') return;
+      openFinishDialog();
+    });
+  }
+  
+  if(newMatchBtn) {
+    newMatchBtn.style.display = state.playMode === 'tournament' ? 'none' : 'inline-block';
+  }
+  
+  if(quickStartBtn) {
+    quickStartBtn.style.display = state.playMode === 'tournament' ? 'none' : 'inline-block';
+  }
 
   if(closeBtn) closeBtn.addEventListener('click', closeSummaryModal);
   if(closeSummaryBtn) closeSummaryBtn.addEventListener('click', closeSummaryModal);
@@ -194,6 +284,100 @@ function bindSummaryEvents(){
   });
 }
 
+function updateTournamentActionButtons(){
+  const finishBtn = document.getElementById('btnFinishMatch');
+  const isTournament = state.playMode === 'tournament';
+  const completedSets = state.setsA >= 2 || state.setsB >= 2;
+  if(finishBtn) finishBtn.style.display = isTournament && completedSets ? 'inline-block' : 'none';
+}
+
+// Finish dialog event listeners
+(function bindFinishDialogEvents(){
+  const mask = document.getElementById('finishMatchMask');
+  if(!mask) return;
+
+  const btnPlayed = document.getElementById('finishMatchPlayed');
+  const btnWalkoverA = document.getElementById('finishMatchWalkoverA');
+  const btnWalkoverB = document.getElementById('finishMatchWalkoverB');
+  const btnCancel = document.getElementById('finishMatchCancel');
+
+  btnPlayed?.addEventListener('click', function(){
+    finalizeTournamentMatch({ type: 'played' });
+    hideFinishDialog();
+    toast('Kampen er ferdig. Resultatet er lagret.');
+  });
+
+  btnWalkoverA?.addEventListener('click', function(){
+    finalizeTournamentMatch({ type: 'walkover', winnerSide: 'A' });
+    hideFinishDialog();
+    toast('Walkover registrert. Lag A får seieren.');
+  });
+
+  btnWalkoverB?.addEventListener('click', function(){
+    finalizeTournamentMatch({ type: 'walkover', winnerSide: 'B' });
+    hideFinishDialog();
+    toast('Walkover registrert. Lag B får seieren.');
+  });
+
+  btnCancel?.addEventListener('click', hideFinishDialog);
+  mask.addEventListener('click', function(e){ if(e.target === mask) hideFinishDialog(); });
+})();
+
+function showFinishDialog(disablePlayed) {
+  const mask = document.getElementById('finishMatchMask');
+  if(!mask) return;
+  mask.style.display = 'flex';
+  mask.setAttribute('aria-hidden', 'false');
+  setBodyScroll(false);
+  
+  const playedBtn = document.getElementById('finishMatchPlayed');
+  const info = document.getElementById('finishMatchInfo');
+  const walkA = document.getElementById('finishMatchWalkoverA');
+  const walkB = document.getElementById('finishMatchWalkoverB');
+  
+  if(!disablePlayed){
+    if(playedBtn){
+      playedBtn.style.display = 'block';
+      playedBtn.disabled = false;
+    }
+    if(walkA) walkA.style.display = 'none';
+    if(walkB) walkB.style.display = 'none';
+    if(info) info.style.display = 'none';
+  }else{
+    if(playedBtn) playedBtn.style.display = 'none';
+    if(info){
+      info.style.display = 'block';
+      info.textContent = 'Fullfør settene (best av tre) før du kan markere kampen som spilt.';
+    }
+    if(walkA) walkA.style.display = 'block';
+    if(walkB) walkB.style.display = 'block';
+  }
+  
+  document.getElementById('finishMatchHint').textContent = disablePlayed
+    ? 'Walkover kan registreres selv om kampen ikke er spilt ferdig.'
+    : 'Velg hvordan du vil avslutte kampen.';
+}
+
+function hideFinishDialog(){
+  const mask = document.getElementById('finishMatchMask');
+  if(!mask) return;
+  mask.style.display = 'none';
+  mask.setAttribute('aria-hidden', 'true');
+  setBodyScroll(true);
+  
+  const playedBtn = document.getElementById('finishMatchPlayed');
+  const info = document.getElementById('finishMatchInfo');
+  const walkA = document.getElementById('finishMatchWalkoverA');
+  const walkB = document.getElementById('finishMatchWalkoverB');
+  if(playedBtn){
+    playedBtn.style.display = 'block';
+    playedBtn.disabled = false;
+  }
+  if(walkA) walkA.style.display = 'block';
+  if(walkB) walkB.style.display = 'block';
+  if(info) info.style.display = 'none';
+}
+
 function updateScores(){
   setDigits(state.scoreA, 'A');
   setDigits(state.scoreB, 'B');
@@ -216,6 +400,38 @@ function updateScores(){
   }
 
   updateEditableState();
+  
+  // Save tournament match state
+  if(state.playMode === 'tournament' && state.tournamentData?.activeMatchId){
+    const id = state.tournamentData.activeMatchId;
+    const store = state.tournamentData.matchStates || (state.tournamentData.matchStates = {});
+    const entry = store[id] || (store[id] = {
+      scoreA: 0, scoreB: 0, setsA: 0, setsB: 0,
+      currentSet: 1, setHistory: [], locked: false,
+      betweenSets: false, pendingSetWinner: null,
+      swappedAt11: false, status: 'pending'
+    });
+    entry.scoreA = state.scoreA;
+    entry.scoreB = state.scoreB;
+    entry.setsA = state.setsA;
+    entry.setsB = state.setsB;
+    entry.currentSet = state.currentSet;
+    entry.setHistory = state.setHistory.slice();
+    entry.locked = state.locked;
+    entry.betweenSets = state.betweenSets;
+    entry.pendingSetWinner = state.pendingSetWinner;
+    entry.swappedAt11 = state.swappedAt11;
+    if(entry.status === 'pending' && (state.scoreA > 0 || state.scoreB > 0 || state.setHistory.length)){
+      entry.status = 'in-progress';
+    }
+  }
+  
+  // Update tournament overview if visible
+  renderTournamentOverview();
+  
+  // Update tournament action buttons
+  updateTournamentActionButtons();
+  
   saveState();
 }
 
@@ -342,10 +558,6 @@ function renderSummary(finalWinnerName){
   saveState();
 }
 
-function buildWinnerMsg(winnerName, loserName){
-  return '🎉 GRATULERER ' + winnerName.toUpperCase() + '! DU VANT KAMPEN!\n' +
-         '👏 BRA JOBBA ' + loserName.toUpperCase() + ', DU GJORDE DITT BESTE.';
-}
 
 function checkSetEnd(){
   const leadOk = Math.abs(state.scoreA - state.scoreB) >= 2 || state.scoreA === state.cap || state.scoreB === state.cap;
@@ -364,10 +576,6 @@ function checkSetEnd(){
       const aDisplay = typeof names.A === 'string' ? names.A : names.A?.display || names.A?.players?.join(' / ') || 'Spiller A';
       const bDisplay = typeof names.B === 'string' ? names.B : names.B?.display || names.B?.players?.join(' / ') || 'Spiller B';
       const winnerName = winner === 'A' ? aDisplay : bDisplay;
-      const loserName = winner === 'A' ? bDisplay : aDisplay;
-      const msg = buildWinnerMsg(winnerName, loserName);
-      const msgEl = document.getElementById('winnerMsg');
-      if(msgEl) msgEl.textContent = msg;
 
       if(winner === 'A'){
         document.getElementById('scoreA')?.classList.add('winner');
@@ -408,7 +616,8 @@ function checkSetEnd(){
     return;
   }
 
-  if(state.currentSet === 3 && !state.swappedAt11 && (state.scoreA === 11 || state.scoreB === 11)){
+  const isDecider = (state.setsA === 1 && state.setsB === 1);
+  if(state.currentSet === 3 && isDecider && !state.swappedAt11 && (state.scoreA === 11 || state.scoreB === 11)){
     startVisualSwap();
     state.swappedAt11 = true;
   }
@@ -469,13 +678,15 @@ function startNewMatch(opts){
   state.namesSavedThisMatch = false;
   state.allowScoring = false;
   state.nameEditMode = false;
+  // Only clear tournament data if not in tournament mode
+  if(state.playMode !== 'tournament'){
+    state.tournamentData = null;
+  }
 
   const nextSetBtn = document.getElementById('nextSetBtn');
   if(nextSetBtn) nextSetBtn.style.display = 'none';
   const summaryBtn = document.getElementById('showSummaryBtn');
   if(summaryBtn) summaryBtn.style.display = 'none';
-  const winnerMsg = document.getElementById('winnerMsg');
-  if(winnerMsg) winnerMsg.textContent = '';
   clearWinner();
   closeSummaryModal();
   document.body.classList.remove('areas-active');
@@ -494,6 +705,141 @@ function startNewMatch(opts){
     // Normal flow - show splash
     showSplash();
   }
+}
+
+export function finalizeTournamentMatch(options){
+  const matchId = state.tournamentData.activeMatchId;
+  if(!matchId) return;
+  
+  const store = state.tournamentData.matchStates || (state.tournamentData.matchStates = {});
+  const entry = store[matchId] || (store[matchId] = {
+    scoreA: 0, scoreB: 0, setsA: 0, setsB: 0,
+    currentSet: 1, setHistory: [], locked: false,
+    betweenSets: false, pendingSetWinner: null,
+    swappedAt11: false, status: 'pending'
+  });
+  
+  if(options.type === 'played') {
+    entry.status = 'completed';
+    entry.finalScore = {
+      scoreA: state.scoreA,
+      scoreB: state.scoreB,
+      setsA: state.setsA,
+      setsB: state.setsB,
+      setHistory: state.setHistory.slice()
+    };
+  } else if(options.type === 'walkover') {
+    entry.status = 'walkover';
+    entry.walkoverWinner = options.winnerSide;
+    entry.finalScore = null;
+  }
+  
+  state.locked = true;
+  state.allowScoring = false;
+  
+  // Set scroll target for tournament overview
+  state.tournamentData.scrollTargetMatchId = matchId;
+  
+  renderTournamentOverview();
+  saveState();
+  pushStateThrottled();
+  
+  // Optionally open overview
+  showTournamentOverview();
+}
+
+export function startTournamentMatch(matchId){
+  // Look up the match in tournament data
+  const match = state.tournamentData.matches.find(m => m.id === matchId);
+  if(!match) {
+    console.log('Match not found:', matchId);
+    return;
+  }
+
+  // Hide tournament overview and show match view
+  hideTournamentOverview();
+  showMatch();
+
+  // Set tournament mode and active match
+  state.playMode = 'tournament';
+  state.tournamentData.activeMatchId = matchId;
+
+  // Rebuild menu with tournament handlers
+  menuHandlers = buildMenuHandlers();
+  renderMenu(state.VIEW_MODE, menuHandlers);
+  
+  // Update button visibility for tournament mode
+  bindSummaryEvents();
+  
+  // Update tournament action buttons
+  updateTournamentActionButtons();
+
+  // Load or create match state
+  const matchState = state.tournamentData.matchStates[matchId];
+  if (matchState) {
+    // Restore existing match state
+    state.scoreA = matchState.scoreA;
+    state.scoreB = matchState.scoreB;
+    state.setsA = matchState.setsA;
+    state.setsB = matchState.setsB;
+    state.currentSet = matchState.currentSet;
+    state.setHistory = matchState.setHistory;
+    state.locked = matchState.locked;
+    state.betweenSets = matchState.betweenSets;
+    state.pendingSetWinner = matchState.pendingSetWinner;
+    state.swappedAt11 = matchState.swappedAt11;
+  } else {
+    // Create fresh match state
+    const fresh = {
+      scoreA: 0, scoreB: 0,
+      setsA: 0, setsB: 0,
+      currentSet: 1,
+      setHistory: [],
+      locked: false,
+      betweenSets: false,
+      pendingSetWinner: null,
+      swappedAt11: false,
+      status: 'pending'
+    };
+    state.tournamentData.matchStates[matchId] = fresh;
+    
+    // Initialize state with fresh values
+    state.scoreA = fresh.scoreA;
+    state.scoreB = fresh.scoreB;
+    state.setsA = fresh.setsA;
+    state.setsB = fresh.setsB;
+    state.currentSet = fresh.currentSet;
+    state.setHistory = fresh.setHistory;
+    state.locked = fresh.locked;
+    state.betweenSets = fresh.betweenSets;
+    state.pendingSetWinner = fresh.pendingSetWinner;
+    state.swappedAt11 = fresh.swappedAt11;
+  }
+  
+  state.namesSavedThisMatch = false;
+  state.allowScoring = false;
+
+  // Hide UI elements
+  const nextSetBtn = document.getElementById('nextSetBtn');
+  const summaryBtn = document.getElementById('showSummaryBtn');
+  if(nextSetBtn) nextSetBtn.style.display = 'none';
+  if(summaryBtn) summaryBtn.style.display = 'none';
+  
+  clearWinner();
+  closeSummaryModal();
+
+  // Set player names
+  writeModalInputsFromAB(match.playerA || 'Spiller A', match.playerB || 'Spiller B');
+  updateNameChips();
+
+  // Mark names as saved and enable scoring
+  state.namesSavedThisMatch = true;
+  state.allowScoring = true;
+  updateEditableState();
+  updateScores();
+  fitScores();
+  saveState();
+  pushStateThrottled();
 }
 
 function closeSummaryModal(){
@@ -599,6 +945,8 @@ function buildMenuHandlers(){
     },
     onFullscreen: toggleFullscreen,
     onStats: () => renderStats(loadMatches(), mode => { state.VIEW_MODE = mode; }, renderMenu, menuHandlers),
+    onTournamentOverview: state.playMode === 'tournament' ? () => showTournamentOverview() : undefined,
+    onFinishMatch: state.playMode === 'tournament' ? () => openFinishDialog() : undefined,
     onBackToMatch: () => {
       showMatch();
       state.VIEW_MODE = 'match';

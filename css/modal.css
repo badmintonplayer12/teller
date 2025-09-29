@@ -21,7 +21,8 @@
 .dropdown-btn:hover{color:#e2e8f0;background:rgba(255,255,255,.1)}
 .dropdown-btn.hidden{display:none}
 .autocomplete-items{position:absolute;top:calc(100% - 1px);left:0;right:0;border:1px solid #233454;border-top:none;border-radius:0 0 .6rem .6rem;background:#111827;box-shadow:0 8px 24px rgba(0,0,0,.35);overflow:hidden;z-index:1000;max-height:200px;margin:0}
-.autocomplete-items div{padding:.6rem .8rem;border-bottom:1px solid #233454}
+.autocomplete-items div{padding:.6rem .8rem;border-bottom:1px solid #233454;cursor:pointer;transition:background .2s}
+.autocomplete-items div:hover{background:#2d3b57}
 .autocomplete-items div:last-child{border-bottom:0}
 .autocomplete-active{background-color:#60a5fa!important;color:#061a2e!important}
 .modalMask{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;z-index:1000}
@@ -37,6 +38,8 @@
 .btnPrimary:hover{background:#60a5fa;transform:translateY(-1px)}
 .btnSecondary{background:#374151;color:#e2e8f0}
 .btnSecondary:hover{background:#4b5563;transform:translateY(-1px)}
+.button.warning{background:#dc2626;color:#ffffff}
+.button.warning:hover{background:#ef4444;transform:translateY(-1px)}
 .summaryModal{max-width:90vw;max-height:90vh;overflow-y:auto}
 .winnerAnnouncement{text-align:center;font-size:1.2rem;font-weight:700;color:var(--accent);margin-bottom:1.5rem;padding:1rem;background:rgba(96,165,250,0.1);border-radius:.5rem;border:1px solid rgba(96,165,250,0.3)}
 .summaryTable{margin:1rem 0}
@@ -53,6 +56,11 @@
 .summaryBtn:hover{background:#60a5fa;transform:translateX(-50%) translateY(-2px);box-shadow:0 12px 35px rgba(96,165,250,0.6)}
 .summaryBtn:active{transform:translateX(-50%) translateY(0)}
 @keyframes pulse{0%{box-shadow:0 8px 25px rgba(96,165,250,0.4)}50%{box-shadow:0 8px 25px rgba(96,165,250,0.8)}100%{box-shadow:0 8px 25px rgba(96,165,250,0.4)}}
+
+.summaryActions{position:fixed;bottom:2.2rem;left:50%;transform:translateX(-50%);display:flex;gap:1rem;z-index:20}
+.summaryActions .summaryBtn{min-width:12rem;position:static;transform:none;box-shadow:0 10px 25px rgba(96,165,250,0.35);animation:none}
+.summaryActions .finishBtn{background:linear-gradient(135deg, #ef4444, #f97316)}
+.summaryActions .finishBtn:hover{background:linear-gradient(135deg, #f97316, #ef4444)}
 .tournamentModal{width:min(640px,92vw)}
 .tournamentLabel{display:block;margin-bottom:.4rem;font-size:.9rem;color:#93c5fd}
 .tournamentNameInput{font:inherit;background:#111827;color:#e5e7eb;border:1px solid #233454;border-radius:.6rem;padding:.6rem .75rem;width:100%;box-sizing:border-box}
@@ -66,6 +74,98 @@
 .participantRow{display:flex;align-items:center;gap:.75rem}
 .participantInput{flex:1;font:inherit;background:#111827;color:#e5e7eb;border:1px solid #233454;border-radius:.6rem;padding:.55rem .75rem}
 .participantInput:focus{outline:none;border-color:#60a5fa;box-shadow:0 0 0 1px rgba(96,165,250,0.35)}
+.participantRow .autocomplete{flex:1}
+.participantRow .autocomplete input{padding-right:2.5rem}
+.participantRow .autocomplete input.no-dropdown{padding-right:.75rem}
+.participantRow .dropdown-btn{position:absolute;right:.5rem;top:50%;transform:translateY(-50%);background:none;border:none;color:#94a3b8;cursor:pointer;font-size:.8rem;padding:.2rem;border-radius:.2rem;transition:color .2s}
+.participantRow .dropdown-btn:hover{color:#e2e8f0;background:rgba(255,255,255,.1)}
+.participantRow .dropdown-btn.hidden{display:none}
 .participantRemove{background:none;border:1px solid #334155;color:#cbd5f5;border-radius:.6rem;padding:.45rem .8rem;font-size:.85rem;cursor:pointer;transition:all .2s}
 .participantRemove:hover{background:rgba(96,165,250,0.15);border-color:#60a5fa;color:#e2e8f0}
+
+/* Tournament Overview Modal */
+.tournamentOverviewModal{width:min(720px,92vw)}
+.tournamentOverviewContent{margin:1rem 0}
+.tournamentOverviewContent h3{margin:0 0 1rem 0;font-size:1.2rem;color:#e2e8f0;border-bottom:1px solid #1e293b;padding-bottom:.5rem}
+.tournamentRounds{margin-top:1rem}
+.tournamentRound{margin-bottom:1.5rem}
+.tournamentRound h4{margin:0 0 .75rem 0;font-size:1.1rem;color:#e2e8f0;border-bottom:1px solid #334155;padding-bottom:.5rem}
+.tournamentMatches{list-style:none;margin:0;padding:0}
+.tournamentMatch{padding:.5rem .75rem;background:rgba(15,23,42,0.3);border-radius:.5rem;margin-bottom:.5rem;color:#cbd5e1;font-size:.95rem;display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem}
+.tournamentMatch:last-child{margin-bottom:0}
+.tournamentMatchInfo{flex:1}
+.tournamentMatchBtn{background:#60a5fa;color:#061a2e;border:none;border-radius:.4rem;padding:.3rem .6rem;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .2s;flex-shrink:0}
+.tournamentMatchBtn:hover{background:#93c5fd;transform:translateY(-1px)}
+.tournamentMatchBtn:active{transform:translateY(0)}
+.tournamentMatchBtn.disabled{background:#6b7280;color:#9ca3af;cursor:not-allowed;transform:none}
+.tournamentMatchBtn.disabled:hover{background:#6b7280;transform:none}
+.matchStatus{font-size:.8rem;color:#94a3b8;font-style:italic;margin-top:.2rem}
+
+.tournamentMatch.just-finished{box-shadow:0 0 0 2px #60a5fa;background:rgba(96,165,250,0.18)}
+
+/* Finish Match Modal */
+.finishMatchPanel{max-width:400px;text-align:center}
+.finishActions{display:flex;flex-direction:column;gap:.5rem;margin-top:1rem}
+.finishActions button{margin-top:.5rem}
+.muted{color:#94a3b8;font-size:.9rem}
+
+/* Fullscreen Panel Styles */
+.modalMask.fullscreen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1rem, 4vh, 2.5rem);
+}
+
+.modalPanel.fullscreenPanel {
+  width: min(900px, 92vw);
+  height: min(90vh, 880px);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  background: #0f172a;
+  border-radius: 1.2rem;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  box-shadow: 0 35px 80px rgba(15, 23, 42, 0.6);
+  overflow: hidden;
+}
+
+.modalPanel.fullscreenPanel .panelBody {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 1.2rem 1.5rem 1.8rem;
+}
+
+.modalPanel.fullscreenPanel .panelBody::-webkit-scrollbar {
+  width: 0.55rem;
+}
+
+.modalPanel.fullscreenPanel header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: inherit;
+  padding: 1.2rem 1.5rem 0;
+}
+
+.modalPanel.fullscreenPanel footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.panelTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.panelActions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
 

@@ -23,7 +23,8 @@ export const state = {
   matchDiscipline: 'single',
   playMode: 'singleMatch',
   VIEW_MODE: 'match',
-  IS_SPECTATOR: MODE === 'spectator'
+  IS_SPECTATOR: MODE === 'spectator',
+  tournamentData: { name: '', participants: [], matches: [] }
 };
 
 const DEFAULT_NAMES = {
@@ -158,11 +159,11 @@ export function saveLiveState(){
         names: snapshot,
         format: { discipline: state.matchDiscipline, playMode: state.playMode },
         isALeft: document.querySelector('.side.left')?.id === 'sideA',
-        winnerMsg: document.getElementById('winnerMsg')?.textContent || '',
         summaryVisible: document.getElementById('summaryMask')?.style.display === 'flex',
         allowScoring: state.allowScoring,
         nameEditMode: state.nameEditMode,
-        betweenSets: state.betweenSets
+        betweenSets: state.betweenSets,
+        tournamentData: state.playMode === 'tournament' ? state.tournamentData : null
       };
       localStorage.setItem(LS.LIVE, JSON.stringify(data));
     }catch(_){ }
@@ -195,6 +196,12 @@ export function restoreLiveState(options){
     state.betweenSets = !!d.betweenSets;
     state.matchDiscipline = d.matchDiscipline || d.format?.discipline || 'single';
     state.playMode = d.playMode || d.format?.playMode || 'singleMatch';
+    // Only restore tournament data if in tournament mode
+    if(state.playMode === 'tournament'){
+      state.tournamentData = d.tournamentData || null;
+    } else {
+      state.tournamentData = null;
+    }
 
     const storedNames = d.names;
     if(storedNames && storedNames.A && storedNames.B){
@@ -224,8 +231,6 @@ export function restoreLiveState(options){
     if(updateNameChips) updateNameChips();
     if(setSidesDomTo) setSidesDomTo(!(d.isALeft === false));
 
-    const winnerMsgEl = document.getElementById('winnerMsg');
-    if(winnerMsgEl) winnerMsgEl.textContent = d.winnerMsg || '';
 
     const summaryMask = document.getElementById('summaryMask');
     if(summaryMask) summaryMask.style.display = d.summaryVisible ? 'flex' : 'none';
@@ -243,5 +248,9 @@ export function restoreLiveState(options){
 export function clearLiveState(){
   try{
     localStorage.removeItem(LS.LIVE);
+    // Only clear tournament data if not in tournament mode
+    if(state.playMode !== 'tournament'){
+      state.tournamentData = null;
+    }
   }catch(_){ }
 }

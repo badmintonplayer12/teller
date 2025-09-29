@@ -43,13 +43,17 @@ vNext highlights
     </div>
   </div>
 
-<div id="tournamentMask" class="modalMask" style="display:none" aria-hidden="true">
-  <div class="modalBox tournamentModal" role="dialog" aria-labelledby="tournamentTitle" aria-modal="true">
-    <div class="modalHeader">
-      <h2 id="tournamentTitle">Sett opp turnering</h2>
-      <button id="tournamentClose" class="closeBtn" aria-label="Lukk">&times;</button>
-    </div>
-    <div class="modalContent">
+<div id="tournamentMask" class="modalMask fullscreen" style="display:none" aria-hidden="true">
+  <div class="modalPanel fullscreenPanel tournamentSetupPanel" role="dialog" aria-labelledby="tournamentTitle" aria-modal="true">
+    <header>
+      <div class="panelTop">
+        <h2 id="tournamentTitle">Sett opp turnering</h2>
+        <div class="panelActions">
+          <button id="tournamentClose" class="closeBtn" aria-label="Lukk">×</button>
+        </div>
+      </div>
+    </header>
+    <div class="panelBody">
       <label class="tournamentLabel" for="tournamentName">Turneringsnavn</label>
       <input id="tournamentName" class="tournamentNameInput" placeholder="Turneringsnavn" autocomplete="off"/>
       <div class="tournamentSection">
@@ -60,12 +64,52 @@ vNext highlights
         <ul id="tournamentParticipants" class="participantsList"></ul>
       </div>
     </div>
-    <div class="modalActions">
+    <footer>
       <button id="tournamentBack" class="button ghost">Tilbake</button>
       <button id="tournamentContinue" class="button" disabled>Fortsett</button>
+    </footer>
+  </div>
+</div>
+
+<!-- Tournament Overview Modal -->
+<div id="tournamentOverviewMask" class="modalMask fullscreen" style="display:none" aria-hidden="true">
+  <div class="modalPanel fullscreenPanel tournamentOverviewPanel" role="dialog" aria-labelledby="tournamentOverviewTitle">
+    <header>
+      <div class="panelTop">
+        <h2 id="tournamentOverviewTitle">Turnering: <span id="tournamentOverviewName"></span></h2>
+        <div class="panelActions">
+          <button id="tournamentOverviewClose" class="closeBtn" aria-label="Lukk">×</button>
+          <button id="tournamentOverviewBack" class="button ghost">Tilbake</button>
+        </div>
+      </div>
+    </header>
+    <div class="panelBody">
+      <h3>Kamp-oversikt</h3>
+      <div id="tournamentRounds" class="tournamentRounds"></div>
+    </div>
+    <footer>
+      <button id="tournamentOverviewStart" class="button">Start første kamp</button>
+    </footer>
+  </div>
+</div>
+
+<!-- Stats Modal -->
+<div id="statsMask" class="modalMask fullscreen" style="display:none" aria-hidden="true">
+  <div class="modalPanel fullscreenPanel statsPanel" role="dialog" aria-labelledby="statsTitle">
+    <header>
+      <div class="panelTop">
+        <h2 id="statsTitle">Statistikk</h2>
+        <div class="panelActions">
+          <button id="statsClose" class="closeBtn" aria-label="Lukk">×</button>
+        </div>
+      </div>
+    </header>
+    <div class="panelBody" id="statsPanelBody">
+      <!-- Stats content will be rendered here -->
     </div>
   </div>
 </div>
+
 <div class="wrap" id="wrap">
   <div class="clickArea left" id="leftArea" aria-label="Legg til poeng venstre"></div>
   <div class="clickArea right" id="rightArea" aria-label="Legg til poeng høyre"></div>
@@ -83,12 +127,15 @@ vNext highlights
   </div>
 </div>
 
-<div id="winnerMsg"></div>
-
-<!-- Show Summary Button -->
-<button id="showSummaryBtn" class="summaryBtn" style="display:none">
-  📊 Vis kampsammendrag
-</button>
+<!-- Summary Actions -->
+<div class="summaryActions">
+  <button id="showSummaryBtn" class="summaryBtn" style="display:none">
+    📊 Vis kampsammendrag
+  </button>
+  <button id="btnFinishMatch" class="summaryBtn finishBtn" style="display:none">
+    ✅ Ferdigstill kamp
+  </button>
+</div>
 
 <!-- Next Set Button (control only) -->
 <button id="nextSetBtn" class="summaryBtn" style="display:none">
@@ -245,6 +292,20 @@ vNext highlights
 
 <div id="toast"></div>
 
+<!-- Finish Match Modal -->
+<div id="finishMatchMask" class="modalMask" style="display:none" aria-hidden="true">
+  <div class="modalPanel finishMatchPanel">
+    <h3>Ferdigstill kamp</h3>
+    <p id="finishMatchHint">Velg hvordan du vil avslutte kampen.</p>
+    <p id="finishMatchInfo" class="muted" style="display:none;margin-top:.5rem;"></p>
+    <div class="finishActions">
+      <button id="finishMatchPlayed" class="btn btnPrimary">Kampen er spilt ferdig</button>
+      <button id="finishMatchWalkoverA" class="btn btnSecondary">Walkover – lag A</button>
+      <button id="finishMatchWalkoverB" class="btn btnSecondary">Walkover – lag B</button>
+      <button id="finishMatchCancel" class="btn ghost">Avbryt</button>
+    </div>
+  </div>
+</div>
 
 <script type="module" src="./js/main.js"></script>
 </body>

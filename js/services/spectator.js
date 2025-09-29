@@ -141,8 +141,6 @@ export function bindSpectatorHandlers(ref){
     }
 
     clearWinner();
-    var msgEl = document.getElementById('winnerMsg');
-    if(msgEl) msgEl.textContent = v.msg || '';
     if(v.msg && v.msg.indexOf('GRATULERER') > -1){
       if(a > b){
         document.getElementById('scoreA')?.classList.add('winner');
