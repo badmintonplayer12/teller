@@ -91,9 +91,9 @@ function startFirstMatch(){
   });
 }
 
-function createPlayerCard(playerName, side, matchState, isWinner, isWalkoverWinner) {
-  const card = document.createElement('div');
-  card.className = 'playerCard';
+function createMatchPlayerCard(playerName, side, matchState, isWinner, isWalkoverWinner) {
+  const card = document.createElement('article');
+  card.className = 'player-card';
   
   // Handle null/placeholder values
   let displayName = playerName;
@@ -103,51 +103,66 @@ function createPlayerCard(playerName, side, matchState, isWinner, isWalkoverWinn
     displayName = playerName; // Keep placeholder strings as-is
   }
   
-  // Player name
+  // Header with name and set badge
+  const header = document.createElement('header');
+  header.className = 'card-header';
+  
   const nameElement = document.createElement('div');
-  nameElement.className = 'playerName';
+  nameElement.className = 'player-name';
   nameElement.textContent = displayName;
   
-  // Score
-  const scoreElement = document.createElement('div');
-  scoreElement.className = 'playerScore';
+  const setBadge = document.createElement('div');
+  setBadge.className = 'set-badge';
   
+  // Calculate sets won
+  let setsWon = 0;
   if (!matchState) {
-    scoreElement.textContent = '0';
+    setsWon = 0;
   } else if (matchState.status === 'completed' && matchState.finalScore) {
-    scoreElement.textContent = side === 'A' ? matchState.finalScore.scoreA : matchState.finalScore.scoreB;
+    setsWon = side === 'A' ? matchState.finalScore.setsA : matchState.finalScore.setsB;
   } else if (matchState.status === 'walkover') {
-    scoreElement.textContent = isWalkoverWinner ? 'W' : '0';
+    setsWon = isWalkoverWinner ? 1 : 0;
   } else {
-    scoreElement.textContent = side === 'A' ? matchState.scoreA : matchState.scoreB;
+    setsWon = side === 'A' ? matchState.setsA : matchState.setsB;
   }
   
-  // Set info
-  const setInfoElement = document.createElement('div');
-  setInfoElement.className = 'playerSetInfo';
+  setBadge.textContent = setsWon;
+  
+  header.appendChild(nameElement);
+  header.appendChild(setBadge);
+  
+  // Score slot
+  const scoreSlot = document.createElement('div');
+  scoreSlot.className = 'score-slot';
   
   if (!matchState) {
-    setInfoElement.textContent = '0 sett';
+    scoreSlot.textContent = '0';
   } else if (matchState.status === 'completed' && matchState.finalScore) {
-    const sets = side === 'A' ? matchState.finalScore.setsA : matchState.finalScore.setsB;
-    setInfoElement.textContent = `${sets} sett`;
+    scoreSlot.textContent = side === 'A' ? matchState.finalScore.scoreA : matchState.finalScore.scoreB;
   } else if (matchState.status === 'walkover') {
-    setInfoElement.textContent = isWalkoverWinner ? '1 sett' : '0 sett';
+    scoreSlot.textContent = isWalkoverWinner ? 'W' : '0';
   } else {
-    const sets = side === 'A' ? matchState.setsA : matchState.setsB;
-    setInfoElement.textContent = `${sets} sett`;
+    scoreSlot.textContent = side === 'A' ? matchState.scoreA : matchState.scoreB;
   }
   
   // Assemble card
-  card.appendChild(nameElement);
-  card.appendChild(scoreElement);
-  card.appendChild(setInfoElement);
+  card.appendChild(header);
+  card.appendChild(scoreSlot);
   
   // Add winner styling
-  if (isWinner || isWalkoverWinner) {
+  const isFinished = matchState?.status === 'completed' || matchState?.status === 'walkover';
+  if (isWinner && isFinished) {
     card.classList.add('winner');
-    // Add fade-in animation for winner badge
-    setTimeout(() => card.classList.add('winner-visible'), 100);
+    nameElement.classList.add('gold-text');
+    scoreSlot.classList.add('gold-text');
+  }
+  
+  // Fade out score for finished matches
+  if (isFinished) {
+    scoreSlot.style.opacity = '0';
+    setTimeout(() => {
+      scoreSlot.style.display = 'none';
+    }, 300);
   }
   
   return card;
@@ -208,7 +223,7 @@ export function renderTournamentOverview(){
                    isWalkover ? matchState.walkoverWinner : null;
       
       // Create player A card
-      const playerACard = createPlayerCard(
+      const playerACard = createMatchPlayerCard(
         match.playerA, 
         'A', 
         matchState, 
@@ -217,7 +232,7 @@ export function renderTournamentOverview(){
       );
       
       // Create player B card
-      const playerBCard = createPlayerCard(
+      const playerBCard = createMatchPlayerCard(
         match.playerB, 
         'B', 
         matchState, 
@@ -225,32 +240,72 @@ export function renderTournamentOverview(){
         isWalkover && matchState.walkoverWinner === 'B'
       );
       
-      // Create VS indicator
-      const vsIndicator = document.createElement('div');
-      vsIndicator.className = 'vsIndicator';
-      vsIndicator.textContent = 'vs';
+      // Create VS section with status
+      const matchVs = document.createElement('div');
+      matchVs.className = 'match-vs';
       
-      playerCardsContainer.appendChild(playerACard);
-      playerCardsContainer.appendChild(vsIndicator);
-      playerCardsContainer.appendChild(playerBCard);
-      
-      // Create status line
-      const statusLine = document.createElement('div');
-      statusLine.className = 'matchStatusLine';
+      // Status tag
+      const statusTag = document.createElement('span');
+      statusTag.className = 'match-status';
       
       if (!matchState) {
-        statusLine.textContent = 'Venter på start';
+        statusTag.textContent = 'Venter';
+        statusTag.classList.add('status-waiting');
       } else if (isCompleted) {
         const winnerName = winner === 'A' ? match.playerA : match.playerB;
-        statusLine.innerHTML = `Avsluttet – ${winnerName} vant <span class="statusIndicator"></span>`;
+        statusTag.textContent = `Avsluttet – ${winnerName} vant`;
+        statusTag.classList.add('status-finished');
       } else if (isWalkover) {
         const winnerName = matchState.walkoverWinner === 'A' ? match.playerA : match.playerB;
-        statusLine.innerHTML = `Walkover – ${winnerName} vant <span class="statusIndicator"></span>`;
+        statusTag.textContent = `Walkover – ${winnerName} vant`;
+        statusTag.classList.add('status-finished');
       } else {
-        statusLine.textContent = `Pågår – sett ${matchState.currentSet}`;
+        statusTag.textContent = 'Pågår';
+        statusTag.classList.add('status-ongoing');
       }
       
-      // Create action button
+      // VS chip
+      const vsChip = document.createElement('span');
+      vsChip.className = 'vs-chip';
+      vsChip.textContent = 'vs';
+      
+      matchVs.appendChild(statusTag);
+      matchVs.appendChild(vsChip);
+      
+      playerCardsContainer.appendChild(playerACard);
+      playerCardsContainer.appendChild(matchVs);
+      playerCardsContainer.appendChild(playerBCard);
+      
+      // Create match summary
+      const matchSummary = document.createElement('div');
+      matchSummary.className = 'match-summary';
+      
+      if (!matchState) {
+        // Empty for waiting matches
+        matchSummary.textContent = '';
+      } else if (isCompleted && matchState.finalScore && matchState.finalScore.setHistory) {
+        // Show set history for completed matches
+        const setTexts = matchState.finalScore.setHistory.map((set, index) => {
+          return `Sett ${index + 1}: ${set.a}–${set.b}`;
+        });
+        matchSummary.textContent = setTexts.join(' · ');
+        matchSummary.style.opacity = '1';
+      } else if (isWalkover) {
+        // Show walkover info
+        matchSummary.textContent = 'Walkover';
+        matchSummary.style.opacity = '1';
+      } else {
+        // Show current set for ongoing matches
+        matchSummary.textContent = `Sett ${matchState.currentSet} pågår`;
+        matchSummary.style.opacity = '0.7';
+      }
+      
+      matchItem.appendChild(matchSummary);
+      
+      // Create action button wrapper
+      const actionsWrapper = document.createElement('div');
+      actionsWrapper.className = 'actions';
+      
       const startMatchBtn = document.createElement('button');
       startMatchBtn.className = 'tournamentMatchBtn';
       startMatchBtn.textContent = 'Gå til kamp';
@@ -265,11 +320,12 @@ export function renderTournamentOverview(){
         startMatchBtn.addEventListener('click', () => handleStartMatch(match.id));
       }
       
+      actionsWrapper.appendChild(startMatchBtn);
+      
       // Assemble match item
       matchItem.appendChild(matchHeader);
       matchItem.appendChild(playerCardsContainer);
-      matchItem.appendChild(statusLine);
-      matchItem.appendChild(startMatchBtn);
+      matchItem.appendChild(actionsWrapper);
       
       // Check if this is the target match for scrolling
       if (match.id === scrollTargetId) targetElement = matchItem;
