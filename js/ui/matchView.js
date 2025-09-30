@@ -22,6 +22,15 @@ function openFinishDialog(){
   showFinishDialog(!settled);
 }
 
+// Lokal helper: hent visningsnavn for A/B konsistent
+function getCurrentDisplayNames(){
+  const names = readABFromModalInputs();
+  return {
+    aDisplay: getDisplayName(names.A, 'A'),
+    bDisplay: getDisplayName(names.B, 'B')
+  };
+}
+
 const saveState = () => saveLiveState(readABFromModalInputs);
 
 setLayoutDependencies({
@@ -448,10 +457,7 @@ function renderSummary(finalWinnerName){
   const names = readABFromModalInputs();
   const sumNameA = document.getElementById('sumNameA');
   const sumNameB = document.getElementById('sumNameB');
-  
-  // Handle both string and object formats
-  const aDisplay = getDisplayName(names.A, 'A');
-  const bDisplay = getDisplayName(names.B, 'B');
+  const { aDisplay, bDisplay } = getCurrentDisplayNames();
   
   if(sumNameA) sumNameA.textContent = aDisplay;
   if(sumNameB) sumNameB.textContent = bDisplay;
@@ -530,9 +536,7 @@ function checkSetEnd(){
       state.betweenSets = false;
       state.pendingSetWinner = null;
 
-      const names = readABFromModalInputs();
-      const aDisplay = typeof names.A === 'string' ? names.A : names.A?.display || names.A?.players?.join(' / ') || 'Spiller A';
-      const bDisplay = typeof names.B === 'string' ? names.B : names.B?.display || names.B?.players?.join(' / ') || 'Spiller B';
+      const { aDisplay, bDisplay } = getCurrentDisplayNames();
       const winnerName = winner === 'A' ? aDisplay : bDisplay;
 
       if(winner === 'A'){
