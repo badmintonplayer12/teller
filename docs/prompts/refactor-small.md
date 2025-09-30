@@ -17,3 +17,9 @@
 - Kort notat om hva som ble endret
 - Liten manuell testliste (2–4 punkter)
 - Oppdater REFACTOR_LOG.md med ny LOC og refactor-info
+
+**Commit-prosess:**
+1. **Etter refactoring:** Lag klar commit-melding med `git add` og `git commit -m "..."` kommandoer
+2. **Før commit:** Spør bruker om de vil committe - la bruker teste først
+3. **Bruker godkjenner:** Kjør commit-kommandoene
+4. **Oppdater REFACTOR_LOG.md** med ny LOC og refactor-info

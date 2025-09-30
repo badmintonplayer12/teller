@@ -33,11 +33,7 @@
 .closeBtn:hover{color:#e2e8f0;background:rgba(255,255,255,.1)}
 .modalContent{margin-bottom:1.5rem}
 .modalActions{display:flex;gap:.75rem;justify-content:flex-end}
-.btn{padding:.75rem 1.5rem;border:none;border-radius:.5rem;font-weight:600;cursor:pointer;transition:all .2s}
-.btnPrimary{background:var(--accent);color:#061a2e}
-.btnPrimary:hover{background:#60a5fa;transform:translateY(-1px)}
-.btnSecondary{background:#374151;color:#e2e8f0}
-.btnSecondary:hover{background:#4b5563;transform:translateY(-1px)}
+/* btnPrimary and btnSecondary moved to base.css as btn--primary and btn--secondary */
 .button.warning{background:#dc2626;color:#ffffff}
 .button.warning:hover{background:#ef4444;transform:translateY(-1px)}
 .summaryModal{max-width:90vw;max-height:90vh;overflow-y:auto}
@@ -68,7 +64,7 @@
 .tournamentSection{margin-top:1.5rem}
 .participantsHeader{display:flex;align-items:center;justify-content:space-between;gap:1rem}
 .participantsHeader h3{margin:0;font-size:1.05rem;color:#e2e8f0}
-.addParticipantBtn{background:#1e293b;color:#e2e8f0;border:none;border-radius:.5rem;padding:.5rem 1rem;font-weight:600;cursor:pointer;transition:all .2s}
+.addParticipantBtn{background:#1e293b;color:#e2e8f0;border:none;font-weight:600}
 .addParticipantBtn:hover{background:#2d3b57}
 .participantsList{list-style:none;margin:1rem 0 0 0;padding:0;display:flex;flex-direction:column;gap:.75rem}
 .participantRow{display:flex;align-items:center;gap:.75rem}
@@ -80,7 +76,7 @@
 .participantRow .dropdown-btn{position:absolute;right:.5rem;top:50%;transform:translateY(-50%);background:none;border:none;color:#94a3b8;cursor:pointer;font-size:.8rem;padding:.2rem;border-radius:.2rem;transition:color .2s}
 .participantRow .dropdown-btn:hover{color:#e2e8f0;background:rgba(255,255,255,.1)}
 .participantRow .dropdown-btn.hidden{display:none}
-.participantRemove{background:none;border:1px solid #334155;color:#cbd5f5;border-radius:.6rem;padding:.45rem .8rem;font-size:.85rem;cursor:pointer;transition:all .2s}
+.participantRemove{background:none;border:1px solid #334155;color:#cbd5f5;font-size:.85rem}
 .participantRemove:hover{background:rgba(96,165,250,0.15);border-color:#60a5fa;color:#e2e8f0}
 
 /* Tournament Overview Modal */

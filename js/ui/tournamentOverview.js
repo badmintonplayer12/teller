@@ -140,82 +140,6 @@ function startFirstMatch(){
   handleStartMatch(firstPending.id);
 }
 
-function createMatchPlayerCard(playerName, side, matchState, isWinner, isWalkoverWinner) {
-  const card = document.createElement('article');
-  card.className = 'player-card';
-  
-  // Handle null/placeholder values
-  let displayName = playerName;
-  if (playerName === null) {
-    displayName = 'Walkover';
-  } else if (typeof playerName === 'string' && (playerName.includes('Vinner') || playerName.includes('Taper'))) {
-    displayName = playerName; // Keep placeholder strings as-is
-  }
-  
-  // Header with name and set badge
-  const header = document.createElement('header');
-  header.className = 'card-header';
-  
-  const nameElement = document.createElement('div');
-  nameElement.className = 'player-name';
-  nameElement.textContent = displayName;
-  
-  const setBadge = document.createElement('div');
-  setBadge.className = 'set-badge';
-  
-  // Calculate sets won
-  let setsWon = 0;
-  if (!matchState) {
-    setsWon = 0;
-  } else if (matchState.status === 'completed' && matchState.finalScore) {
-    setsWon = side === 'A' ? matchState.finalScore.setsA : matchState.finalScore.setsB;
-  } else if (matchState.status === 'walkover') {
-    setsWon = isWalkoverWinner ? 1 : 0;
-  } else {
-    setsWon = side === 'A' ? matchState.setsA : matchState.setsB;
-  }
-  
-  setBadge.textContent = setsWon;
-  
-  header.appendChild(nameElement);
-  header.appendChild(setBadge);
-  
-  // Score slot
-  const scoreSlot = document.createElement('div');
-  scoreSlot.className = 'score-slot';
-  
-  if (!matchState) {
-    scoreSlot.textContent = '0';
-  } else if (matchState.status === 'completed' && matchState.finalScore) {
-    scoreSlot.textContent = side === 'A' ? matchState.finalScore.scoreA : matchState.finalScore.scoreB;
-  } else if (matchState.status === 'walkover') {
-    scoreSlot.textContent = isWalkoverWinner ? 'W' : '0';
-  } else {
-    scoreSlot.textContent = side === 'A' ? matchState.scoreA : matchState.scoreB;
-  }
-  
-  // Assemble card
-  card.appendChild(header);
-  card.appendChild(scoreSlot);
-  
-  // Add winner styling
-  const isFinished = matchState?.status === 'completed' || matchState?.status === 'walkover';
-  if (isWinner && isFinished) {
-    card.classList.add('winner');
-    nameElement.classList.add('gold-text');
-    scoreSlot.classList.add('gold-text');
-  }
-  
-  // Fade out score for finished matches
-  if (isFinished) {
-    scoreSlot.style.opacity = '0';
-    setTimeout(() => {
-      scoreSlot.style.display = 'none';
-    }, 300);
-  }
-  
-  return card;
-}
 
 export function renderTournamentOverview(){
   if(!state.tournamentData || !state.tournamentData.matches) {
@@ -240,146 +164,166 @@ export function renderTournamentOverview(){
     matchesByRound[match.round].push(match);
   });
 
-  // Render each round using DocumentFragment for better performance
+  // Render each round as a table
   Object.keys(matchesByRound).sort((a, b) => parseInt(a) - parseInt(b)).forEach(roundNumber => {
-    const roundDiv = document.createElement('div');
-    roundDiv.className = 'tournamentRound';
-    
-    const roundTitle = document.createElement('h4');
-    roundTitle.textContent = `Runde ${roundNumber}`;
-    roundDiv.appendChild(roundTitle);
+    // Round header
+    const roundHeader = document.createElement('h4');
+    roundHeader.className = 'tournament-round-header';
+    roundHeader.textContent = `Runde ${roundNumber}`;
+    roundsElement.appendChild(roundHeader);
 
-    const matchesList = document.createElement('ul');
-    matchesList.className = 'tournamentMatches';
+    // Create table
+    const table = document.createElement('table');
+    table.className = 'tournament-table';
 
-    // Use DocumentFragment to batch DOM operations
+    // Table header
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    headerRow.innerHTML = `
+      <th>#</th>
+      <th>Spillere</th>
+      <th>Status</th>
+      <th>Handling</th>
+    `;
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    // Table body
+    const tbody = document.createElement('tbody');
     const matchesFragment = document.createDocumentFragment();
 
     matchesByRound[roundNumber].forEach((match, index) => {
-      const matchItem = document.createElement('li');
-      matchItem.className = 'tournamentMatch';
-
-      const matchLabel = document.createElement('span');
-      matchLabel.className = 'matchLabel';
-      matchLabel.textContent = `Kamp ${index + 1}`;
-
-      const matchBody = document.createElement('div');
-      matchBody.className = 'matchBody';
-
-      const playerCardsContainer = document.createElement('div');
-      playerCardsContainer.className = 'playerCardsContainer';
+      const row = document.createElement('tr');
+      row.dataset.matchId = match.id;
 
       const matchState = state.tournamentData.matchStates?.[match.id];
       const isCompleted = matchState?.status === 'completed';
       const isWalkover = matchState?.status === 'walkover';
+      const isOngoing = matchState && !isCompleted && !isWalkover;
       const winner = isCompleted ? (matchState.finalScore.setsA > matchState.finalScore.setsB ? 'A' : 'B') :
                    isWalkover ? matchState.walkoverWinner : null;
 
-      const playerACard = createMatchPlayerCard(
-        match.playerA,
-        'A',
-        matchState,
-        winner === 'A',
-        isWalkover && matchState.walkoverWinner === 'A'
-      );
+      // Match number column
+      const matchNumberCell = document.createElement('td');
+      matchNumberCell.className = 'match-number';
+      matchNumberCell.textContent = `#${index + 1}`;
+      row.appendChild(matchNumberCell);
 
-      const playerBCard = createMatchPlayerCard(
-        match.playerB,
-        'B',
-        matchState,
-        winner === 'B',
-        isWalkover && matchState.walkoverWinner === 'B'
-      );
+      // Players column
+      const playersCell = document.createElement('td');
+      playersCell.className = 'match-players';
+      
+      const playerA = document.createElement('span');
+      playerA.className = 'player-name';
+      playerA.textContent = match.playerA || 'TBD';
+      if (winner === 'A') playerA.classList.add('winner-name');
+      
+      const vs = document.createElement('span');
+      vs.className = 'vs';
+      vs.textContent = 'vs';
+      
+      const playerB = document.createElement('span');
+      playerB.className = 'player-name';
+      playerB.textContent = match.playerB || 'TBD';
+      if (winner === 'B') playerB.classList.add('winner-name');
+      
+      playersCell.appendChild(playerA);
+      playersCell.appendChild(vs);
+      playersCell.appendChild(playerB);
+      row.appendChild(playersCell);
 
-      const matchVs = document.createElement('div');
-      matchVs.className = 'match-vs';
-
-      const statusTag = document.createElement('span');
-      statusTag.className = 'match-status';
-
+      // Status column
+      const statusCell = document.createElement('td');
+      statusCell.className = 'match-status-cell';
+      
       if (!matchState) {
-        statusTag.textContent = 'Venter';
-        statusTag.classList.add('status-waiting');
+        statusCell.innerHTML = '<span class="status-waiting">Venter</span>';
       } else if (isCompleted) {
-        const winnerName = winner === 'A' ? match.playerA : match.playerB;
-        statusTag.textContent = `Avsluttet - ${winnerName} vant`;
-        statusTag.classList.add('status-finished');
+        const setScores = document.createElement('div');
+        setScores.className = 'set-scores';
+        
+        if (matchState.finalScore && matchState.finalScore.setHistory) {
+          matchState.finalScore.setHistory.forEach((set, setIndex) => {
+            const setScore = document.createElement('span');
+            setScore.className = 'set-score';
+            setScore.textContent = `${set.a}-${set.b}`;
+            if (winner === 'A' && set.a > set.b) setScore.classList.add('winner-scores');
+            if (winner === 'B' && set.b > set.a) setScore.classList.add('winner-scores');
+            setScores.appendChild(setScore);
+          });
+        }
+        
+        statusCell.appendChild(setScores);
+        statusCell.innerHTML += '<div class="status-finished">Ferdig</div>';
       } else if (isWalkover) {
         const winnerName = matchState.walkoverWinner === 'A' ? match.playerA : match.playerB;
-        statusTag.textContent = `Walkover - ${winnerName} vant`;
-        statusTag.classList.add('status-finished');
+        statusCell.innerHTML = `
+          <div class="status-finished">Walkover</div>
+          <div class="walkover-info">${winnerName} vant</div>
+        `;
       } else {
-        statusTag.textContent = 'Pågår';
-        statusTag.classList.add('status-ongoing');
-      }
-
-      const vsChip = document.createElement('span');
-      vsChip.className = 'vs-chip';
-      vsChip.textContent = 'vs';
-
-      matchVs.appendChild(statusTag);
-      matchVs.appendChild(vsChip);
-
-      playerCardsContainer.appendChild(playerACard);
-      playerCardsContainer.appendChild(matchVs);
-      playerCardsContainer.appendChild(playerBCard);
-      matchBody.appendChild(playerCardsContainer);
-
-      const matchSummary = document.createElement('div');
-      matchSummary.className = 'match-summary';
-
-      if (!matchState) {
-        matchSummary.textContent = 'Venter på start';
-        matchSummary.style.opacity = '0.7';
-      } else if (isCompleted && matchState.finalScore && matchState.finalScore.setHistory) {
-        const setTexts = matchState.finalScore.setHistory.map((set, setIndex) => {
-          return `Sett ${setIndex + 1}: ${set.a}-${set.b}`;
-        });
-        matchSummary.textContent = setTexts.join(' | ');
-        matchSummary.style.opacity = '1';
-      } else if (isWalkover) {
-        matchSummary.textContent = 'Walkover';
-        matchSummary.style.opacity = '1';
-      } else {
+        // Ongoing match
+        const setScores = document.createElement('div');
+        setScores.className = 'set-scores';
+        
         const currentSet = matchState.currentSet ?? 1;
-        matchSummary.textContent = `Sett ${currentSet} pågår`;
-        matchSummary.style.opacity = '0.7';
+        const totalSets = matchState.totalSets ?? 3;
+        
+        // Show completed sets
+        for (let i = 1; i < currentSet; i++) {
+          const setScore = document.createElement('span');
+          setScore.className = 'set-score';
+          const setA = matchState[`set${i}A`] || 0;
+          const setB = matchState[`set${i}B`] || 0;
+          setScore.textContent = `${setA}-${setB}`;
+          setScores.appendChild(setScore);
+        }
+        
+        // Show current set with pulsing effect
+        if (currentSet <= totalSets) {
+          const currentSetScore = document.createElement('span');
+          currentSetScore.className = 'set-score current live-set';
+          currentSetScore.textContent = `${matchState.scoreA}-${matchState.scoreB}`;
+          setScores.appendChild(currentSetScore);
+        }
+        
+        statusCell.appendChild(setScores);
+        statusCell.innerHTML += '<div class="status-ongoing">Pågår</div>';
       }
+      
+      row.appendChild(statusCell);
 
-      matchBody.appendChild(matchSummary);
+      // Action column
+      const actionCell = document.createElement('td');
+      actionCell.className = 'match-action';
+      
+      const actionBtn = document.createElement('button');
+      actionBtn.className = 'tournament-table-btn';
+      actionBtn.dataset.matchId = match.id;
 
-      const actionsWrapper = document.createElement('div');
-      actionsWrapper.className = 'actions';
-
-      const startMatchBtn = document.createElement('button');
-      startMatchBtn.className = 'tournamentMatchBtn';
-      startMatchBtn.textContent = 'Gå til kamp';
-      startMatchBtn.dataset.matchId = match.id;
-
-      if (isCompleted || isWalkover) {
-        startMatchBtn.disabled = true;
-        startMatchBtn.textContent = isWalkover ? 'Walkover' : 'Ferdig';
-        startMatchBtn.classList.add('disabled');
+      if (isCompleted) {
+        actionBtn.textContent = 'Ferdig';
+        actionBtn.disabled = true;
+        actionBtn.classList.add('disabled');
+      } else if (isWalkover) {
+        actionBtn.textContent = 'Walkover';
+        actionBtn.disabled = true;
+        actionBtn.classList.add('disabled');
       } else {
-        startMatchBtn.addEventListener('click', () => handleStartMatch(match.id));
+        actionBtn.textContent = 'Gå til kamp';
+        actionBtn.addEventListener('click', () => handleStartMatch(match.id));
       }
 
-      actionsWrapper.appendChild(startMatchBtn);
+      actionCell.appendChild(actionBtn);
+      row.appendChild(actionCell);
 
-      matchItem.appendChild(matchLabel);
-      matchItem.appendChild(matchBody);
-      matchItem.appendChild(actionsWrapper);
-
-      if (match.id === scrollTargetId) targetElement = matchItem;
-
-      // Add to fragment instead of directly to DOM
-      matchesFragment.appendChild(matchItem);
+      if (match.id === scrollTargetId) targetElement = row;
+      matchesFragment.appendChild(row);
     });
 
-    // Append all matches at once
-    matchesList.appendChild(matchesFragment);
-    roundDiv.appendChild(matchesList);
-    roundsElement.appendChild(roundDiv);
+    tbody.appendChild(matchesFragment);
+    table.appendChild(tbody);
+    roundsElement.appendChild(table);
   });
 
   // Scroll to target match if specified

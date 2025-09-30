@@ -140,14 +140,20 @@ export function bindSpectatorHandlers(ref){
       elB?.classList.remove('pop','popMinus');
     }
 
+    // Marker vinner basert på sett (best av tre)
     clearWinner();
-    if(v.msg && v.msg.indexOf('GRATULERER') > -1){
-      if(a > b){
-        document.getElementById('scoreA')?.classList.add('winner');
-        document.getElementById('nameA_chip')?.classList.add('winnerName');
-      }else{
-        document.getElementById('scoreB')?.classList.add('winner');
-        document.getElementById('nameB_chip')?.classList.add('winnerName');
+    var finished = (setsA >= 2) || (setsB >= 2);
+    if (finished) {
+      if (setsA > setsB) {
+        var sa = document.getElementById('scoreA');
+        var na = document.getElementById('nameA_chip');
+        if (sa) sa.classList.add('winner');
+        if (na) na.classList.add('winnerName');
+      } else if (setsB > setsA) {
+        var sb = document.getElementById('scoreB');
+        var nb = document.getElementById('nameB_chip');
+        if (sb) sb.classList.add('winner');
+        if (nb) nb.classList.add('winnerName');
       }
     }
 

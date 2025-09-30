@@ -6,6 +6,7 @@ import { saveIndividual, saveFromAB } from '../services/namesStore.js';
 import { readABFromModalInputs, writeModalInputsFromAB, updateNameChipsFromModal } from './layout.js';
 import { attachAutocomplete, toggleDropdownFor, updateDropdownButtons } from './autocomplete.js';
 import { isAtStart } from './session.js';
+import { qs } from '../util/domUtils.js';
 
 
 export function updateModalLayout(){
@@ -81,7 +82,7 @@ export function renderRecentOptions(){
 }
 
 export function autocomplete(input, listId){
-  const listEl = document.getElementById(listId);
+  const listEl = qs('#' + listId);
   if(!listEl) return;
   
   attachAutocomplete(input, {
@@ -94,8 +95,8 @@ export function autocomplete(input, listId){
 }
 
 export function toggleDropdown(fieldId){
-  const input = document.getElementById(fieldId);
-  const list = document.getElementById(fieldId + '-list');
+  const input = qs('#' + fieldId);
+  const list = qs('#' + fieldId + '-list');
   const btn = input?.parentElement?.querySelector('.dropdown-btn');
   
   if(!input || !list || (btn && btn.classList.contains('hidden'))) return;

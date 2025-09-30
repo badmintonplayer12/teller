@@ -24,6 +24,7 @@ export function openModal(id, opts){
 
   // Vis
   mask.style.display = display;
+  if (mask.classList) mask.classList.add('show');
   mask.setAttribute('aria-hidden', 'false');
   setBodyScroll(false);
 
@@ -94,6 +95,7 @@ export function closeModal(id){
     delete mask.__escHandler;
   }
   // Skjul
+  if (mask.classList) mask.classList.remove('show');
   mask.style.display = 'none';
   mask.setAttribute('aria-hidden', 'true');
   setBodyScroll(true);

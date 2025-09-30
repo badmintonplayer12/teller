@@ -13,6 +13,7 @@ import { setupFirebase, pushStateThrottled, pushStateNow, spectatorShareUrl } fr
 import { setSpectatorDependencies } from '../services/spectator.js';
 import { toast, setBodyScroll, $ } from '../dom.js';
 import { openModal, closeModal } from './modal.js';
+import { qs, on, toggle } from '../util/domUtils.js';
 import { LONGPRESS_MS, MOVE_THRESH } from '../constants.js';
 import { bindNameInput } from '../services/namesStore.js';
 
@@ -70,7 +71,7 @@ export function mount(){
 
   if(state.IS_SPECTATOR){
     document.body.classList.remove('areas-active');
-    const menu = document.getElementById('menuPanel');
+    const menu = qs('#menuPanel');
     if(menu) menu.style.display = 'none';
   }else{
     maybeShowKebabHint();
@@ -136,14 +137,14 @@ function bindCoreEvents(){
     bindTap($('#rightArea'), () => addPointByPosition('right'));
   }
 
-  const nameAInput = document.getElementById('nameA');
-  const nameBInput = document.getElementById('nameB');
-  const nameA1Input = document.getElementById('nameA1');
-  const nameA2Input = document.getElementById('nameA2');
-  const nameB1Input = document.getElementById('nameB1');
-  const nameB2Input = document.getElementById('nameB2');
-  const teamNameAInput = document.getElementById('teamNameA');
-  const teamNameBInput = document.getElementById('teamNameB');
+  const nameAInput = qs('#nameA');
+  const nameBInput = qs('#nameB');
+  const nameA1Input = qs('#nameA1');
+  const nameA2Input = qs('#nameA2');
+  const nameB1Input = qs('#nameB1');
+  const nameB2Input = qs('#nameB2');
+  const teamNameAInput = qs('#teamNameA');
+  const teamNameBInput = qs('#teamNameB');
   
   if(nameAInput) {
     autocomplete(nameAInput, 'nameA-list');
@@ -172,21 +173,21 @@ function bindCoreEvents(){
   
   // Add event listeners for team name inputs to update chips
   if(teamNameAInput) {
-    teamNameAInput.addEventListener('input', updateNameChips);
-    teamNameAInput.addEventListener('blur', updateNameChips);
+    on(teamNameAInput, 'input', updateNameChips);
+    on(teamNameAInput, 'blur', updateNameChips);
   }
   if(teamNameBInput) {
-    teamNameBInput.addEventListener('input', updateNameChips);
-    teamNameBInput.addEventListener('blur', updateNameChips);
+    on(teamNameBInput, 'input', updateNameChips);
+    on(teamNameBInput, 'blur', updateNameChips);
   }
 }
 
 function bindModalEvents(){
   const cancel = $('#btnCancelNames');
-  if(cancel) cancel.addEventListener('click', hideNameModal);
+  if(cancel) on(cancel, 'click', hideNameModal);
 
   const saveBtn = $('#btnSaveNames');
-  if(saveBtn) saveBtn.addEventListener('click', function(){
+  if(saveBtn) on(saveBtn, 'click', function(){
     onSaveNames(saveState, () => pushStateThrottled());
   });
 
@@ -529,11 +530,11 @@ function checkSetEnd(){
       const winnerName = winner === 'A' ? aDisplay : bDisplay;
 
       if(winner === 'A'){
-        document.getElementById('scoreA')?.classList.add('winner');
-        document.getElementById('nameA_chip')?.classList.add('winnerName');
+        toggle(qs('#scoreA'), 'winner', true);
+        toggle(qs('#nameA_chip'), 'winnerName', true);
       }else{
-        document.getElementById('scoreB')?.classList.add('winner');
-        document.getElementById('nameB_chip')?.classList.add('winnerName');
+        toggle(qs('#scoreB'), 'winner', true);
+        toggle(qs('#nameB_chip'), 'winnerName', true);
       }
 
       const summaryBtn = document.getElementById('showSummaryBtn');

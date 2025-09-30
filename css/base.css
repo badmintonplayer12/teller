@@ -4,6 +4,26 @@ html,body{height:100%}
 body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:#0b1224;color:#fff;display:flex;flex-direction:column;max-width:100vw;overflow-x:hidden;user-select:none}
 body.no-scroll{overflow-y:hidden}
 body.splash-open{overflow:hidden}
+/* Base button (samler dupliserte egenskaper, ingen visuell endring) */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  gap:.5rem;
+  font: inherit;
+  padding:.6rem .9rem;
+  border-radius:.6rem;
+  border:1px solid transparent;
+  cursor:pointer;
+  transition:transform .12s ease, box-shadow .12s ease, background-color .12s ease, border-color .12s ease;
+}
+.btn--primary{ background:#243147; border-color:#32425f; color:#e5e7eb; }
+.btn--primary:hover{ transform:translateY(-1px); box-shadow:0 6px 16px rgba(0,0,0,.25); }
+.btn--ghost{ background:transparent; border-color:#32425f; color:#e5e7eb; }
+.btn--ghost:hover{ background:rgba(255,255,255,0.1); }
+.btn--secondary{ background:#374151; color:#e2e8f0; }
+.btn--secondary:hover{ background:#4b5563; transform:translateY(-1px); }
+.btn--danger{ background:#3a1212; border-color:#5a1b1b; }
+.btn--icon{ padding:.4rem; min-width:2.25rem; min-height:2.25rem; }
+
 .button{font:inherit;border:0;border-radius:.5rem;padding:.45rem .7rem;cursor:pointer;background:#243147;color:#e5e7eb;border:1px solid #32425f}
 .button.ghost{background:transparent}
 #toast{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);background:#111827;border:1px solid #233454;color:#e5e7eb;padding:.45rem .7rem;border-radius:.5rem;z-index:70;display:none}

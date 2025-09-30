@@ -1,27 +1,18 @@
 ﻿import { state } from '../state/matchState.js';
 // (fjernet ubrukte imports)
 import { openModal, closeModal } from './modal.js';
+import { hasActiveMatchState, getContinueLabel } from './session.js';
 import { showSplash, setSplashContinueState, syncSplashButtons } from './splash.js';
+import { goToStart } from '../main.js';
 import { getRecentNames, getPrevNames } from '../services/storage.js';
 import { saveIndividual } from '../services/namesStore.js';
 import { generateSwissRoundOne } from '../services/tournament.js';
 import { attachAutocomplete, toggleDropdownFor, updateDropdownButtons } from './autocomplete.js';
+import { qs, on } from '../util/domUtils.js';
 
 // Konfig: når turneringen låses
 const TOURNAMENT_LOCK_MODE = 'onCreation'; // 'onCreation' | 'onFirstMatch'
 
-function hasActiveMatchState(){
-  return (
-    state.allowScoring ||
-    state.scoreA > 0 ||
-    state.scoreB > 0 ||
-    state.setsA > 0 ||
-    state.setsB > 0 ||
-    (Array.isArray(state.setHistory) && state.setHistory.length > 0) ||
-    state.betweenSets ||
-    state.locked
-  );
-}
 
 let mask;
 let modal;
@@ -41,12 +32,12 @@ function ensureElements(){
   if(!mask) mask = document.getElementById('tournamentMask');
   if(!mask) return false;
   if(!modal) modal = mask.querySelector('.tournamentSetupPanel');
-  if(!nameInput) nameInput = document.getElementById('tournamentName');
-  if(!list) list = document.getElementById('tournamentParticipants');
-  if(!addBtn) addBtn = document.getElementById('tournamentAddParticipant');
-  if(!closeBtn) closeBtn = document.getElementById('tournamentClose');
-  if(!backBtn) backBtn = document.getElementById('tournamentBack');
-  if(!continueBtn) continueBtn = document.getElementById('tournamentContinue');
+  if(!nameInput) nameInput = qs('#tournamentName');
+  if(!list) list = qs('#tournamentParticipants');
+  if(!addBtn) addBtn = qs('#tournamentAddParticipant');
+  if(!closeBtn) closeBtn = qs('#tournamentClose');
+  if(!backBtn) backBtn = qs('#tournamentBack');
+  if(!continueBtn) continueBtn = qs('#tournamentContinue');
   return true;
 }
 
@@ -56,41 +47,27 @@ function bindEvents(){
   mask.dataset.bound = '1';
 
   if(addBtn){
-    addBtn.addEventListener('click', function(){
+    on(addBtn, 'click', function(){
       addParticipantRow('');
     });
   }
 
   if(closeBtn){
-    closeBtn.addEventListener('click', function(){
+    on(closeBtn, 'click', function(){
       hideTournamentSetup();
-      // Oppdater "Fortsett"-knappen live
-      const visible = hasActiveMatchState();
-      const continueLabel = state.playMode === 'tournament'
-        ? 'Fortsett pågående turnering'
-        : 'Fortsett pågående kamp';
-      setSplashContinueState({ visible, label: continueLabel });
-      syncSplashButtons();
-      showSplash();
+      goToStart({ from: 'setup' });
     });
   }
 
   if(backBtn){
-    backBtn.addEventListener('click', function(){
+    on(backBtn, 'click', function(){
       hideTournamentSetup();
-      // Oppdater "Fortsett"-knappen live
-      const visible = hasActiveMatchState();
-      const continueLabel = state.playMode === 'tournament'
-        ? 'Fortsett pågående turnering'
-        : 'Fortsett pågående kamp';
-      setSplashContinueState({ visible, label: continueLabel });
-      syncSplashButtons();
-      showSplash();
+      goToStart({ from: 'setup' });
     });
   }
 
   if(nameInput){
-    nameInput.addEventListener('input', function(){
+    on(nameInput, 'input', function(){
       draft.name = nameInput.value;
       updateContinueButton();
     });
