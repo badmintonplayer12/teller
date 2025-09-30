@@ -3,6 +3,7 @@ import { qs } from '../dom.js';
 import { readABFromModalInputs } from '../ui/layout.js';
 import { setSpectatorDependencies, bindSpectatorHandlers } from './spectator.js';
 import { LS } from '../constants.js';
+import { loadScript } from '../util/loadScript.js';
 
 let pushStateThrottled = function(){};
 let pushStateNow = function(){};
@@ -34,11 +35,11 @@ export function setupFirebase(options){
     setSpectatorDependencies({ updateScores: options.updateScores });
   }
 
-  loadScript('https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js', function(){
-    loadScript('https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js', function(){
-      loadScript('https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js', afterSDK);
-    });
-  });
+  loadScript('https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js')
+    .then(() => loadScript('https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js'))
+    .then(() => loadScript('https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js'))
+    .then(afterSDK)
+    .catch(err => console.error('Firebase SDK load error:', err));
 }
 
 function afterSDK(){
@@ -102,14 +103,7 @@ function afterSDK(){
   });
 }
 
-function loadScript(src, cb){
-  var s = document.createElement('script');
-  s.src = src;
-  s.async = true;
-  s.onload = function(){ cb(null); };
-  s.onerror = function(){ cb(new Error('load '+src)); };
-  document.head.appendChild(s);
-}
+// loadScript moved to js/util/loadScript.js
 
 export function ensureGameId(){
   try{

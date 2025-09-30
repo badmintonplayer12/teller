@@ -1,5 +1,6 @@
 import { toast } from '../dom.js';
 import { openModal, closeModal } from './modal.js';
+import { loadScriptOnce } from '../util/loadScript.js';
 
 let getShareUrl = function(){ return location.href; };
 let qrReady = false;
@@ -80,26 +81,20 @@ function ensureQrLib(cb){
     return;
   }
   qrLoading = true;
-  loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js', function(err){
-    qrReady = !err && !!window.QRCode;
-    qrLoading = false;
-    cb(err);
-  });
+  loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js')
+    .then(function(){
+      qrReady = !!window.QRCode;
+      qrLoading = false;
+      cb(null);
+    })
+    .catch(function(err){
+      qrReady = false;
+      qrLoading = false;
+      cb(err);
+    });
 }
 
-function loadScriptOnce(src, cb){
-  if(document.querySelector('script[data-dyn="'+src+'"]')){
-    cb(null);
-    return;
-  }
-  var s = document.createElement('script');
-  s.src = src;
-  s.async = true;
-  s.setAttribute('data-dyn', src);
-  s.onload = function(){ cb(null); };
-  s.onerror = function(){ cb(new Error('load-fail')); };
-  document.head.appendChild(s);
-}
+// loadScriptOnce moved to js/util/loadScript.js
 
 function copyLink(){
   var url = getShareUrl();

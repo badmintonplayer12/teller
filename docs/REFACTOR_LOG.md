@@ -45,5 +45,6 @@ Denne filen føres KUN for **refaktorering/rydding** (ikke features). Etter hver
 > Legg nederst i tabellen, nyeste først.
 
 ```
+| 2024-12-19 | 5111 | Refactor-16: Dynamisk skriptlasting | Konsoliderte loadScript/loadScriptOnce til js/util/loadScript.js |
 | YYYY-MM-DD | <totale linjer> | Refactor-NN: <kort tittel> | <én kort setning om ryddingen> |
 ```
