@@ -1,23 +1,13 @@
 import { state } from '../state/matchState.js';
 // (fjernet ubrukte imports)
 import { openModal, closeModal } from './modal.js';
+import { hasActiveMatchState, getContinueLabel } from './session.js';
 import { showSplash, setSplashContinueState, syncSplashButtons } from './splash.js';
+import { goToStart } from '../main.js';
 
 // Konfig: når turneringen låses (må matche tournamentSetup.js)
 const TOURNAMENT_LOCK_MODE = 'onCreation'; // 'onCreation' | 'onFirstMatch'
 
-function hasActiveMatchState(){
-  return (
-    state.allowScoring ||
-    state.scoreA > 0 ||
-    state.scoreB > 0 ||
-    state.setsA > 0 ||
-    state.setsB > 0 ||
-    (Array.isArray(state.setHistory) && state.setHistory.length > 0) ||
-    state.betweenSets ||
-    state.locked
-  );
-}
 
 let mask;
 let modal;
@@ -47,14 +37,7 @@ function bindEvents(){
   if(closeBtn){
     closeBtn.addEventListener('click', function(){
       hideTournamentOverview();
-      // Oppdater "Fortsett"-knappen live
-      const visible = hasActiveMatchState();
-      const continueLabel = state.playMode === 'tournament'
-        ? 'Fortsett pågående turnering'
-        : 'Fortsett pågående kamp';
-      setSplashContinueState({ visible, label: continueLabel });
-      syncSplashButtons();
-      showSplash();
+      goToStart({ from: 'overview' });
     });
   }
 
@@ -257,7 +240,7 @@ export function renderTournamentOverview(){
     matchesByRound[match.round].push(match);
   });
 
-  // Render each round
+  // Render each round using DocumentFragment for better performance
   Object.keys(matchesByRound).sort((a, b) => parseInt(a) - parseInt(b)).forEach(roundNumber => {
     const roundDiv = document.createElement('div');
     roundDiv.className = 'tournamentRound';
@@ -268,6 +251,9 @@ export function renderTournamentOverview(){
 
     const matchesList = document.createElement('ul');
     matchesList.className = 'tournamentMatches';
+
+    // Use DocumentFragment to batch DOM operations
+    const matchesFragment = document.createDocumentFragment();
 
     matchesByRound[roundNumber].forEach((match, index) => {
       const matchItem = document.createElement('li');
@@ -386,9 +372,12 @@ export function renderTournamentOverview(){
 
       if (match.id === scrollTargetId) targetElement = matchItem;
 
-      matchesList.appendChild(matchItem);
+      // Add to fragment instead of directly to DOM
+      matchesFragment.appendChild(matchItem);
     });
 
+    // Append all matches at once
+    matchesList.appendChild(matchesFragment);
     roundDiv.appendChild(matchesList);
     roundsElement.appendChild(roundDiv);
   });

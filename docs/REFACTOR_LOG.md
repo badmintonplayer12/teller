@@ -24,6 +24,12 @@ Denne filen føres KUN for **refaktorering/rydding** (ikke features). Etter hver
 | 2025-01-27 | 4887           | Refactor-07: Fjern ubrukte imports               | Opprydding i 4 UI-filer uten funksjonsendring. |
 | 2025-01-27 | 4924           | Feat-01: Lås turneringsoppsett etter start       | Skjul/deaktiver "Tilbake" når turnering er startet. |
 | 2025-01-27 | 4942           | Fix-01: "Fortsett turnering" åpner alltid oversikt | Bypass auto-resume til enkeltkamp for turneringsoversikt. |
+| 2025-01-27 | 4923           | Refactor-08: session-helper for "Fortsett"        | Fjernet duplisering av aktiv-kamp-sjekk og etikett. |
+| 2025-01-27 | 4946           | Feat-02: Bekreftelsesdialog for "Start"           | Varsler før sletting av pågående kamp/turnering. |
+| 2025-01-27 | 4993           | Feat-03: Styled modal for "Start" bekreftelse     | Erstatter window.confirm med pen modal. |
+| 2025-01-27 | 5019           | Fix-02: "Gå til start" viser alltid "Fortsett"    | X-knapp og "Gå til start" sletter ikke state. |
+| 2025-01-27 | 5030           | Fix-03: Bekreftelsesmodal viser korrekt tekst     | Sjekker faktisk aktiv state, ikke toggle. |
+| 2025-01-27 | 5037           | Refactor-09: Batch DOM i tournamentOverview       | DocumentFragment reduserer reflow/repaint. |
 
 ## Mal for nye rader
 
