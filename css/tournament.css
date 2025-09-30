@@ -93,7 +93,7 @@
 }
 
 .status-finished {
-  color: #fbbf24;
+  color: #cbd5e1;
   font-weight: 600;
 }
 
@@ -150,10 +150,9 @@
   font-weight: 700;
 }
 
-.winner-scores .set-score {
-  background: #fbbf24;
-  color: #061a2e;
-  border-color: #fbbf24;
+.set-score.winner-scores {
+  color: #fbbf24;
+  font-weight: 700;
 }
 
 /* Action column */

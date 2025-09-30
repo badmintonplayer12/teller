@@ -250,15 +250,33 @@ export function renderTournamentOverview(){
           matchState.finalScore.setHistory.forEach((set, setIndex) => {
             const setScore = document.createElement('span');
             setScore.className = 'set-score';
-            setScore.textContent = `${set.a}-${set.b}`;
-            if (winner === 'A' && set.a > set.b) setScore.classList.add('winner-scores');
-            if (winner === 'B' && set.b > set.a) setScore.classList.add('winner-scores');
+            
+            // Create separate spans for each score to allow individual styling
+            const scoreASpan = document.createElement('span');
+            scoreASpan.textContent = set.a;
+            if (winner === 'A' && set.a > set.b) scoreASpan.classList.add('winner-scores');
+            
+            const dashSpan = document.createElement('span');
+            dashSpan.textContent = '-';
+            
+            const scoreBSpan = document.createElement('span');
+            scoreBSpan.textContent = set.b;
+            if (winner === 'B' && set.b > set.a) scoreBSpan.classList.add('winner-scores');
+            
+            setScore.appendChild(scoreASpan);
+            setScore.appendChild(dashSpan);
+            setScore.appendChild(scoreBSpan);
             setScores.appendChild(setScore);
           });
         }
         
         statusCell.appendChild(setScores);
-        statusCell.innerHTML += '<div class="status-finished">Ferdig</div>';
+        
+        // Add status text using DOM manipulation
+        const statusDiv = document.createElement('div');
+        statusDiv.className = 'status-finished';
+        statusDiv.textContent = 'Ferdig';
+        statusCell.appendChild(statusDiv);
       } else if (isWalkover) {
         const winnerName = matchState.walkoverWinner === 'A' ? match.playerA : match.playerB;
         statusCell.innerHTML = `
@@ -270,29 +288,37 @@ export function renderTournamentOverview(){
         const setScores = document.createElement('div');
         setScores.className = 'set-scores';
         
-        const currentSet = matchState.currentSet ?? 1;
-        const totalSets = matchState.totalSets ?? 3;
-        
-        // Show completed sets
-        for (let i = 1; i < currentSet; i++) {
+        // Show completed sets from setHistory
+        const setHistory = Array.isArray(matchState.setHistory) ? matchState.setHistory : [];
+        setHistory.forEach((set) => {
           const setScore = document.createElement('span');
           setScore.className = 'set-score';
-          const setA = matchState[`set${i}A`] || 0;
-          const setB = matchState[`set${i}B`] || 0;
-          setScore.textContent = `${setA}-${setB}`;
+          setScore.textContent = `${set.a}-${set.b}`;
           setScores.appendChild(setScore);
+        });
+        
+        // Show current/live set
+        const currentSetScore = document.createElement('span');
+        currentSetScore.className = 'set-score current live-set';
+        
+        if (matchState.betweenSets === true) {
+          // In pause between sets - show 0-0 with pulse
+          currentSetScore.textContent = '0-0';
+        } else {
+          // Active set - show current scores
+          const scoreA = matchState.scoreA ?? 0;
+          const scoreB = matchState.scoreB ?? 0;
+          currentSetScore.textContent = `${scoreA}-${scoreB}`;
         }
         
-        // Show current set with pulsing effect
-        if (currentSet <= totalSets) {
-          const currentSetScore = document.createElement('span');
-          currentSetScore.className = 'set-score current live-set';
-          currentSetScore.textContent = `${matchState.scoreA}-${matchState.scoreB}`;
-          setScores.appendChild(currentSetScore);
-        }
-        
+        setScores.appendChild(currentSetScore);
         statusCell.appendChild(setScores);
-        statusCell.innerHTML += '<div class="status-ongoing">Pågår</div>';
+        
+        // Add status text using DOM manipulation
+        const statusDiv = document.createElement('div');
+        statusDiv.className = 'status-ongoing';
+        statusDiv.textContent = 'Pågår';
+        statusCell.appendChild(statusDiv);
       }
       
       row.appendChild(statusCell);
