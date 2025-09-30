@@ -33,6 +33,7 @@ Denne filen føres KUN for **refaktorering/rydding** (ikke features). Etter hver
 | 2025-01-27 | 5056           | Fix-04: Start-bekreftelse rydder turneringsdata   | Sletter state før ny start, ikke etter. |
 | 2025-01-27 | 5054           | Refactor-10: getDisplayName overalt               | Erstattet manuell string/objekt-logikk. |
 | 2025-01-27 | 5059           | Refactor-11: konsistent getDisplayName i matchView | Lokal helper for A/B-visningsnavn. |
+| 2025-01-27 | 5074           | Refactor-12: isAtStart helper for start-sjekk       | Felles helper for "er vi ved start?". |
 
 ## Mal for nye rader
 

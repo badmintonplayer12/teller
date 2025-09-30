@@ -5,7 +5,7 @@ import { loadMatches, saveMatches, saveLastNames, loadLastNames } from '../servi
 import { initShare, openShare, closeShare } from './share.js';
 import { renderStats, showMatch } from './statsView.js';
 import { setupMenu, renderMenu } from './menu.js';
-import { hasActiveMatchState, getContinueLabel } from './session.js';
+import { hasActiveMatchState, getContinueLabel, isAtStart } from './session.js';
 import { setupSplash, showSplash, hideSplash, syncSplashButtons, setSplashContinueState } from './splash.js';
 import { setupTournamentSetup, showTournamentSetup } from './tournamentSetup.js';
 import { setupTournamentOverview, hideTournamentOverview, renderTournamentOverview } from './tournamentOverview.js';
@@ -406,7 +406,7 @@ function updateScores(){
 
 function maybeSaveNamesOnStart(){
   if(state.namesSavedThisMatch) return;
-  const atStart = (state.scoreA === 0 && state.scoreB === 0 && state.setsA === 0 && state.setsB === 0 && state.currentSet === 1 && !state.locked);
+  const atStart = isAtStart(state);
   if(!atStart){
     const names = readABFromModalInputs();
     const aDisplay = getDisplayName(names.A, 'A');

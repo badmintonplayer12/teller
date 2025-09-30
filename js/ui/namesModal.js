@@ -5,6 +5,7 @@ import { saveLastNames, getRecentNames } from '../services/storage.js';
 import { saveIndividual, saveFromAB } from '../services/namesStore.js';
 import { readABFromModalInputs, writeModalInputsFromAB, updateNameChipsFromModal } from './layout.js';
 import { attachAutocomplete, toggleDropdownFor, updateDropdownButtons } from './autocomplete.js';
+import { isAtStart } from './session.js';
 
 
 export function updateModalLayout(){
@@ -61,7 +62,7 @@ export function hideNameModal(){
 }
 
 export function updateEditableState(){
-  var atStart = (state.scoreA === 0 && state.scoreB === 0 && state.setsA === 0 && state.setsB === 0 && state.currentSet === 1 && !state.locked);
+  var atStart = isAtStart(state);
   if(!state.IS_SPECTATOR && (atStart || state.nameEditMode) && !state.allowScoring){
     document.body.classList.remove('areas-active');
   }else if(!state.IS_SPECTATOR){
