@@ -30,6 +30,8 @@ Denne filen føres KUN for **refaktorering/rydding** (ikke features). Etter hver
 | 2025-01-27 | 5019           | Fix-02: "Gå til start" viser alltid "Fortsett"    | X-knapp og "Gå til start" sletter ikke state. |
 | 2025-01-27 | 5030           | Fix-03: Bekreftelsesmodal viser korrekt tekst     | Sjekker faktisk aktiv state, ikke toggle. |
 | 2025-01-27 | 5037           | Refactor-09: Batch DOM i tournamentOverview       | DocumentFragment reduserer reflow/repaint. |
+| 2025-01-27 | 5056           | Fix-04: Start-bekreftelse rydder turneringsdata   | Sletter state før ny start, ikke etter. |
+| 2025-01-27 | 5054           | Refactor-10: getDisplayName overalt               | Erstattet manuell string/objekt-logikk. |
 
 ## Mal for nye rader
 

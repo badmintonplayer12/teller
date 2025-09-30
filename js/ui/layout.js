@@ -1,4 +1,4 @@
-import { state } from '../state/matchState.js';
+import { state, getDisplayName } from '../state/matchState.js';
 import { $ } from '../dom.js';
 
 let saveLiveStateBound = function(){};
@@ -100,8 +100,8 @@ export function updateNameChipsFromModal(){
   var cb = $('#nameB_chip');
   
   // Handle both string and object formats
-  const aDisplay = typeof names.A === 'string' ? names.A : names.A?.display || names.A?.players?.join(' / ') || 'Spiller A';
-  const bDisplay = typeof names.B === 'string' ? names.B : names.B?.display || names.B?.players?.join(' / ') || 'Spiller B';
+  const aDisplay = getDisplayName(names.A, 'A');
+  const bDisplay = getDisplayName(names.B, 'B');
   
   if(ca) ca.textContent = aDisplay;
   if(cb) cb.textContent = bDisplay;

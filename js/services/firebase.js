@@ -1,4 +1,4 @@
-import { state } from '../state/matchState.js';
+import { state, getDisplayName } from '../state/matchState.js';
 import { qs } from '../dom.js';
 import { readABFromModalInputs } from '../ui/layout.js';
 import { setSpectatorDependencies, bindSpectatorHandlers } from './spectator.js';
@@ -13,10 +13,7 @@ export function getStateForSync(){
   var names = readABFromModalInputs();
   
   // Convert names to sync format
-  const syncNames = {
-    A: typeof names.A === 'string' ? names.A : names.A?.display || names.A?.players?.join(' / ') || 'Spiller A',
-    B: typeof names.B === 'string' ? names.B : names.B?.display || names.B?.players?.join(' / ') || 'Spiller B'
-  };
+  const syncNames = { A: getDisplayName(names.A, 'A'), B: getDisplayName(names.B, 'B') };
   
   return {
     ts: Date.now(),

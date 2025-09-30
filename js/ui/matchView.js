@@ -1,10 +1,11 @@
-import { state, saveLiveState, restoreLiveState, clearLiveState, namesState, normalizeNameEntry, alignNamesState } from '../state/matchState.js';
+import { state, saveLiveState, restoreLiveState, clearLiveState, namesState, normalizeNameEntry, alignNamesState, getDisplayName } from '../state/matchState.js';
 import { setDigits, fitScores, queueFit, bumpPlus, bumpMinus, swapSides, setLayoutDependencies, readABFromModalInputs, writeModalInputsFromAB, clearWinner, isALeft, startVisualSwap, setSidesDomTo } from './layout.js';
 import { showNameModal, hideNameModal, updateEditableState, updateNameChips, autocomplete, onSaveNames } from './namesModal.js';
 import { loadMatches, saveMatches, saveLastNames, loadLastNames } from '../services/storage.js';
 import { initShare, openShare, closeShare } from './share.js';
 import { renderStats, showMatch } from './statsView.js';
 import { setupMenu, renderMenu } from './menu.js';
+import { hasActiveMatchState, getContinueLabel } from './session.js';
 import { setupSplash, showSplash, hideSplash, syncSplashButtons, setSplashContinueState } from './splash.js';
 import { setupTournamentSetup, showTournamentSetup } from './tournamentSetup.js';
 import { setupTournamentOverview, hideTournamentOverview, renderTournamentOverview } from './tournamentOverview.js';
@@ -15,18 +16,6 @@ import { openModal, closeModal } from './modal.js';
 import { LONGPRESS_MS, MOVE_THRESH } from '../constants.js';
 import { bindNameInput } from '../services/namesStore.js';
 
-function hasActiveMatchState(){
-  return (
-    state.allowScoring ||
-    state.scoreA > 0 ||
-    state.scoreB > 0 ||
-    state.setsA > 0 ||
-    state.setsB > 0 ||
-    (Array.isArray(state.setHistory) && state.setHistory.length > 0) ||
-    state.betweenSets ||
-    state.locked
-  );
-}
 
 function openFinishDialog(){
   const settled = (state.setsA >= 2 || state.setsB >= 2);
@@ -242,8 +231,8 @@ function bindSummaryEvents(){
   });
   if(showSummaryBtn) showSummaryBtn.addEventListener('click', function(){
     const names = readABFromModalInputs();
-    const aDisplay = typeof names.A === 'string' ? names.A : names.A?.display || names.A?.players?.join(' / ') || 'Spiller A';
-    const bDisplay = typeof names.B === 'string' ? names.B : names.B?.display || names.B?.players?.join(' / ') || 'Spiller B';
+    const aDisplay = getDisplayName(names.A, 'A');
+    const bDisplay = getDisplayName(names.B, 'B');
     const winnerName = (state.setsA === 2) ? aDisplay : bDisplay;
     renderSummary(winnerName);
   });
@@ -411,8 +400,8 @@ function maybeSaveNamesOnStart(){
   const atStart = (state.scoreA === 0 && state.scoreB === 0 && state.setsA === 0 && state.setsB === 0 && state.currentSet === 1 && !state.locked);
   if(!atStart){
     const names = readABFromModalInputs();
-    const aDisplay = typeof names.A === 'string' ? names.A : names.A?.display || names.A?.players?.join(' / ') || 'Spiller A';
-    const bDisplay = typeof names.B === 'string' ? names.B : names.B?.display || names.B?.players?.join(' / ') || 'Spiller B';
+    const aDisplay = getDisplayName(names.A, 'A');
+    const bDisplay = getDisplayName(names.B, 'B');
     saveLastNames(aDisplay, bDisplay);
     state.namesSavedThisMatch = true;
   }
@@ -461,8 +450,8 @@ function renderSummary(finalWinnerName){
   const sumNameB = document.getElementById('sumNameB');
   
   // Handle both string and object formats
-  const aDisplay = typeof names.A === 'string' ? names.A : names.A?.display || names.A?.players?.join(' / ') || 'Spiller A';
-  const bDisplay = typeof names.B === 'string' ? names.B : names.B?.display || names.B?.players?.join(' / ') || 'Spiller B';
+  const aDisplay = getDisplayName(names.A, 'A');
+  const bDisplay = getDisplayName(names.B, 'B');
   
   if(sumNameA) sumNameA.textContent = aDisplay;
   if(sumNameB) sumNameB.textContent = bDisplay;
@@ -912,10 +901,8 @@ function buildMenuHandlers(){
     onShare: () => openShare(),
     onNewMatch: () => {
       // Gå til start uten å nullstille state. Oppdater "Fortsett"-knappen live.
-      const visible = hasActiveMatchState();
-      const continueLabel = state.playMode === 'tournament'
-        ? 'Fortsett pågående turnering'
-        : 'Fortsett pågående kamp';
+      const visible = hasActiveMatchState(state);
+      const continueLabel = getContinueLabel(state.playMode);
       try { closeAllModals && closeAllModals(); } catch(_) {}
       setSplashContinueState({ visible, label: continueLabel }); // styrer vis/tekst
       // Oppdater "valgknappene" på splash til dagens mode/disciplin

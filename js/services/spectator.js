@@ -1,4 +1,4 @@
-import { state } from '../state/matchState.js';
+import { state, getDisplayName } from '../state/matchState.js';
 import { setSidesDomTo, fitScores, queueFit, bumpPlus, bumpMinus, clearWinner } from '../ui/layout.js';
 
 let updateScores = function(){};
@@ -23,8 +23,8 @@ export function setNameChipsDirect(nameA, nameB){
   var cb = document.getElementById('nameB_chip');
   
   // Handle both string and object formats
-  const aDisplay = typeof nameA === 'string' ? nameA : (nameA?.display || nameA?.players?.join(' / ') || 'Spiller A');
-  const bDisplay = typeof nameB === 'string' ? nameB : (nameB?.display || nameB?.players?.join(' / ') || 'Spiller B');
+  const aDisplay = getDisplayName(nameA, 'A');
+  const bDisplay = getDisplayName(nameB, 'B');
   
   if(ca) ca.textContent = aDisplay;
   if(cb) cb.textContent = bDisplay;

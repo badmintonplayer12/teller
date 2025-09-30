@@ -1,4 +1,4 @@
-import { state } from '../state/matchState.js';
+import { state, getDisplayName } from '../state/matchState.js';
 import { setBodyScroll, $ } from '../dom.js';
 import { openModal, closeModal } from './modal.js';
 import { saveLastNames, getRecentNames } from '../services/storage.js';
@@ -106,8 +106,8 @@ export function onSaveNames(saveLiveState, pushStateThrottled){
   var names = readABFromModalInputs();
   
   // Extract display names for saving to localStorage
-  const aDisplay = typeof names.A === 'string' ? names.A : names.A?.display || 'Spiller A';
-  const bDisplay = typeof names.B === 'string' ? names.B : names.B?.display || 'Spiller B';
+  const aDisplay = getDisplayName(names.A, 'A');
+  const bDisplay = getDisplayName(names.B, 'B');
   
   saveLastNames(aDisplay, bDisplay);
   
