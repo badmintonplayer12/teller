@@ -35,6 +35,10 @@ Denne filen føres KUN for **refaktorering/rydding** (ikke features). Etter hver
 | 2025-01-27 | 5059           | Refactor-11: konsistent getDisplayName i matchView | Lokal helper for A/B-visningsnavn. |
 | 2025-01-27 | 5074           | Refactor-12: isAtStart helper for start-sjekk       | Felles helper for "er vi ved start?". |
 | 2025-01-27 | 5063           | Refactor-13: Fjern maybeSaveNamesOnStart            | Fjernet ubrukt funksjon og state-flag. |
+| 2025-01-27 | 5047           | Fix-05: Statistikk-modal vises ikke                 | Legger til .show-klasse i openModal/closeModal. |
+| 2025-01-27 | 5083           | Fix-06: Statistikk-siden vises tom                  | Kobler kebab-aksjon til renderStats med fallback. |
+| 2025-01-27 | 5086           | Fix-07: Statistikk-handler parameter mismatch       | Fikser renderStats-parametere i menu.js. |
+| 2025-01-27 | 5092           | Fix-08: Statistikk placeholder-kommentar            | Håndterer HTML-kommentarer i ensureStatsShell. |
 
 ## Mal for nye rader
 

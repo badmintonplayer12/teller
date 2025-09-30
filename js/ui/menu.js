@@ -1,4 +1,7 @@
-﻿let kebab;
+﻿import { renderStats } from './statsView.js';
+import { loadMatches } from '../services/storage.js';
+
+let kebab;
 let panel;
 let menuHandlers = {};
 let spectatorMode = false;
@@ -30,6 +33,21 @@ export function setupMenu(options){
 
 export function renderMenu(mode, handlers){
   menuHandlers = handlers || {};
+  
+  // Add stats handler if not provided
+  if (!menuHandlers.onStats) {
+    menuHandlers.onStats = function(){
+      try {
+        const matches = loadMatches();
+        renderStats(matches, function(mode) { 
+          // Mode change callback - could update state.VIEW_MODE if needed
+        }, null, null);
+      } catch(e) {
+        console && console.error && console.error('Stats open error', e);
+      }
+    };
+  }
+  
   ensureElements();
   if(!kebab || !panel) return;
 
@@ -43,10 +61,10 @@ export function renderMenu(mode, handlers){
 
   var html = '';
   if(mode === 'match'){
+    html += menuItem('miNewMatch', '🏠 Til start', menuHandlers.onNewMatch);
     html += menuItem('miShare', '🔗 Del…', menuHandlers.onShare);
     html += menuItem('miTournamentOverview', '📋 Kampoversikt', menuHandlers.onTournamentOverview);
     html += menuItem('miFinishMatch', '✅ Ferdigstill kamp', menuHandlers.onFinishMatch);
-    html += menuItem('miNewMatch', '🏠 Til start', menuHandlers.onNewMatch);
     html += menuItem('miResetSet', '♻️ Nullstill sett', menuHandlers.onResetSet);
     html += menuItem('miSwap', '⇄ Bytt side', menuHandlers.onSwap);
     html += '<div class="menuHR"></div>';
@@ -66,8 +84,10 @@ export function renderMenu(mode, handlers){
 }
 
 function menuItem(id, label, handler){
-  var disabled = typeof handler !== 'function';
-  return '<div class="menuItem'+(disabled?' disabled':'')+'" id="'+id+'" role="menuitem">'+label+'</div>';
+  if(typeof handler !== 'function'){
+    return '';
+  }
+  return '<div class="menuItem" id="'+id+'" role="menuitem">'+label+'</div>';
 }
 
 function bindMenuItems(){

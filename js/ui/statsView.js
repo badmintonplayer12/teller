@@ -12,7 +12,10 @@ function ensureStatsShell(){
   var panelBody = document.getElementById('statsPanelBody');
   if(!panelBody) return null;
   
-  if(!panelBody.hasChildNodes()) {
+  // Check if it only contains the placeholder comment
+  const hasOnlyComment = panelBody.children.length === 0 && panelBody.innerHTML.includes('Stats content will be rendered here');
+  
+  if(!panelBody.hasChildNodes() || hasOnlyComment) {
     panelBody.innerHTML = '<h3>Alle kamper & oversikt</h3>'+
       '<div id="stats" class="stats"></div>'+
       '<div id="leaderboard"></div>'+
@@ -69,32 +72,47 @@ export function renderStats(matches, modeChangeCb, renderMenuFn, handlers){
   lastRenderMenu = renderMenuFn || lastRenderMenu;
   lastHandlers = handlers || lastHandlers;
 
-  var host = ensureStatsShell();
-  if(!host) return;
-
-  // Show stats modal
-  openModal('#statsMask');
-
-  state.VIEW_MODE = 'stats';
-  document.body.classList.add('stats-mode');
-
-  if(typeof onModeChange === 'function') onModeChange('stats');
-  if(lastRenderMenu) lastRenderMenu('stats', lastHandlers);
-
-  var stats = fmtStats(matches);
-  var statsContainer = document.getElementById('stats');
-  if(statsContainer){
-    statsContainer.innerHTML = '';
-    statsContainer.appendChild(statCard('Kamper lagret', stats.matches));
-    statsContainer.appendChild(statCard('Sett spilt', stats.sets));
-    statsContainer.appendChild(statCard('2-0-kamper', stats.straight));
-    statsContainer.appendChild(statCard('3-settskamper', stats.three));
-    statsContainer.appendChild(statCard('Deuce-sett (≥20–20)', String(stats.deuceSets)));
-    statsContainer.appendChild(statCard('Snitt seiersmargin/sett', stats.avgMargin.toFixed(2)));
-    if(stats.maxTotalSet){
-      statsContainer.appendChild(statCard('Høyest poeng i ett sett', stats.maxTotalSet.a + '-' + stats.maxTotalSet.b));
+  let host = ensureStatsShell();
+  if(!host){
+    // init én gang og prøv igjen
+    try { 
+      if (typeof setupStatsModal === 'function') setupStatsModal(); 
+    } catch(_) {}
+    host = ensureStatsShell();
+    if(!host){
+      // siste fallback: logg og vis noe synlig
+      console && console.warn && console.warn('statsPanelBody missing');
+      const mask = document.getElementById('statsMask');
+      if (mask) openModal('#statsMask');
+      return;
     }
   }
+  
+  try {
+    // Show stats modal
+    openModal('#statsMask');
+
+    state.VIEW_MODE = 'stats';
+    document.body.classList.add('stats-mode');
+
+    if(typeof onModeChange === 'function') onModeChange('stats');
+    if(lastRenderMenu) lastRenderMenu('stats', lastHandlers);
+
+    var stats = fmtStats(matches);
+    
+    var statsContainer = document.getElementById('stats');
+    if(statsContainer){
+      statsContainer.innerHTML = '';
+      statsContainer.appendChild(statCard('Kamper lagret', stats.matches));
+      statsContainer.appendChild(statCard('Sett spilt', stats.sets));
+      statsContainer.appendChild(statCard('2-0-kamper', stats.straight));
+      statsContainer.appendChild(statCard('3-settskamper', stats.three));
+      statsContainer.appendChild(statCard('Deuce-sett (≥20–20)', String(stats.deuceSets)));
+      statsContainer.appendChild(statCard('Snitt seiersmargin/sett', stats.avgMargin.toFixed(2)));
+      if(stats.maxTotalSet){
+        statsContainer.appendChild(statCard('Høyest poeng i ett sett', stats.maxTotalSet.a + '-' + stats.maxTotalSet.b));
+      }
+    }
 
   var leaderDiv = document.getElementById('leaderboard');
   if(leaderDiv){
@@ -159,6 +177,12 @@ export function renderStats(matches, modeChangeCb, renderMenuFn, handlers){
       tr.appendChild(tdAct);
       body.appendChild(tr);
     });
+  }
+  } catch (err) {
+    console && console.error && console.error('renderStats failed', err);
+    if (host) {
+      host.innerHTML = '<div class="statsError">Kunne ikke generere statistikk akkurat nå.</div>';
+    }
   }
 }
 
