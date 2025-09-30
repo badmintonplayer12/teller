@@ -4,6 +4,7 @@ import { openModal, closeModal } from './modal.js';
 import { hasActiveMatchState, getContinueLabel } from './session.js';
 import { showSplash, setSplashContinueState, syncSplashButtons } from './splash.js';
 import { goToStart } from '../main.js';
+import { updateScores } from './matchView.js';
 
 // Konfig: når turneringen låses (må matche tournamentSetup.js)
 const TOURNAMENT_LOCK_MODE = 'onCreation'; // 'onCreation' | 'onFirstMatch'
@@ -106,6 +107,9 @@ export function showTournamentOverview(){
 export function hideTournamentOverview(){
   if(!ensureElements()) return;
   closeModal('#tournamentOverviewMask');
+  // Viktig: re-evaluer visning av «Neste sett»-knappen m.m. etter at oversikten lukkes.
+  // updateScores viser knappen igjen hvis state.betweenSets === true.
+  try { updateScores(); } catch(_) {}
 }
 
 function startFirstMatch(){

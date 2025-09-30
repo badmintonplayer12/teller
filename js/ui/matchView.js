@@ -371,6 +371,10 @@ function updateScores(){
 
   updateEditableState();
   
+  // Update "Neste sett" button visibility
+  const nextSetBtn = document.getElementById('nextSetBtn');
+  if(nextSetBtn) nextSetBtn.style.display = (!state.IS_SPECTATOR && state.betweenSets) ? 'block' : 'none';
+  
   // Save tournament match state
   if(state.playMode === 'tournament' && state.tournamentData?.activeMatchId){
     const id = state.tournamentData.activeMatchId;
