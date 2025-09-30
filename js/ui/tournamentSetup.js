@@ -2,7 +2,8 @@
 import { setBodyScroll } from '../dom.js';
 import { openModal, closeModal } from './modal.js';
 import { showSplash, setSplashContinueState, syncSplashButtons } from './splash.js';
-import { getRecentNames, getPrevNames, pushPrev } from '../services/storage.js';
+import { getRecentNames, getPrevNames } from '../services/storage.js';
+import { saveIndividual } from '../services/namesStore.js';
 import { generateSwissRoundOne } from '../services/tournament.js';
 import { attachAutocomplete, toggleDropdownFor, updateDropdownButtons } from './autocomplete.js';
 
@@ -142,7 +143,7 @@ function addParticipantRow(value){
   input.addEventListener('blur', function(){
     const name = this.value.trim();
     if(name && name.length > 0){
-      pushPrev(name);
+      saveIndividual(name);
       updateDropdownButtons('#tournamentMask');
     }
   });
@@ -276,9 +277,7 @@ function saveTournamentParticipants(){
   }).filter(function(name){ return name.length > 0; });
   
   // Save each participant name to the same storage as single match names
-  participants.forEach(function(name){
-    pushPrev(name);
-  });
+  participants.forEach(saveIndividual);
   
   // Generate Swiss tournament Round 1 matches with placeholder rounds
   const tournamentData = generateSwissRoundOne(participants);

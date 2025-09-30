@@ -1,7 +1,8 @@
 import { state } from '../state/matchState.js';
 import { setBodyScroll, $ } from '../dom.js';
 import { openModal, closeModal } from './modal.js';
-import { saveLastNames, getRecentNames, getPrevNames, pushPrev } from '../services/storage.js';
+import { saveLastNames, getRecentNames, getPrevNames } from '../services/storage.js';
+import { saveIndividual, saveFromAB } from '../services/namesStore.js';
 import { readABFromModalInputs, writeModalInputsFromAB, updateNameChipsFromModal } from './layout.js';
 import { attachAutocomplete, toggleDropdownFor, updateDropdownButtons } from './autocomplete.js';
 
@@ -110,21 +111,8 @@ export function onSaveNames(saveLiveState, pushStateThrottled){
   
   saveLastNames(aDisplay, bDisplay);
   
-  // Also save individual player names for autocomplete
-  if(state.matchDiscipline === 'single') {
-    // For single format, save the display names as individual players
-    if(aDisplay && aDisplay.trim()) pushPrev(aDisplay.trim());
-    if(bDisplay && bDisplay.trim()) pushPrev(bDisplay.trim());
-  } else if(state.matchDiscipline === 'double' && typeof names.A === 'object' && names.A.players) {
-    names.A.players.forEach(player => {
-      if(player && player.trim()) pushPrev(player.trim());
-    });
-  }
-  if(state.matchDiscipline === 'double' && typeof names.B === 'object' && names.B.players) {
-    names.B.players.forEach(player => {
-      if(player && player.trim()) pushPrev(player.trim());
-    });
-  }
+  // lagre alle relevante navn via helper
+  saveFromAB(names, state.matchDiscipline);
   
   hideNameModal();
   updateNameChips();
