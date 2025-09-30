@@ -19,7 +19,6 @@ export const state = {
   setHistory: [],
   allowScoring: false,
   nameEditMode: false,
-  namesSavedThisMatch: false,
   matchDiscipline: 'single',
   playMode: 'singleMatch',
   VIEW_MODE: 'match',

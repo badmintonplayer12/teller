@@ -404,22 +404,11 @@ function updateScores(){
   saveState();
 }
 
-function maybeSaveNamesOnStart(){
-  if(state.namesSavedThisMatch) return;
-  const atStart = isAtStart(state);
-  if(!atStart){
-    const names = readABFromModalInputs();
-    const aDisplay = getDisplayName(names.A, 'A');
-    const bDisplay = getDisplayName(names.B, 'B');
-    saveLastNames(aDisplay, bDisplay);
-    state.namesSavedThisMatch = true;
-  }
-}
 
 function addPoint(side){
   if(!state.allowScoring || state.locked || state.swapping || state.IS_SPECTATOR) return;
   if(side === 'A') state.scoreA++; else state.scoreB++;
-  maybeSaveNamesOnStart();
+  // (ikke nødvendig lenger – navn lagres når de settes i modal/turnering)
   checkSetEnd();
   updateScores();
   bumpPlus(document.getElementById(side === 'A' ? 'A_digits' : 'B_digits'));
@@ -641,7 +630,7 @@ function startNewMatch(opts){
   state.swappedAt11 = false;
   state.locked = false;
   state.setHistory = [];
-  state.namesSavedThisMatch = false;
+  // fjernet: flagget brukes ikke lenger
   state.allowScoring = false;
   state.nameEditMode = false;
   // Only clear tournament data if not in tournament mode
@@ -782,7 +771,7 @@ export function startTournamentMatch(matchId){
     state.swappedAt11 = fresh.swappedAt11;
   }
   
-  state.namesSavedThisMatch = false;
+  // fjernet: flagget brukes ikke lenger
   state.allowScoring = false;
 
   // Hide UI elements
@@ -806,7 +795,7 @@ export function startTournamentMatch(matchId){
   updateNameChips();
 
   // Mark names as saved and enable scoring
-  state.namesSavedThisMatch = true;
+    // fjernet: flagget brukes ikke lenger
   state.allowScoring = true;
   updateEditableState();
   updateScores();

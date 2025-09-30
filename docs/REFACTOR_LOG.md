@@ -34,6 +34,7 @@ Denne filen føres KUN for **refaktorering/rydding** (ikke features). Etter hver
 | 2025-01-27 | 5054           | Refactor-10: getDisplayName overalt               | Erstattet manuell string/objekt-logikk. |
 | 2025-01-27 | 5059           | Refactor-11: konsistent getDisplayName i matchView | Lokal helper for A/B-visningsnavn. |
 | 2025-01-27 | 5074           | Refactor-12: isAtStart helper for start-sjekk       | Felles helper for "er vi ved start?". |
+| 2025-01-27 | 5063           | Refactor-13: Fjern maybeSaveNamesOnStart            | Fjernet ubrukt funksjon og state-flag. |
 
 ## Mal for nye rader
 
