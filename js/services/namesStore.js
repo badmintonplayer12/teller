@@ -28,3 +28,14 @@ export function saveFromAB(names, discipline){
     }
   }
 }
+
+export function bindNameInput(input){
+  if(!input) return;
+  // Save name when user types manually
+  input.addEventListener('blur', function(){
+    const name = this.value.trim();
+    if(name && name.length > 0){
+      saveIndividual(name);
+    }
+  });
+}

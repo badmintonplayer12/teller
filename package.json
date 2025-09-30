@@ -1,0 +1,8 @@
+{
+  "name": "badmintonteller",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "loc": "node scripts/loc-count.mjs"
+  }
+}

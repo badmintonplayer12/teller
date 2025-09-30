@@ -4,6 +4,7 @@ Folder Structure
     CONTRIBUTING.md
     index.html
     info.txt
+    package.json
     update-autocomplete.js
 .github/
     PULL_REQUEST_TEMPLATE.md
@@ -19,6 +20,7 @@ css/
     tournament.css
 docs/
     ignore-files.md
+    REFACTOR_LOG.md
     utf8-guide.md
     prompts/
         feature-small.md
@@ -49,6 +51,8 @@ js/
         statsView.js
         tournamentOverview.js
         tournamentSetup.js
+scripts/
+    loc-count.mjs
 
 
 File Contents
@@ -429,6 +433,23 @@ File End
 info.txt
 File type: .txt
 Please use ai to generate an ai transition prompt so i can start a new conversation thread. This one is too long. Please summarize the work we have done already, context is important. Preserve the advanced directive also. If you need to create a json to maintain as much context as possible please do so. I cannot lose any important context or things we have decided on. Thank you
+
+--------------------------------------------------
+File End
+--------------------------------------------------
+
+
+package.json
+File type: .json
+{
+  "name": "badmintonteller",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "loc": "node scripts/loc-count.mjs"
+  }
+}
+
 
 --------------------------------------------------
 File End
@@ -1038,6 +1059,46 @@ File End
 --------------------------------------------------
 
 
+docs\REFACTOR_LOG.md
+File type: .md
+# Refactor Logg (små, trygge PR-er)
+
+Denne filen føres KUN for **refaktorering/rydding** (ikke features). Etter hver liten refaktor-PR:
+
+1. Kjør `npm run loc` i repo-roten.
+2. Legg til en rad i tabellen under med **Dato**, **Totale linjer** (tallet fra kommandoen) og en **meget kort** beskrivelse av endringen.
+3. Hold forklaringen til én setning. Detaljer hører hjemme i PR-beskrivelsen.
+
+> Tellemåte: `scripts/loc-count.mjs` teller `.js/.ts/.css/.html/.md` rekursivt, ekskluderer `node_modules`, `dist`, `.git`, `assets`, `public`, `.github`, `build`, `coverage`, `.cache`. Juster ved behov.
+
+## Historikk
+
+| Dato       | Totale linjer | Endring                                          | Notat |
+|------------|----------------|--------------------------------------------------|-------|
+| 2025-09-xx | 5314           | **Baseline**                                     | Utgangspunkt før rydding. |
+| 2025-09-xx | 5375           | Refactor-01: felles `ui/modal.js`                | Fokusfelle/scroll-lås samlet; litt engangskost i LOC. |
+| 2025-09-xx | 5242           | Refactor-02: felles autocomplete                 | Fjernet duplisering i Navn/Turnering. |
+| 2025-09-xx | 5272           | Refactor-03: finish/share → `openModal`          | Backdrop/Esc håndtert sentralt. |
+| 2025-09-xx | 5260           | Konsolider ▼-knapp-logikk                        | Én `updateDropdownButtons`. |
+| 2025-09-xx | 5287           | Bugfix-runde (dropdown + click-outside)          | Ingen nye features; stabilitet. |
+| 2025-09-30 | 5276           | Refactor-04: `matchView` → `saveIndividual`      | Siste direkte `pushPrev` fjernet fra UI. |
+| 2025-01-27 | 4909           | Refactor-05: Legg til REFACTOR_LOG + LOC-teller  | Dokumentasjon og verktøy for å spore refaktorer. |
+| 2025-01-27 | 4885           | Refactor-06: `bindNameInput` i `matchView`       | Fjernet 6 dupliserte blur-lyttere med felles helper. |
+
+## Mal for nye rader
+
+> Legg nederst i tabellen, nyeste først.
+
+```
+| YYYY-MM-DD | <totale linjer> | Refactor-NN: <kort tittel> | <én kort setning om ryddingen> |
+```
+
+
+--------------------------------------------------
+File End
+--------------------------------------------------
+
+
 docs\utf8-guide.md
 File type: .md
 ﻿# UTF-8 Editing Guide
@@ -1200,6 +1261,7 @@ File type: .md
 - En kompakt diff
 - Kort notat om hva som ble endret
 - Liten manuell testliste (2–4 punkter)
+- Oppdater REFACTOR_LOG.md med ny LOC og refactor-info
 
 
 --------------------------------------------------
@@ -1504,6 +1566,17 @@ export function saveFromAB(names, discipline){
       names.B.players.forEach(saveIndividual);
     }
   }
+}
+
+export function bindNameInput(input){
+  if(!input) return;
+  // Save name when user types manually
+  input.addEventListener('blur', function(){
+    const name = this.value.trim();
+    if(name && name.length > 0){
+      saveIndividual(name);
+    }
+  });
 }
 
 
@@ -2696,7 +2769,7 @@ import { setSpectatorDependencies } from '../services/spectator.js';
 import { toast, setBodyScroll, $ } from '../dom.js';
 import { openModal, closeModal } from './modal.js';
 import { LONGPRESS_MS, MOVE_THRESH } from '../constants.js';
-import { saveIndividual } from '../services/namesStore.js';
+import { bindNameInput } from '../services/namesStore.js';
 
 function hasActiveMatchState(){
   return (
@@ -2822,63 +2895,27 @@ function bindCoreEvents(){
   
   if(nameAInput) {
     autocomplete(nameAInput, 'nameA-list');
-    // Save name when user types manually
-    nameAInput.addEventListener('blur', function(){
-      const name = this.value.trim();
-      if(name && name.length > 0){
-        saveIndividual(name);
-      }
-    });
+    bindNameInput(nameAInput);
   }
   if(nameBInput) {
     autocomplete(nameBInput, 'nameB-list');
-    // Save name when user types manually
-    nameBInput.addEventListener('blur', function(){
-      const name = this.value.trim();
-      if(name && name.length > 0){
-        saveIndividual(name);
-      }
-    });
+    bindNameInput(nameBInput);
   }
   if(nameA1Input) {
     autocomplete(nameA1Input, 'nameA1-list');
-    // Save name when user types manually
-    nameA1Input.addEventListener('blur', function(){
-      const name = this.value.trim();
-      if(name && name.length > 0){
-        saveIndividual(name);
-      }
-    });
+    bindNameInput(nameA1Input);
   }
   if(nameA2Input) {
     autocomplete(nameA2Input, 'nameA2-list');
-    // Save name when user types manually
-    nameA2Input.addEventListener('blur', function(){
-      const name = this.value.trim();
-      if(name && name.length > 0){
-        saveIndividual(name);
-      }
-    });
+    bindNameInput(nameA2Input);
   }
   if(nameB1Input) {
     autocomplete(nameB1Input, 'nameB1-list');
-    // Save name when user types manually
-    nameB1Input.addEventListener('blur', function(){
-      const name = this.value.trim();
-      if(name && name.length > 0){
-        saveIndividual(name);
-      }
-    });
+    bindNameInput(nameB1Input);
   }
   if(nameB2Input) {
     autocomplete(nameB2Input, 'nameB2-list');
-    // Save name when user types manually
-    nameB2Input.addEventListener('blur', function(){
-      const name = this.value.trim();
-      if(name && name.length > 0){
-        saveIndividual(name);
-      }
-    });
+    bindNameInput(nameB2Input);
   }
   
   // Add event listeners for team name inputs to update chips
@@ -5268,6 +5305,46 @@ function startTournamentMatch(){
 // Make toggleTournamentDropdown available globally
 window.toggleTournamentDropdown = toggleTournamentDropdown;
 
+
+
+--------------------------------------------------
+File End
+--------------------------------------------------
+
+
+scripts\loc-count.mjs
+File type: .mjs
+import { readdirSync, statSync, readFileSync } from 'node:fs';
+import { join, extname } from 'node:path';
+
+// Konfig: hvilke filer som telles (enkelt og eksplisitt)
+const COUNT_EXTS = new Set(['.js', '.ts', '.css', '.html', '.md']);
+const EXCLUDE_DIRS = new Set(['node_modules', '.git', 'dist', 'build', 'coverage', '.cache', '.github', 'assets', 'public']);
+
+function shouldSkipDir(name){ return EXCLUDE_DIRS.has(name); }
+function shouldCountFile(file){ return COUNT_EXTS.has(extname(file).toLowerCase()); }
+
+function walk(dir){
+  let total = 0;
+  for(const name of readdirSync(dir)){
+    const p = join(dir, name);
+    const st = statSync(p);
+    if(st.isDirectory()){
+      if(shouldSkipDir(name)) continue;
+      total += walk(p);
+    }else{
+      if(!shouldCountFile(p)) continue;
+      const content = readFileSync(p, 'utf8');
+      // Teller antall linjer (inkl. tomme) – rask og deterministisk
+      total += content.split('\n').length;
+    }
+  }
+  return total;
+}
+
+const root = process.cwd();
+const total = walk(root);
+console.log(total);
 
 
 --------------------------------------------------

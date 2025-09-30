@@ -16,3 +16,4 @@
 - En kompakt diff
 - Kort notat om hva som ble endret
 - Liten manuell testliste (2–4 punkter)
+- Oppdater REFACTOR_LOG.md med ny LOC og refactor-info

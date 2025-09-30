@@ -13,7 +13,7 @@ import { setSpectatorDependencies } from '../services/spectator.js';
 import { toast, setBodyScroll, $ } from '../dom.js';
 import { openModal, closeModal } from './modal.js';
 import { LONGPRESS_MS, MOVE_THRESH } from '../constants.js';
-import { saveIndividual } from '../services/namesStore.js';
+import { bindNameInput } from '../services/namesStore.js';
 
 function hasActiveMatchState(){
   return (
@@ -139,63 +139,27 @@ function bindCoreEvents(){
   
   if(nameAInput) {
     autocomplete(nameAInput, 'nameA-list');
-    // Save name when user types manually
-    nameAInput.addEventListener('blur', function(){
-      const name = this.value.trim();
-      if(name && name.length > 0){
-        saveIndividual(name);
-      }
-    });
+    bindNameInput(nameAInput);
   }
   if(nameBInput) {
     autocomplete(nameBInput, 'nameB-list');
-    // Save name when user types manually
-    nameBInput.addEventListener('blur', function(){
-      const name = this.value.trim();
-      if(name && name.length > 0){
-        saveIndividual(name);
-      }
-    });
+    bindNameInput(nameBInput);
   }
   if(nameA1Input) {
     autocomplete(nameA1Input, 'nameA1-list');
-    // Save name when user types manually
-    nameA1Input.addEventListener('blur', function(){
-      const name = this.value.trim();
-      if(name && name.length > 0){
-        saveIndividual(name);
-      }
-    });
+    bindNameInput(nameA1Input);
   }
   if(nameA2Input) {
     autocomplete(nameA2Input, 'nameA2-list');
-    // Save name when user types manually
-    nameA2Input.addEventListener('blur', function(){
-      const name = this.value.trim();
-      if(name && name.length > 0){
-        saveIndividual(name);
-      }
-    });
+    bindNameInput(nameA2Input);
   }
   if(nameB1Input) {
     autocomplete(nameB1Input, 'nameB1-list');
-    // Save name when user types manually
-    nameB1Input.addEventListener('blur', function(){
-      const name = this.value.trim();
-      if(name && name.length > 0){
-        saveIndividual(name);
-      }
-    });
+    bindNameInput(nameB1Input);
   }
   if(nameB2Input) {
     autocomplete(nameB2Input, 'nameB2-list');
-    // Save name when user types manually
-    nameB2Input.addEventListener('blur', function(){
-      const name = this.value.trim();
-      if(name && name.length > 0){
-        saveIndividual(name);
-      }
-    });
+    bindNameInput(nameB2Input);
   }
   
   // Add event listeners for team name inputs to update chips
