@@ -13,6 +13,7 @@ import { setSpectatorDependencies } from '../services/spectator.js';
 import { toast, setBodyScroll, $ } from '../dom.js';
 import { openModal, closeModal } from './modal.js';
 import { LONGPRESS_MS, MOVE_THRESH } from '../constants.js';
+import { saveIndividual } from '../services/namesStore.js';
 
 function hasActiveMatchState(){
   return (
@@ -142,9 +143,7 @@ function bindCoreEvents(){
     nameAInput.addEventListener('blur', function(){
       const name = this.value.trim();
       if(name && name.length > 0){
-        import('../services/storage.js').then(function(module){
-          module.pushPrev(name);
-        });
+        saveIndividual(name);
       }
     });
   }
@@ -154,9 +153,7 @@ function bindCoreEvents(){
     nameBInput.addEventListener('blur', function(){
       const name = this.value.trim();
       if(name && name.length > 0){
-        import('../services/storage.js').then(function(module){
-          module.pushPrev(name);
-        });
+        saveIndividual(name);
       }
     });
   }
@@ -166,9 +163,7 @@ function bindCoreEvents(){
     nameA1Input.addEventListener('blur', function(){
       const name = this.value.trim();
       if(name && name.length > 0){
-        import('../services/storage.js').then(function(module){
-          module.pushPrev(name);
-        });
+        saveIndividual(name);
       }
     });
   }
@@ -178,9 +173,7 @@ function bindCoreEvents(){
     nameA2Input.addEventListener('blur', function(){
       const name = this.value.trim();
       if(name && name.length > 0){
-        import('../services/storage.js').then(function(module){
-          module.pushPrev(name);
-        });
+        saveIndividual(name);
       }
     });
   }
@@ -190,9 +183,7 @@ function bindCoreEvents(){
     nameB1Input.addEventListener('blur', function(){
       const name = this.value.trim();
       if(name && name.length > 0){
-        import('../services/storage.js').then(function(module){
-          module.pushPrev(name);
-        });
+        saveIndividual(name);
       }
     });
   }
@@ -202,9 +193,7 @@ function bindCoreEvents(){
     nameB2Input.addEventListener('blur', function(){
       const name = this.value.trim();
       if(name && name.length > 0){
-        import('../services/storage.js').then(function(module){
-          module.pushPrev(name);
-        });
+        saveIndividual(name);
       }
     });
   }

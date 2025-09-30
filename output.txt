@@ -31,6 +31,7 @@ js/
     main.js
     services/
         firebase.js
+        namesStore.js
         spectator.js
         storage.js
         tournament.js
@@ -1472,6 +1473,45 @@ File End
 --------------------------------------------------
 
 
+js\services\namesStore.js
+File type: .js
+// js/services/namesStore.js
+import { pushPrev } from './storage.js';
+
+export function saveIndividual(name){
+  if(!name) return;
+  const n = String(name).trim();
+  if(!n) return;
+  // (Ingen filter på " / " her – både enkelt- og lagnavn kan lagres.
+  // Filtrering skjer der vi leser ut kandidatene.)
+  pushPrev(n);
+}
+
+export function saveFromAB(names, discipline){
+  if(!names) return;
+  // Singel: names.A og names.B er strenger
+  if(discipline === 'single' || !discipline){
+    if(typeof names.A === 'string') saveIndividual(names.A);
+    if(typeof names.B === 'string') saveIndividual(names.B);
+    return;
+  }
+  // Dobbel: names.{A,B}.players = [p1, p2]
+  if(discipline === 'double'){
+    if(names.A && Array.isArray(names.A.players)){
+      names.A.players.forEach(saveIndividual);
+    }
+    if(names.B && Array.isArray(names.B.players)){
+      names.B.players.forEach(saveIndividual);
+    }
+  }
+}
+
+
+--------------------------------------------------
+File End
+--------------------------------------------------
+
+
 js\services\spectator.js
 File type: .js
 import { state } from '../state/matchState.js';
@@ -2656,6 +2696,7 @@ import { setSpectatorDependencies } from '../services/spectator.js';
 import { toast, setBodyScroll, $ } from '../dom.js';
 import { openModal, closeModal } from './modal.js';
 import { LONGPRESS_MS, MOVE_THRESH } from '../constants.js';
+import { saveIndividual } from '../services/namesStore.js';
 
 function hasActiveMatchState(){
   return (
@@ -2785,9 +2826,7 @@ function bindCoreEvents(){
     nameAInput.addEventListener('blur', function(){
       const name = this.value.trim();
       if(name && name.length > 0){
-        import('../services/storage.js').then(function(module){
-          module.pushPrev(name);
-        });
+        saveIndividual(name);
       }
     });
   }
@@ -2797,9 +2836,7 @@ function bindCoreEvents(){
     nameBInput.addEventListener('blur', function(){
       const name = this.value.trim();
       if(name && name.length > 0){
-        import('../services/storage.js').then(function(module){
-          module.pushPrev(name);
-        });
+        saveIndividual(name);
       }
     });
   }
@@ -2809,9 +2846,7 @@ function bindCoreEvents(){
     nameA1Input.addEventListener('blur', function(){
       const name = this.value.trim();
       if(name && name.length > 0){
-        import('../services/storage.js').then(function(module){
-          module.pushPrev(name);
-        });
+        saveIndividual(name);
       }
     });
   }
@@ -2821,9 +2856,7 @@ function bindCoreEvents(){
     nameA2Input.addEventListener('blur', function(){
       const name = this.value.trim();
       if(name && name.length > 0){
-        import('../services/storage.js').then(function(module){
-          module.pushPrev(name);
-        });
+        saveIndividual(name);
       }
     });
   }
@@ -2833,9 +2866,7 @@ function bindCoreEvents(){
     nameB1Input.addEventListener('blur', function(){
       const name = this.value.trim();
       if(name && name.length > 0){
-        import('../services/storage.js').then(function(module){
-          module.pushPrev(name);
-        });
+        saveIndividual(name);
       }
     });
   }
@@ -2845,9 +2876,7 @@ function bindCoreEvents(){
     nameB2Input.addEventListener('blur', function(){
       const name = this.value.trim();
       if(name && name.length > 0){
-        import('../services/storage.js').then(function(module){
-          module.pushPrev(name);
-        });
+        saveIndividual(name);
       }
     });
   }
@@ -3907,7 +3936,8 @@ File type: .js
 import { state } from '../state/matchState.js';
 import { setBodyScroll, $ } from '../dom.js';
 import { openModal, closeModal } from './modal.js';
-import { saveLastNames, getRecentNames, getPrevNames, pushPrev } from '../services/storage.js';
+import { saveLastNames, getRecentNames, getPrevNames } from '../services/storage.js';
+import { saveIndividual, saveFromAB } from '../services/namesStore.js';
 import { readABFromModalInputs, writeModalInputsFromAB, updateNameChipsFromModal } from './layout.js';
 import { attachAutocomplete, toggleDropdownFor, updateDropdownButtons } from './autocomplete.js';
 
@@ -4016,21 +4046,8 @@ export function onSaveNames(saveLiveState, pushStateThrottled){
   
   saveLastNames(aDisplay, bDisplay);
   
-  // Also save individual player names for autocomplete
-  if(state.matchDiscipline === 'single') {
-    // For single format, save the display names as individual players
-    if(aDisplay && aDisplay.trim()) pushPrev(aDisplay.trim());
-    if(bDisplay && bDisplay.trim()) pushPrev(bDisplay.trim());
-  } else if(state.matchDiscipline === 'double' && typeof names.A === 'object' && names.A.players) {
-    names.A.players.forEach(player => {
-      if(player && player.trim()) pushPrev(player.trim());
-    });
-  }
-  if(state.matchDiscipline === 'double' && typeof names.B === 'object' && names.B.players) {
-    names.B.players.forEach(player => {
-      if(player && player.trim()) pushPrev(player.trim());
-    });
-  }
+  // lagre alle relevante navn via helper
+  saveFromAB(names, state.matchDiscipline);
   
   hideNameModal();
   updateNameChips();
@@ -4948,7 +4965,8 @@ File type: .js
 import { setBodyScroll } from '../dom.js';
 import { openModal, closeModal } from './modal.js';
 import { showSplash, setSplashContinueState, syncSplashButtons } from './splash.js';
-import { getRecentNames, getPrevNames, pushPrev } from '../services/storage.js';
+import { getRecentNames, getPrevNames } from '../services/storage.js';
+import { saveIndividual } from '../services/namesStore.js';
 import { generateSwissRoundOne } from '../services/tournament.js';
 import { attachAutocomplete, toggleDropdownFor, updateDropdownButtons } from './autocomplete.js';
 
@@ -5088,7 +5106,7 @@ function addParticipantRow(value){
   input.addEventListener('blur', function(){
     const name = this.value.trim();
     if(name && name.length > 0){
-      pushPrev(name);
+      saveIndividual(name);
       updateDropdownButtons('#tournamentMask');
     }
   });
@@ -5222,9 +5240,7 @@ function saveTournamentParticipants(){
   }).filter(function(name){ return name.length > 0; });
   
   // Save each participant name to the same storage as single match names
-  participants.forEach(function(name){
-    pushPrev(name);
-  });
+  participants.forEach(saveIndividual);
   
   // Generate Swiss tournament Round 1 matches with placeholder rounds
   const tournamentData = generateSwissRoundOne(participants);
