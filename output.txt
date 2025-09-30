@@ -2245,7 +2245,13 @@ export function attachAutocomplete(input, { listEl, getCandidates = () => getPre
   });
 
   document.addEventListener('click', (e) => {
-    if(e.target !== input && !listEl.contains(e.target)) close();
+    // Ikke lukk hvis klikket er på dropdown-knappen eller inne i samme wrapper
+    const isOnDropdownBtn = !!e.target.closest('.dropdown-btn');
+    const wrapper = input.closest('.autocomplete') || input.parentElement;
+    const isInsideWrapper = wrapper ? wrapper.contains(e.target) : false;
+    if (e.target !== input && !listEl.contains(e.target) && !isOnDropdownBtn && !isInsideWrapper) {
+      close();
+    }
   });
 
   function setActive(items){
@@ -2270,6 +2276,28 @@ export function toggleDropdownFor(input, listEl, getRecent = () => getPrevNames(
       input.dispatchEvent(new Event('input')); // oppdater chips mm.
     });
     listEl.appendChild(div);
+  });
+}
+
+// NY: felles helper for å vise/skjule ▼-knapper basert på tilgjengelige kandidater
+export function updateDropdownButtons(root){
+  const scope = (typeof root === 'string')
+    ? document.querySelector(root)
+    : (root && root.querySelectorAll ? root : document);
+  if(!scope) return;
+  const available = getPrevNames().filter(n => !n.includes(' / '));
+  const has = available.length > 0;
+  const buttons = scope.querySelectorAll('.dropdown-btn');
+  buttons.forEach(btn => {
+    const input = btn?.parentElement?.querySelector('input');
+    if(!input) return;
+    if(has){
+      btn.classList.remove('hidden');
+      input.classList.remove('no-dropdown');
+    }else{
+      btn.classList.add('hidden');
+      input.classList.add('no-dropdown');
+    }
   });
 }
 
@@ -2947,15 +2975,13 @@ function updateTournamentActionButtons(){
   });
 
   btnCancel?.addEventListener('click', hideFinishDialog);
-  mask.addEventListener('click', function(e){ if(e.target === mask) hideFinishDialog(); });
+  // Lokal backdrop-lytter ikke nødvendig lenger når modal.js håndterer dette
 })();
 
 function showFinishDialog(disablePlayed) {
   const mask = document.getElementById('finishMatchMask');
   if(!mask) return;
-  mask.style.display = 'flex';
-  mask.setAttribute('aria-hidden', 'false');
-  setBodyScroll(false);
+  openModal('#finishMatchMask', { closeOnBackdrop: true, closeOnEsc: true });
   
   const playedBtn = document.getElementById('finishMatchPlayed');
   const info = document.getElementById('finishMatchInfo');
@@ -2988,9 +3014,7 @@ function showFinishDialog(disablePlayed) {
 function hideFinishDialog(){
   const mask = document.getElementById('finishMatchMask');
   if(!mask) return;
-  mask.style.display = 'none';
-  mask.setAttribute('aria-hidden', 'true');
-  setBodyScroll(true);
+  closeModal('#finishMatchMask');
   
   const playedBtn = document.getElementById('finishMatchPlayed');
   const info = document.getElementById('finishMatchInfo');
@@ -3789,6 +3813,8 @@ export function openModal(id, opts){
   const display = (opts && opts.display) || 'flex';
   const trap = (opts && opts.trap) !== false; // default true
   const focusSel = opts && opts.focus;
+  const closeOnBackdrop = !!(opts && opts.closeOnBackdrop);
+  const closeOnEsc = (opts && 'closeOnEsc' in opts) ? !!opts.closeOnEsc : true;
 
   // Vis
   mask.style.display = display;
@@ -3824,6 +3850,25 @@ export function openModal(id, opts){
     mask.__trapHandler = onKey;
     mask.addEventListener('keydown', onKey);
   }
+
+  // Backdrop-klikking
+  if(closeOnBackdrop){
+    const onBackdrop = (e) => { if(e.target === mask) closeModal(mask); };
+    mask.__backdropHandler = onBackdrop;
+    mask.addEventListener('click', onBackdrop);
+  }
+
+  // Escape
+  if(closeOnEsc){
+    const onEsc = (e) => {
+      if(e.key === 'Escape'){
+        e.preventDefault();
+        closeModal(mask);
+      }
+    };
+    mask.__escHandler = onEsc;
+    document.addEventListener('keydown', onEsc);
+  }
 }
 
 export function closeModal(id){
@@ -3833,6 +3878,14 @@ export function closeModal(id){
   if(mask.__trapHandler){
     mask.removeEventListener('keydown', mask.__trapHandler);
     delete mask.__trapHandler;
+  }
+  if(mask.__backdropHandler){
+    mask.removeEventListener('click', mask.__backdropHandler);
+    delete mask.__backdropHandler;
+  }
+  if(mask.__escHandler){
+    document.removeEventListener('keydown', mask.__escHandler);
+    delete mask.__escHandler;
   }
   // Skjul
   mask.style.display = 'none';
@@ -3856,25 +3909,8 @@ import { setBodyScroll, $ } from '../dom.js';
 import { openModal, closeModal } from './modal.js';
 import { saveLastNames, getRecentNames, getPrevNames, pushPrev } from '../services/storage.js';
 import { readABFromModalInputs, writeModalInputsFromAB, updateNameChipsFromModal } from './layout.js';
-import { attachAutocomplete, toggleDropdownFor } from './autocomplete.js';
+import { attachAutocomplete, toggleDropdownFor, updateDropdownButtons } from './autocomplete.js';
 
-export function updateDropdownButtons(){
-  const availableNames = getPrevNames().filter(name => !name.includes(' / '));
-  const hasNames = availableNames.length > 0;
-  
-  // Get all dropdown buttons
-  const dropdownButtons = document.querySelectorAll('.dropdown-btn');
-  
-  dropdownButtons.forEach(btn => {
-    if(hasNames){
-      btn.classList.remove('hidden');
-      btn.parentElement.querySelector('input').classList.remove('no-dropdown');
-    } else {
-      btn.classList.add('hidden');
-      btn.parentElement.querySelector('input').classList.add('no-dropdown');
-    }
-  });
-}
 
 export function updateModalLayout(){
   const singleNames = $('#singleNames');
@@ -3901,7 +3937,7 @@ export function showNameModal(startMode){
   updateModalLayout();
   
   // Update dropdown button visibility based on available names
-  updateDropdownButtons();
+  updateDropdownButtons('#nameMask');
   
   openModal('#nameMask', {
     focus: state.matchDiscipline === 'double' ? '#teamNameA' : '#nameA'
@@ -3956,7 +3992,7 @@ export function autocomplete(input, listId){
     listEl,
     onSelect: () => {
       updateNameChips();
-      updateDropdownButtons();
+      updateDropdownButtons('#nameMask');
     }
   });
 }
@@ -3998,7 +4034,7 @@ export function onSaveNames(saveLiveState, pushStateThrottled){
   
   hideNameModal();
   updateNameChips();
-  updateDropdownButtons(); // Update dropdown buttons after saving names
+  updateDropdownButtons('#nameMask'); // oppdater lokalt innenfor modal
   state.allowScoring = true;
   if(typeof saveLiveState === 'function') saveLiveState();
   if(typeof pushStateThrottled === 'function') pushStateThrottled();
@@ -4016,6 +4052,7 @@ File End
 js\ui\share.js
 File type: .js
 import { toast } from '../dom.js';
+import { openModal, closeModal } from './modal.js';
 
 let getShareUrl = function(){ return location.href; };
 let qrReady = false;
@@ -4073,14 +4110,12 @@ export function openShare(){
     }else if(box){
       box.innerHTML = '<div style="color:#fbbf24;text-align:center">QR utilgjengelig ? bruk lenken under.</div>';
     }
-    var mask = document.getElementById('shareMask');
-    if(mask) mask.style.display = 'flex';
+    openModal('#shareMask', { closeOnBackdrop: true, closeOnEsc: true });
   });
 }
 
 export function closeShare(){
-  var mask = document.getElementById('shareMask');
-  if(mask) mask.style.display = 'none';
+  closeModal('#shareMask');
 }
 
 function ensureQrLib(cb){
@@ -4915,7 +4950,7 @@ import { openModal, closeModal } from './modal.js';
 import { showSplash, setSplashContinueState, syncSplashButtons } from './splash.js';
 import { getRecentNames, getPrevNames, pushPrev } from '../services/storage.js';
 import { generateSwissRoundOne } from '../services/tournament.js';
-import { attachAutocomplete, toggleDropdownFor } from './autocomplete.js';
+import { attachAutocomplete, toggleDropdownFor, updateDropdownButtons } from './autocomplete.js';
 
 function hasActiveMatchState(){
   return (
@@ -5054,7 +5089,7 @@ function addParticipantRow(value){
     const name = this.value.trim();
     if(name && name.length > 0){
       pushPrev(name);
-      updateTournamentDropdownButtons();
+      updateDropdownButtons('#tournamentMask');
     }
   });
 
@@ -5064,7 +5099,7 @@ function addParticipantRow(value){
     onSelect: () => {
       persistParticipants();
       updateContinueButton();
-      updateTournamentDropdownButtons();
+      updateDropdownButtons('#tournamentMask');
     }
   });
 
@@ -5090,7 +5125,7 @@ function addParticipantRow(value){
   input.focus();
   persistParticipants();
   updateContinueButton();
-  updateTournamentDropdownButtons(); // Update dropdown buttons after adding participant
+  updateDropdownButtons('#tournamentMask'); // oppdater lokalt innenfor turneringsmodal
 }
 
 function persistParticipants(){
@@ -5148,7 +5183,7 @@ export function showTournamentSetup(){
 
   renumberPlaceholders();
   updateContinueButton();
-  updateTournamentDropdownButtons(); // Update dropdown buttons when showing tournament setup
+  updateDropdownButtons('#tournamentMask'); // oppdater lokalt innenfor turneringsmodal
   if(nameInput) nameInput.focus();
 }
 
@@ -5170,23 +5205,6 @@ export function toggleTournamentDropdown(inputId){
   toggleDropdownFor(input, list, () => getRecentNames(8));
 }
 
-export function updateTournamentDropdownButtons(){
-  const availableNames = getPrevNames().filter(name => !name.includes(' / '));
-  const hasNames = availableNames.length > 0;
-  
-  // Get all dropdown buttons in tournament setup
-  const dropdownButtons = document.querySelectorAll('#tournamentMask .dropdown-btn');
-  
-  dropdownButtons.forEach(btn => {
-    if(hasNames){
-      btn.classList.remove('hidden');
-      btn.parentElement.querySelector('input').classList.remove('no-dropdown');
-    } else {
-      btn.classList.add('hidden');
-      btn.parentElement.querySelector('input').classList.add('no-dropdown');
-    }
-  });
-}
 
 export function setupTournamentSetup(){
   bindEvents();
@@ -5219,8 +5237,8 @@ function saveTournamentParticipants(){
     matchStates: {}
   };
   
-  // Update dropdown buttons after saving names
-  updateTournamentDropdownButtons();
+  // Oppdater dropdown-knapper etter lagring av navn
+  updateDropdownButtons('#tournamentMask');
 }
 
 function startTournamentMatch(){

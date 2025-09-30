@@ -3,25 +3,8 @@ import { setBodyScroll, $ } from '../dom.js';
 import { openModal, closeModal } from './modal.js';
 import { saveLastNames, getRecentNames, getPrevNames, pushPrev } from '../services/storage.js';
 import { readABFromModalInputs, writeModalInputsFromAB, updateNameChipsFromModal } from './layout.js';
-import { attachAutocomplete, toggleDropdownFor } from './autocomplete.js';
+import { attachAutocomplete, toggleDropdownFor, updateDropdownButtons } from './autocomplete.js';
 
-export function updateDropdownButtons(){
-  const availableNames = getPrevNames().filter(name => !name.includes(' / '));
-  const hasNames = availableNames.length > 0;
-  
-  // Get all dropdown buttons
-  const dropdownButtons = document.querySelectorAll('.dropdown-btn');
-  
-  dropdownButtons.forEach(btn => {
-    if(hasNames){
-      btn.classList.remove('hidden');
-      btn.parentElement.querySelector('input').classList.remove('no-dropdown');
-    } else {
-      btn.classList.add('hidden');
-      btn.parentElement.querySelector('input').classList.add('no-dropdown');
-    }
-  });
-}
 
 export function updateModalLayout(){
   const singleNames = $('#singleNames');
@@ -48,7 +31,7 @@ export function showNameModal(startMode){
   updateModalLayout();
   
   // Update dropdown button visibility based on available names
-  updateDropdownButtons();
+  updateDropdownButtons('#nameMask');
   
   openModal('#nameMask', {
     focus: state.matchDiscipline === 'double' ? '#teamNameA' : '#nameA'
@@ -103,7 +86,7 @@ export function autocomplete(input, listId){
     listEl,
     onSelect: () => {
       updateNameChips();
-      updateDropdownButtons();
+      updateDropdownButtons('#nameMask');
     }
   });
 }
@@ -145,7 +128,7 @@ export function onSaveNames(saveLiveState, pushStateThrottled){
   
   hideNameModal();
   updateNameChips();
-  updateDropdownButtons(); // Update dropdown buttons after saving names
+  updateDropdownButtons('#nameMask'); // oppdater lokalt innenfor modal
   state.allowScoring = true;
   if(typeof saveLiveState === 'function') saveLiveState();
   if(typeof pushStateThrottled === 'function') pushStateThrottled();

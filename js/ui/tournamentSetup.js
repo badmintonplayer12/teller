@@ -4,7 +4,7 @@ import { openModal, closeModal } from './modal.js';
 import { showSplash, setSplashContinueState, syncSplashButtons } from './splash.js';
 import { getRecentNames, getPrevNames, pushPrev } from '../services/storage.js';
 import { generateSwissRoundOne } from '../services/tournament.js';
-import { attachAutocomplete, toggleDropdownFor } from './autocomplete.js';
+import { attachAutocomplete, toggleDropdownFor, updateDropdownButtons } from './autocomplete.js';
 
 function hasActiveMatchState(){
   return (
@@ -143,7 +143,7 @@ function addParticipantRow(value){
     const name = this.value.trim();
     if(name && name.length > 0){
       pushPrev(name);
-      updateTournamentDropdownButtons();
+      updateDropdownButtons('#tournamentMask');
     }
   });
 
@@ -153,7 +153,7 @@ function addParticipantRow(value){
     onSelect: () => {
       persistParticipants();
       updateContinueButton();
-      updateTournamentDropdownButtons();
+      updateDropdownButtons('#tournamentMask');
     }
   });
 
@@ -179,7 +179,7 @@ function addParticipantRow(value){
   input.focus();
   persistParticipants();
   updateContinueButton();
-  updateTournamentDropdownButtons(); // Update dropdown buttons after adding participant
+  updateDropdownButtons('#tournamentMask'); // oppdater lokalt innenfor turneringsmodal
 }
 
 function persistParticipants(){
@@ -237,7 +237,7 @@ export function showTournamentSetup(){
 
   renumberPlaceholders();
   updateContinueButton();
-  updateTournamentDropdownButtons(); // Update dropdown buttons when showing tournament setup
+  updateDropdownButtons('#tournamentMask'); // oppdater lokalt innenfor turneringsmodal
   if(nameInput) nameInput.focus();
 }
 
@@ -259,23 +259,6 @@ export function toggleTournamentDropdown(inputId){
   toggleDropdownFor(input, list, () => getRecentNames(8));
 }
 
-export function updateTournamentDropdownButtons(){
-  const availableNames = getPrevNames().filter(name => !name.includes(' / '));
-  const hasNames = availableNames.length > 0;
-  
-  // Get all dropdown buttons in tournament setup
-  const dropdownButtons = document.querySelectorAll('#tournamentMask .dropdown-btn');
-  
-  dropdownButtons.forEach(btn => {
-    if(hasNames){
-      btn.classList.remove('hidden');
-      btn.parentElement.querySelector('input').classList.remove('no-dropdown');
-    } else {
-      btn.classList.add('hidden');
-      btn.parentElement.querySelector('input').classList.add('no-dropdown');
-    }
-  });
-}
 
 export function setupTournamentSetup(){
   bindEvents();
@@ -308,8 +291,8 @@ function saveTournamentParticipants(){
     matchStates: {}
   };
   
-  // Update dropdown buttons after saving names
-  updateTournamentDropdownButtons();
+  // Oppdater dropdown-knapper etter lagring av navn
+  updateDropdownButtons('#tournamentMask');
 }
 
 function startTournamentMatch(){

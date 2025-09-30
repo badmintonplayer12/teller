@@ -84,3 +84,25 @@ export function toggleDropdownFor(input, listEl, getRecent = () => getPrevNames(
     listEl.appendChild(div);
   });
 }
+
+// NY: felles helper for å vise/skjule ▼-knapper basert på tilgjengelige kandidater
+export function updateDropdownButtons(root){
+  const scope = (typeof root === 'string')
+    ? document.querySelector(root)
+    : (root && root.querySelectorAll ? root : document);
+  if(!scope) return;
+  const available = getPrevNames().filter(n => !n.includes(' / '));
+  const has = available.length > 0;
+  const buttons = scope.querySelectorAll('.dropdown-btn');
+  buttons.forEach(btn => {
+    const input = btn?.parentElement?.querySelector('input');
+    if(!input) return;
+    if(has){
+      btn.classList.remove('hidden');
+      input.classList.remove('no-dropdown');
+    }else{
+      btn.classList.add('hidden');
+      input.classList.add('no-dropdown');
+    }
+  });
+}
