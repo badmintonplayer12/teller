@@ -19,6 +19,8 @@ export function openModal(id, opts){
   const display = (opts && opts.display) || 'flex';
   const trap = (opts && opts.trap) !== false; // default true
   const focusSel = opts && opts.focus;
+  const closeOnBackdrop = !!(opts && opts.closeOnBackdrop);
+  const closeOnEsc = (opts && 'closeOnEsc' in opts) ? !!opts.closeOnEsc : true;
 
   // Vis
   mask.style.display = display;
@@ -54,6 +56,25 @@ export function openModal(id, opts){
     mask.__trapHandler = onKey;
     mask.addEventListener('keydown', onKey);
   }
+
+  // Backdrop-klikking
+  if(closeOnBackdrop){
+    const onBackdrop = (e) => { if(e.target === mask) closeModal(mask); };
+    mask.__backdropHandler = onBackdrop;
+    mask.addEventListener('click', onBackdrop);
+  }
+
+  // Escape
+  if(closeOnEsc){
+    const onEsc = (e) => {
+      if(e.key === 'Escape'){
+        e.preventDefault();
+        closeModal(mask);
+      }
+    };
+    mask.__escHandler = onEsc;
+    document.addEventListener('keydown', onEsc);
+  }
 }
 
 export function closeModal(id){
@@ -63,6 +84,14 @@ export function closeModal(id){
   if(mask.__trapHandler){
     mask.removeEventListener('keydown', mask.__trapHandler);
     delete mask.__trapHandler;
+  }
+  if(mask.__backdropHandler){
+    mask.removeEventListener('click', mask.__backdropHandler);
+    delete mask.__backdropHandler;
+  }
+  if(mask.__escHandler){
+    document.removeEventListener('keydown', mask.__escHandler);
+    delete mask.__escHandler;
   }
   // Skjul
   mask.style.display = 'none';

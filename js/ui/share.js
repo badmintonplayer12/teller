@@ -1,4 +1,5 @@
 import { toast } from '../dom.js';
+import { openModal, closeModal } from './modal.js';
 
 let getShareUrl = function(){ return location.href; };
 let qrReady = false;
@@ -56,14 +57,12 @@ export function openShare(){
     }else if(box){
       box.innerHTML = '<div style="color:#fbbf24;text-align:center">QR utilgjengelig ? bruk lenken under.</div>';
     }
-    var mask = document.getElementById('shareMask');
-    if(mask) mask.style.display = 'flex';
+    openModal('#shareMask', { closeOnBackdrop: true, closeOnEsc: true });
   });
 }
 
 export function closeShare(){
-  var mask = document.getElementById('shareMask');
-  if(mask) mask.style.display = 'none';
+  closeModal('#shareMask');
 }
 
 function ensureQrLib(cb){

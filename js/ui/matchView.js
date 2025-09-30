@@ -332,15 +332,13 @@ function updateTournamentActionButtons(){
   });
 
   btnCancel?.addEventListener('click', hideFinishDialog);
-  mask.addEventListener('click', function(e){ if(e.target === mask) hideFinishDialog(); });
+  // Lokal backdrop-lytter ikke nødvendig lenger når modal.js håndterer dette
 })();
 
 function showFinishDialog(disablePlayed) {
   const mask = document.getElementById('finishMatchMask');
   if(!mask) return;
-  mask.style.display = 'flex';
-  mask.setAttribute('aria-hidden', 'false');
-  setBodyScroll(false);
+  openModal('#finishMatchMask', { closeOnBackdrop: true, closeOnEsc: true });
   
   const playedBtn = document.getElementById('finishMatchPlayed');
   const info = document.getElementById('finishMatchInfo');
@@ -373,9 +371,7 @@ function showFinishDialog(disablePlayed) {
 function hideFinishDialog(){
   const mask = document.getElementById('finishMatchMask');
   if(!mask) return;
-  mask.style.display = 'none';
-  mask.setAttribute('aria-hidden', 'true');
-  setBodyScroll(true);
+  closeModal('#finishMatchMask');
   
   const playedBtn = document.getElementById('finishMatchPlayed');
   const info = document.getElementById('finishMatchInfo');
