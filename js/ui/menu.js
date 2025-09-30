@@ -46,7 +46,7 @@ export function renderMenu(mode, handlers){
     html += menuItem('miShare', '🔗 Del…', menuHandlers.onShare);
     html += menuItem('miTournamentOverview', '📋 Kampoversikt', menuHandlers.onTournamentOverview);
     html += menuItem('miFinishMatch', '✅ Ferdigstill kamp', menuHandlers.onFinishMatch);
-    html += menuItem('miNewMatch', '🆕 Start ny kamp', menuHandlers.onNewMatch);
+    html += menuItem('miNewMatch', '🏠 Til start', menuHandlers.onNewMatch);
     html += menuItem('miResetSet', '♻️ Nullstill sett', menuHandlers.onResetSet);
     html += menuItem('miSwap', '⇄ Bytt side', menuHandlers.onSwap);
     html += '<div class="menuHR"></div>';

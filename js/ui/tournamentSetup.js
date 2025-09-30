@@ -1,8 +1,23 @@
 ﻿import { state } from '../state/matchState.js';
 import { setBodyScroll } from '../dom.js';
-import { showSplash } from './splash.js';
+import { openModal, closeModal } from './modal.js';
+import { showSplash, setSplashContinueState, syncSplashButtons } from './splash.js';
 import { getRecentNames, getPrevNames, pushPrev } from '../services/storage.js';
 import { generateSwissRoundOne } from '../services/tournament.js';
+import { attachAutocomplete, toggleDropdownFor } from './autocomplete.js';
+
+function hasActiveMatchState(){
+  return (
+    state.allowScoring ||
+    state.scoreA > 0 ||
+    state.scoreB > 0 ||
+    state.setsA > 0 ||
+    state.setsB > 0 ||
+    (Array.isArray(state.setHistory) && state.setHistory.length > 0) ||
+    state.betweenSets ||
+    state.locked
+  );
+}
 
 let mask;
 let modal;
@@ -45,6 +60,13 @@ function bindEvents(){
   if(closeBtn){
     closeBtn.addEventListener('click', function(){
       hideTournamentSetup();
+      // Oppdater "Fortsett"-knappen live
+      const visible = hasActiveMatchState();
+      const continueLabel = state.playMode === 'tournament'
+        ? 'Fortsett pågående turnering'
+        : 'Fortsett pågående kamp';
+      setSplashContinueState({ visible, label: continueLabel });
+      syncSplashButtons();
       showSplash();
     });
   }
@@ -52,6 +74,13 @@ function bindEvents(){
   if(backBtn){
     backBtn.addEventListener('click', function(){
       hideTournamentSetup();
+      // Oppdater "Fortsett"-knappen live
+      const visible = hasActiveMatchState();
+      const continueLabel = state.playMode === 'tournament'
+        ? 'Fortsett pågående turnering'
+        : 'Fortsett pågående kamp';
+      setSplashContinueState({ visible, label: continueLabel });
+      syncSplashButtons();
       showSplash();
     });
   }
@@ -118,103 +147,15 @@ function addParticipantRow(value){
     }
   });
 
-  // Add autocomplete functionality - implement directly for tournament modal
-  var currentFocus = -1;
-  
-  input.addEventListener('input', function(){
-    var val = this.value;
-    var list = autocompleteList;
-    if(!list) return;
-    list.innerHTML = '';
-
-    if(!val){
-      list.style.display = 'none';
-      return;
-    }
-
-    // Filter out team names and only show individual player names
-    var matches = getPrevNames().filter(function(name){
-      // Skip team names (names that don't contain " / " and are not individual player names)
-      if(name.includes(' / ')) return false; // This is a team name
-      return name.toLowerCase().indexOf(val.toLowerCase()) > -1;
-    });
-    if(!matches.length){
-      list.style.display = 'none';
-      return;
-    }
-
-    list.style.display = 'block';
-    currentFocus = -1;
-    matches.forEach(function(match){
-      var div = document.createElement('div');
-      var strong = document.createElement('strong');
-      strong.textContent = match.substr(0, val.length);
-      var remainder = document.createTextNode(match.substr(val.length));
-      div.appendChild(strong);
-      div.appendChild(remainder);
-
-      var hidden = document.createElement('input');
-      hidden.type = 'hidden';
-      hidden.value = match;
-      div.appendChild(hidden);
-      div.addEventListener('click', function(){
-        const selectedName = this.querySelector('input').value;
-        input.value = selectedName;
-        list.style.display = 'none';
-        persistParticipants();
-        updateContinueButton();
-        // Save the selected name to storage
-        pushPrev(selectedName);
-        updateTournamentDropdownButtons();
-      });
-      list.appendChild(div);
-    });
-  });
-
-  // Keyboard navigation for autocomplete
-  input.addEventListener('keydown', function(e){
-    var list = autocompleteList;
-    if(!list) return;
-    
-    if(e.keyCode === 40){ // Down arrow
-      e.preventDefault();
-      currentFocus++;
-      if(currentFocus >= list.children.length) currentFocus = 0;
-      addActive(list);
-    } else if(e.keyCode === 38){ // Up arrow
-      e.preventDefault();
-      currentFocus--;
-      if(currentFocus < 0) currentFocus = list.children.length - 1;
-      addActive(list);
-    } else if(e.keyCode === 13){ // Enter
-      e.preventDefault();
-      if(currentFocus > -1){
-        list.children[currentFocus].click();
-      }
-    } else if(e.keyCode === 27){ // Escape
-      list.style.display = 'none';
+  // Add autocomplete functionality using shared helper
+  attachAutocomplete(input, {
+    listEl: autocompleteList,
+    onSelect: () => {
+      persistParticipants();
+      updateContinueButton();
+      updateTournamentDropdownButtons();
     }
   });
-
-  // Close autocomplete when clicking outside
-  document.addEventListener('click', function(e){
-    if(!autocompleteWrapper.contains(e.target)){
-      autocompleteList.style.display = 'none';
-    }
-  });
-
-  function addActive(list){
-    removeActive(list);
-    if(currentFocus >= 0 && currentFocus < list.children.length){
-      list.children[currentFocus].classList.add('autocomplete-active');
-    }
-  }
-
-  function removeActive(list){
-    for(var i = 0; i < list.children.length; i++){
-      list.children[i].classList.remove('autocomplete-active');
-    }
-  }
 
   // Assemble autocomplete wrapper
   autocompleteWrapper.appendChild(input);
@@ -268,9 +209,7 @@ export function showTournamentSetup(){
   state.allowScoring = false;
   document.body.classList.remove('areas-active');
 
-  mask.style.display = 'flex';
-  mask.setAttribute('aria-hidden', 'false');
-  setBodyScroll(false);
+  openModal('#tournamentMask');
 
   // Clear existing participants if any
   if(list.children.length > 0){
@@ -304,51 +243,20 @@ export function showTournamentSetup(){
 
 export function hideTournamentSetup(){
   if(!ensureElements()) return;
-  mask.style.display = 'none';
-  mask.setAttribute('aria-hidden', 'true');
-  setBodyScroll(true);
+  closeModal('#tournamentMask');
 }
 
 export function toggleTournamentDropdown(inputId){
-  var list = document.getElementById(inputId + '-list');
-  var input = document.getElementById(inputId);
-  var dropdownBtn = input?.parentElement?.querySelector('.dropdown-btn');
+  const input = document.getElementById(inputId);
+  const list = document.getElementById(inputId + '-list');
+  const dropdownBtn = input?.parentElement?.querySelector('.dropdown-btn');
   
-  if(!list || !input) return;
+  if(!input || !list) return;
   
   // Don't show dropdown if button is hidden (no saved names)
   if(dropdownBtn && dropdownBtn.classList.contains('hidden')) return;
 
-  if(list.style.display === 'block'){
-    list.style.display = 'none';
-    return;
-  }
-
-  // Use the same logic as name modal - show 8 recent names, filtered to exclude team names
-  var recent = getRecentNames(8).filter(function(name){
-    return !name.includes(' / '); // Skip team names
-  });
-  list.innerHTML = '';
-  if(!recent.length){
-    list.style.display = 'none';
-    return;
-  }
-
-  list.style.display = 'block';
-  recent.forEach(function(name){
-    var div = document.createElement('div');
-    div.textContent = name;
-    div.addEventListener('click', function(){
-      input.value = name;
-      list.style.display = 'none';
-      persistParticipants();
-      updateContinueButton();
-      // Save the selected name to storage
-      pushPrev(name);
-      updateTournamentDropdownButtons();
-    });
-    list.appendChild(div);
-  });
+  toggleDropdownFor(input, list, () => getRecentNames(8));
 }
 
 export function updateTournamentDropdownButtons(){

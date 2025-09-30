@@ -1,6 +1,20 @@
 import { state } from '../state/matchState.js';
 import { setBodyScroll } from '../dom.js';
-import { showSplash } from './splash.js';
+import { openModal, closeModal } from './modal.js';
+import { showSplash, setSplashContinueState, syncSplashButtons } from './splash.js';
+
+function hasActiveMatchState(){
+  return (
+    state.allowScoring ||
+    state.scoreA > 0 ||
+    state.scoreB > 0 ||
+    state.setsA > 0 ||
+    state.setsB > 0 ||
+    (Array.isArray(state.setHistory) && state.setHistory.length > 0) ||
+    state.betweenSets ||
+    state.locked
+  );
+}
 
 let mask;
 let modal;
@@ -30,6 +44,13 @@ function bindEvents(){
   if(closeBtn){
     closeBtn.addEventListener('click', function(){
       hideTournamentOverview();
+      // Oppdater "Fortsett"-knappen live
+      const visible = hasActiveMatchState();
+      const continueLabel = state.playMode === 'tournament'
+        ? 'Fortsett pågående turnering'
+        : 'Fortsett pågående kamp';
+      setSplashContinueState({ visible, label: continueLabel });
+      syncSplashButtons();
       showSplash();
     });
   }
@@ -67,28 +88,51 @@ export function showTournamentOverview(){
   // Set the tournament name dynamically
   nameElement.textContent = state.tournamentData.name;
 
-  mask.style.display = 'flex';
-  mask.setAttribute('aria-hidden', 'false');
-  setBodyScroll(false);
+  openModal('#tournamentOverviewMask');
 
-  if(startBtn) startBtn.focus();
+  if (startBtn) {
+    const matches = state.tournamentData?.matches || [];
+    const matchStates = state.tournamentData?.matchStates || {};
+    const hasPending = matches.some(m => {
+      const st = matchStates[m.id];
+      return !st || (st.status !== 'completed' && st.status !== 'walkover');
+    });
+    startBtn.disabled = !hasPending;
+    startBtn.textContent = hasPending ? 'Start første kamp' : 'Ingen flere kamper';
+    startBtn.focus();
+  }
 }
 
 export function hideTournamentOverview(){
   if(!ensureElements()) return;
-  mask.style.display = 'none';
-  mask.setAttribute('aria-hidden', 'true');
-  setBodyScroll(true);
+  closeModal('#tournamentOverviewMask');
 }
 
 function startFirstMatch(){
   // Set tournament mode
   state.playMode = 'tournament';
-  
-  // Import and call the startMatchFlow function from matchView
-  import('./matchView.js').then(function(module){
-    module.startMatchFlow({ skipSplash: true });
+
+  // Finn første pending kamp (ikke completed/walkover)
+  const matches = state.tournamentData?.matches || [];
+  const matchStates = state.tournamentData?.matchStates || {};
+  const firstPending = matches.find(m => {
+    const st = matchStates[m.id];
+    // Hvis ingen state: regn som pending
+    if (!st) return true;
+    return st.status !== 'completed' && st.status !== 'walkover';
   });
+
+  // Ingen pending? Gi tydelig tilbakemelding og disable knappen.
+  if (!firstPending) {
+    try { 
+      const btn = document.getElementById('tournamentOverviewStart');
+      if (btn) { btn.disabled = true; btn.textContent = 'Ingen flere kamper'; }
+    } catch(_) {}
+    return;
+  }
+
+  // Start valgt kamp via eksisterende hjelpefunksjon
+  handleStartMatch(firstPending.id);
 }
 
 function createMatchPlayerCard(playerName, side, matchState, isWinner, isWalkoverWinner) {
@@ -206,112 +250,104 @@ export function renderTournamentOverview(){
     matchesByRound[roundNumber].forEach((match, index) => {
       const matchItem = document.createElement('li');
       matchItem.className = 'tournamentMatch';
-      
-      // Create match header
-      const matchHeader = document.createElement('div');
-      matchHeader.className = 'matchHeader';
-      matchHeader.textContent = `Kamp ${index + 1}`;
-      
-      // Create player cards container
+
+      const matchLabel = document.createElement('span');
+      matchLabel.className = 'matchLabel';
+      matchLabel.textContent = `Kamp ${index + 1}`;
+
+      const matchBody = document.createElement('div');
+      matchBody.className = 'matchBody';
+
       const playerCardsContainer = document.createElement('div');
       playerCardsContainer.className = 'playerCardsContainer';
-      
+
       const matchState = state.tournamentData.matchStates?.[match.id];
       const isCompleted = matchState?.status === 'completed';
       const isWalkover = matchState?.status === 'walkover';
-      const winner = isCompleted ? (matchState.finalScore.setsA > matchState.finalScore.setsB ? 'A' : 'B') : 
+      const winner = isCompleted ? (matchState.finalScore.setsA > matchState.finalScore.setsB ? 'A' : 'B') :
                    isWalkover ? matchState.walkoverWinner : null;
-      
-      // Create player A card
+
       const playerACard = createMatchPlayerCard(
-        match.playerA, 
-        'A', 
-        matchState, 
+        match.playerA,
+        'A',
+        matchState,
         winner === 'A',
         isWalkover && matchState.walkoverWinner === 'A'
       );
-      
-      // Create player B card
+
       const playerBCard = createMatchPlayerCard(
-        match.playerB, 
-        'B', 
-        matchState, 
+        match.playerB,
+        'B',
+        matchState,
         winner === 'B',
         isWalkover && matchState.walkoverWinner === 'B'
       );
-      
-      // Create VS section with status
+
       const matchVs = document.createElement('div');
       matchVs.className = 'match-vs';
-      
-      // Status tag
+
       const statusTag = document.createElement('span');
       statusTag.className = 'match-status';
-      
+
       if (!matchState) {
         statusTag.textContent = 'Venter';
         statusTag.classList.add('status-waiting');
       } else if (isCompleted) {
         const winnerName = winner === 'A' ? match.playerA : match.playerB;
-        statusTag.textContent = `Avsluttet – ${winnerName} vant`;
+        statusTag.textContent = `Avsluttet - ${winnerName} vant`;
         statusTag.classList.add('status-finished');
       } else if (isWalkover) {
         const winnerName = matchState.walkoverWinner === 'A' ? match.playerA : match.playerB;
-        statusTag.textContent = `Walkover – ${winnerName} vant`;
+        statusTag.textContent = `Walkover - ${winnerName} vant`;
         statusTag.classList.add('status-finished');
       } else {
         statusTag.textContent = 'Pågår';
         statusTag.classList.add('status-ongoing');
       }
-      
-      // VS chip
+
       const vsChip = document.createElement('span');
       vsChip.className = 'vs-chip';
       vsChip.textContent = 'vs';
-      
+
       matchVs.appendChild(statusTag);
       matchVs.appendChild(vsChip);
-      
+
       playerCardsContainer.appendChild(playerACard);
       playerCardsContainer.appendChild(matchVs);
       playerCardsContainer.appendChild(playerBCard);
-      
-      // Create match summary
+      matchBody.appendChild(playerCardsContainer);
+
       const matchSummary = document.createElement('div');
       matchSummary.className = 'match-summary';
-      
+
       if (!matchState) {
-        // Empty for waiting matches
-        matchSummary.textContent = '';
+        matchSummary.textContent = 'Venter på start';
+        matchSummary.style.opacity = '0.7';
       } else if (isCompleted && matchState.finalScore && matchState.finalScore.setHistory) {
-        // Show set history for completed matches
-        const setTexts = matchState.finalScore.setHistory.map((set, index) => {
-          return `Sett ${index + 1}: ${set.a}–${set.b}`;
+        const setTexts = matchState.finalScore.setHistory.map((set, setIndex) => {
+          return `Sett ${setIndex + 1}: ${set.a}-${set.b}`;
         });
-        matchSummary.textContent = setTexts.join(' · ');
+        matchSummary.textContent = setTexts.join(' | ');
         matchSummary.style.opacity = '1';
       } else if (isWalkover) {
-        // Show walkover info
         matchSummary.textContent = 'Walkover';
         matchSummary.style.opacity = '1';
       } else {
-        // Show current set for ongoing matches
-        matchSummary.textContent = `Sett ${matchState.currentSet} pågår`;
+        const currentSet = matchState.currentSet ?? 1;
+        matchSummary.textContent = `Sett ${currentSet} pågår`;
         matchSummary.style.opacity = '0.7';
       }
-      
-      matchItem.appendChild(matchSummary);
-      
-      // Create action button wrapper
+
+      matchBody.appendChild(matchSummary);
+
       const actionsWrapper = document.createElement('div');
       actionsWrapper.className = 'actions';
-      
+
       const startMatchBtn = document.createElement('button');
       startMatchBtn.className = 'tournamentMatchBtn';
       startMatchBtn.textContent = 'Gå til kamp';
       startMatchBtn.dataset.matchId = match.id;
-      
-      // Disable button for completed or walkover matches
+
       if (isCompleted || isWalkover) {
         startMatchBtn.disabled = true;
         startMatchBtn.textContent = isWalkover ? 'Walkover' : 'Ferdig';
@@ -319,17 +355,15 @@ export function renderTournamentOverview(){
       } else {
         startMatchBtn.addEventListener('click', () => handleStartMatch(match.id));
       }
-      
+
       actionsWrapper.appendChild(startMatchBtn);
-      
-      // Assemble match item
-      matchItem.appendChild(matchHeader);
-      matchItem.appendChild(playerCardsContainer);
+
+      matchItem.appendChild(matchLabel);
+      matchItem.appendChild(matchBody);
       matchItem.appendChild(actionsWrapper);
-      
-      // Check if this is the target match for scrolling
+
       if (match.id === scrollTargetId) targetElement = matchItem;
-      
+
       matchesList.appendChild(matchItem);
     });
 

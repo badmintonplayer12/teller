@@ -2,6 +2,7 @@
 import { loadMatches, saveMatches } from '../services/storage.js';
 import { fitScores } from './layout.js';
 import { setBodyScroll } from '../dom.js';
+import { openModal, closeModal } from './modal.js';
 
 let lastRenderMenu = null;
 let lastHandlers = null;
@@ -72,12 +73,7 @@ export function renderStats(matches, modeChangeCb, renderMenuFn, handlers){
   if(!host) return;
 
   // Show stats modal
-  var mask = document.getElementById('statsMask');
-  if(mask) {
-    mask.style.display = 'flex';
-    mask.setAttribute('aria-hidden', 'false');
-    setBodyScroll(false);
-  }
+  openModal('#statsMask');
 
   state.VIEW_MODE = 'stats';
   document.body.classList.add('stats-mode');
@@ -168,12 +164,7 @@ export function renderStats(matches, modeChangeCb, renderMenuFn, handlers){
 
 export function showMatch(){
   // Hide stats modal
-  var mask = document.getElementById('statsMask');
-  if(mask) {
-    mask.style.display = 'none';
-    mask.setAttribute('aria-hidden', 'true');
-    setBodyScroll(true);
-  }
+  closeModal('#statsMask');
 
   state.VIEW_MODE = 'match';
   document.body.classList.remove('stats-mode');

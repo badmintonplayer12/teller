@@ -1,7 +1,9 @@
 import { state } from '../state/matchState.js';
 import { setBodyScroll, $ } from '../dom.js';
+import { openModal, closeModal } from './modal.js';
 import { saveLastNames, getRecentNames, getPrevNames, pushPrev } from '../services/storage.js';
 import { readABFromModalInputs, writeModalInputsFromAB, updateNameChipsFromModal } from './layout.js';
+import { attachAutocomplete, toggleDropdownFor } from './autocomplete.js';
 
 export function updateDropdownButtons(){
   const availableNames = getPrevNames().filter(name => !name.includes(' / '));
@@ -48,9 +50,9 @@ export function showNameModal(startMode){
   // Update dropdown button visibility based on available names
   updateDropdownButtons();
   
-  var mask = $('#nameMask');
-  if(mask) mask.style.display = 'flex';
-  setBodyScroll(false);
+  openModal('#nameMask', {
+    focus: state.matchDiscipline === 'double' ? '#teamNameA' : '#nameA'
+  });
 
   // Load current names into modal
   const currentNames = readABFromModalInputs();
@@ -70,9 +72,7 @@ export function showNameModal(startMode){
 
 export function hideNameModal(){
   state.nameEditMode = false;
-  var mask = $('#nameMask');
-  if(mask) mask.style.display = 'none';
-  setBodyScroll(true);
+  closeModal('#nameMask');
   updateEditableState();
 }
 
@@ -96,134 +96,26 @@ export function renderRecentOptions(){
 }
 
 export function autocomplete(input, listId){
-  var currentFocus = -1;
-
-  input.addEventListener('input', function(){
-    var val = this.value;
-    var list = document.getElementById(listId);
-    if(!list) return;
-    list.innerHTML = '';
-
-    if(!val){
-      list.style.display = 'none';
-      return;
-    }
-
-    // Filter out team names and only show individual player names
-    var matches = getPrevNames().filter(function(name){
-      // Skip team names (names that don't contain " / " and are not individual player names)
-      if(name.includes(' / ')) return false; // This is a team name
-      return name.toLowerCase().indexOf(val.toLowerCase()) > -1;
-    });
-    if(!matches.length){
-      list.style.display = 'none';
-      return;
-    }
-
-    list.style.display = 'block';
-    matches.forEach(function(match){
-      var div = document.createElement('div');
-      var strong = document.createElement('strong');
-      strong.textContent = match.substr(0, val.length);
-      var remainder = document.createTextNode(match.substr(val.length));
-      div.appendChild(strong);
-      div.appendChild(remainder);
-
-      var hidden = document.createElement('input');
-      hidden.type = 'hidden';
-      hidden.value = match;
-      div.appendChild(hidden);
-      div.addEventListener('click', function(){
-        const selectedName = this.querySelector('input').value;
-        input.value = selectedName;
-        list.style.display = 'none';
-        updateNameChips();
-        // Save the selected name to storage for autocomplete
-        pushPrev(selectedName);
-        updateDropdownButtons();
-      });
-      list.appendChild(div);
-    });
-  });
-
-  input.addEventListener('keydown', function(e){
-    var list = document.getElementById(listId);
-    if(!list) return;
-    var items = list.getElementsByTagName('div');
-    if(!items.length) return;
-
-    if(e.key === 'ArrowDown'){
-      currentFocus++;
-      addActive(items);
-    }else if(e.key === 'ArrowUp'){
-      currentFocus--;
-      addActive(items);
-    }else if(e.key === 'Enter'){
-      e.preventDefault();
-      if(currentFocus > -1 && items[currentFocus]){
-        items[currentFocus].click();
-      }
-    }
-  });
-
-  function addActive(items){
-    removeActive(items);
-    if(currentFocus >= items.length) currentFocus = 0;
-    if(currentFocus < 0) currentFocus = items.length - 1;
-    if(items[currentFocus]) items[currentFocus].classList.add('autocomplete-active');
-  }
-
-  function removeActive(items){
-    for(var i=0;i<items.length;i++) items[i].classList.remove('autocomplete-active');
-  }
-
-  document.addEventListener('click', function(e){
-    if(e.target !== input && e.target.className !== 'dropdown-btn'){
-      var list = document.getElementById(listId);
-      if(list) list.style.display = 'none';
+  const listEl = document.getElementById(listId);
+  if(!listEl) return;
+  
+  attachAutocomplete(input, {
+    listEl,
+    onSelect: () => {
+      updateNameChips();
+      updateDropdownButtons();
     }
   });
 }
 
 export function toggleDropdown(fieldId){
-  var list = document.getElementById(fieldId + '-list');
-  var input = document.getElementById(fieldId);
-  var dropdownBtn = input?.parentElement?.querySelector('.dropdown-btn');
+  const input = document.getElementById(fieldId);
+  const list = document.getElementById(fieldId + '-list');
+  const btn = input?.parentElement?.querySelector('.dropdown-btn');
   
-  if(!list || !input) return;
+  if(!input || !list || (btn && btn.classList.contains('hidden'))) return;
   
-  // Don't show dropdown if button is hidden (no saved names)
-  if(dropdownBtn && dropdownBtn.classList.contains('hidden')) return;
-
-  if(list.style.display === 'block'){
-    list.style.display = 'none';
-    return;
-  }
-
-  // Filter out team names and only show individual player names
-  var recent = getRecentNames(8).filter(function(name){
-    return !name.includes(' / '); // Skip team names
-  });
-  list.innerHTML = '';
-  if(!recent.length){
-    list.style.display = 'none';
-    return;
-  }
-
-  list.style.display = 'block';
-  recent.forEach(function(name){
-    var div = document.createElement('div');
-    div.textContent = name;
-    div.addEventListener('click', function(){
-      input.value = name;
-      list.style.display = 'none';
-      updateNameChips();
-      // Save the selected name to storage for autocomplete
-      pushPrev(name);
-      updateDropdownButtons();
-    });
-    list.appendChild(div);
-  });
+  toggleDropdownFor(input, list, () => getRecentNames(8));
 }
 
 export function onSaveNames(saveLiveState, pushStateThrottled){

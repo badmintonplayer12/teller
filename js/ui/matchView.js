@@ -11,7 +11,21 @@ import { setupTournamentOverview, hideTournamentOverview, renderTournamentOvervi
 import { setupFirebase, pushStateThrottled, pushStateNow, spectatorShareUrl } from '../services/firebase.js';
 import { setSpectatorDependencies } from '../services/spectator.js';
 import { toast, setBodyScroll, $ } from '../dom.js';
+import { openModal, closeModal } from './modal.js';
 import { LONGPRESS_MS, MOVE_THRESH } from '../constants.js';
+
+function hasActiveMatchState(){
+  return (
+    state.allowScoring ||
+    state.scoreA > 0 ||
+    state.scoreB > 0 ||
+    state.setsA > 0 ||
+    state.setsB > 0 ||
+    (Array.isArray(state.setHistory) && state.setHistory.length > 0) ||
+    state.betweenSets ||
+    state.locked
+  );
+}
 
 function openFinishDialog(){
   const settled = (state.setsA >= 2 || state.setsB >= 2);
@@ -83,12 +97,10 @@ export function startMatchFlow(opts){
       if(state.playMode === 'tournament'){
         showTournamentSetup();
       }else{
-        const last = loadLastNames();
-        const nameAInput = document.getElementById('nameA');
-        const nameBInput = document.getElementById('nameB');
-        if(nameAInput) nameAInput.value = (last && last[0]) || 'Spiller A';
-        if(nameBInput) nameBInput.value = (last && last[1]) || 'Spiller B';
-        showNameModal(true);
+        // Viktig: full reset før navn-modal for å unngå "låst" skjerm
+        // Bruk samme løype som "Ny kamp"
+        // Hopper over splash og åpner navn-modal via startNewMatch
+        startNewMatch({ skipSplash: true });
       }
       handledStart = true;
     }
@@ -552,11 +564,7 @@ function renderSummary(finalWinnerName){
   const winnerEl = document.getElementById('summaryWinner');
   if(winnerEl) winnerEl.textContent = finalWinnerName ? ('🎉 ' + finalWinnerName + ' vant kampen! 🎉') : '';
 
-  const mask = document.getElementById('summaryMask');
-  if(mask){
-    mask.style.display = 'flex';
-    setBodyScroll(true);
-  }
+  openModal('#summaryMask');
   saveState();
 }
 
@@ -666,6 +674,10 @@ function resetSet(){
 function startNewMatch(opts){
   opts = opts || {};
   const skipSplash = !!opts.skipSplash;
+  
+  // Tøm lagret live-state for å unngå at locked/betweenSets lekker inn i ny kamp
+  // (clearLiveState lar turneringsdata stå, hvis playMode === 'tournament')
+  clearLiveState();
   
   state.betweenSets = false;
   state.pendingSetWinner = null;
@@ -852,11 +864,7 @@ export function startTournamentMatch(matchId){
 }
 
 function closeSummaryModal(){
-  const mask = document.getElementById('summaryMask');
-  if(mask){
-    mask.style.display = 'none';
-    setBodyScroll(false);
-  }
+  closeModal('#summaryMask');
 }
 
 function bindLongPressOne(el, action){
@@ -943,7 +951,19 @@ function maybeShowKebabHint(){
 function buildMenuHandlers(){
   return {
     onShare: () => openShare(),
-    onNewMatch: startNewMatch,
+    onNewMatch: () => {
+      // Gå til start uten å nullstille state. Oppdater "Fortsett"-knappen live.
+      const visible = hasActiveMatchState();
+      const continueLabel = state.playMode === 'tournament'
+        ? 'Fortsett pågående turnering'
+        : 'Fortsett pågående kamp';
+      try { closeAllModals && closeAllModals(); } catch(_) {}
+      setSplashContinueState({ visible, label: continueLabel }); // styrer vis/tekst
+      // Oppdater "valgknappene" på splash til dagens mode/disciplin
+      syncSplashButtons();
+      if (typeof window.updateModalLayout === 'function') window.updateModalLayout();
+      showSplash();
+    },
     onResetSet: resetSet,
     onSwap: swapSides,
     onEditNames: () => showNameModal(false),
@@ -986,7 +1006,7 @@ export function applyRestoredState(){
   }
   
   const mask = document.getElementById('summaryMask');
-  if(mask && mask.style.display === 'flex') setBodyScroll(true);
+  if(mask && mask.style.display === 'flex') setBodyScroll(false);
 }
 
 export function restoreFromStorage(){
