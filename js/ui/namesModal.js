@@ -1,7 +1,7 @@
 import { state } from '../state/matchState.js';
 import { setBodyScroll, $ } from '../dom.js';
 import { openModal, closeModal } from './modal.js';
-import { saveLastNames, getRecentNames, getPrevNames } from '../services/storage.js';
+import { saveLastNames, getRecentNames } from '../services/storage.js';
 import { saveIndividual, saveFromAB } from '../services/namesStore.js';
 import { readABFromModalInputs, writeModalInputsFromAB, updateNameChipsFromModal } from './layout.js';
 import { attachAutocomplete, toggleDropdownFor, updateDropdownButtons } from './autocomplete.js';

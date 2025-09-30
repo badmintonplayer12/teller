@@ -91,6 +91,16 @@ export function startMatchFlow(opts){
 
   if(!state.IS_SPECTATOR){
     if(continueMatch){
+      // Check if we should go to tournament overview instead of auto-resuming match
+      if(state.playMode === 'tournament' && state.ui && state.ui.nextNavHint === 'continueTournament'){
+        // Navigate to tournament overview instead of auto-resuming
+        import('./tournamentOverview.js').then(function(module){
+          module.showTournamentOverview();
+        });
+        // Clear the navigation hint after use
+        if(state.ui) state.ui.nextNavHint = null;
+        return;
+      }
       handledStart = true;
     }
 

@@ -67,6 +67,12 @@ export function setupSplash(options){
       if(splashContinueBtn.disabled) return;
       splashContinueBtn.disabled = true;
       hideSplash();
+      
+      // Set navigation hint for tournament mode
+      if(state.playMode === 'tournament'){
+        state.ui.nextNavHint = 'continueTournament';
+      }
+      
       startCallback({ fromSplash: true, continueMatch: true, skipSplash: true, restored: true });
       setTimeout(function(){ splashContinueBtn.disabled = false; }, 400);
     });

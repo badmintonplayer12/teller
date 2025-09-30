@@ -1084,6 +1084,9 @@ Denne filen føres KUN for **refaktorering/rydding** (ikke features). Etter hver
 | 2025-09-30 | 5276           | Refactor-04: `matchView` → `saveIndividual`      | Siste direkte `pushPrev` fjernet fra UI. |
 | 2025-01-27 | 4909           | Refactor-05: Legg til REFACTOR_LOG + LOC-teller  | Dokumentasjon og verktøy for å spore refaktorer. |
 | 2025-01-27 | 4885           | Refactor-06: `bindNameInput` i `matchView`       | Fjernet 6 dupliserte blur-lyttere med felles helper. |
+| 2025-01-27 | 4887           | Refactor-07: Fjern ubrukte imports               | Opprydding i 4 UI-filer uten funksjonsendring. |
+| 2025-01-27 | 4924           | Feat-01: Lås turneringsoppsett etter start       | Skjul/deaktiver "Tilbake" når turnering er startet. |
+| 2025-01-27 | 4942           | Fix-01: "Fortsett turnering" åpner alltid oversikt | Bypass auto-resume til enkeltkamp for turneringsoversikt. |
 
 ## Mal for nye rader
 
@@ -2066,7 +2069,8 @@ export const state = {
   playMode: 'singleMatch',
   VIEW_MODE: 'match',
   IS_SPECTATOR: MODE === 'spectator',
-  tournamentData: { name: '', participants: [], matches: [] }
+  tournamentData: { name: '', participants: [], matches: [], locked: false },
+  ui: { nextNavHint: null }
 };
 
 const DEFAULT_NAMES = {
@@ -2847,6 +2851,16 @@ export function startMatchFlow(opts){
 
   if(!state.IS_SPECTATOR){
     if(continueMatch){
+      // Check if we should go to tournament overview instead of auto-resuming match
+      if(state.playMode === 'tournament' && state.ui && state.ui.nextNavHint === 'continueTournament'){
+        // Navigate to tournament overview instead of auto-resuming
+        import('./tournamentOverview.js').then(function(module){
+          module.showTournamentOverview();
+        });
+        // Clear the navigation hint after use
+        if(state.ui) state.ui.nextNavHint = null;
+        return;
+      }
       handledStart = true;
     }
 
@@ -3973,7 +3987,7 @@ File type: .js
 import { state } from '../state/matchState.js';
 import { setBodyScroll, $ } from '../dom.js';
 import { openModal, closeModal } from './modal.js';
-import { saveLastNames, getRecentNames, getPrevNames } from '../services/storage.js';
+import { saveLastNames, getRecentNames } from '../services/storage.js';
 import { saveIndividual, saveFromAB } from '../services/namesStore.js';
 import { readABFromModalInputs, writeModalInputsFromAB, updateNameChipsFromModal } from './layout.js';
 import { attachAutocomplete, toggleDropdownFor, updateDropdownButtons } from './autocomplete.js';
@@ -4307,6 +4321,12 @@ export function setupSplash(options){
       if(splashContinueBtn.disabled) return;
       splashContinueBtn.disabled = true;
       hideSplash();
+      
+      // Set navigation hint for tournament mode
+      if(state.playMode === 'tournament'){
+        state.ui.nextNavHint = 'continueTournament';
+      }
+      
       startCallback({ fromSplash: true, continueMatch: true, skipSplash: true, restored: true });
       setTimeout(function(){ splashContinueBtn.disabled = false; }, 400);
     });
@@ -4366,7 +4386,7 @@ File type: .js
 ﻿import { state } from '../state/matchState.js';
 import { loadMatches, saveMatches } from '../services/storage.js';
 import { fitScores } from './layout.js';
-import { setBodyScroll } from '../dom.js';
+// (fjernet ubrukte imports)
 import { openModal, closeModal } from './modal.js';
 
 let lastRenderMenu = null;
@@ -4585,9 +4605,12 @@ File End
 js\ui\tournamentOverview.js
 File type: .js
 import { state } from '../state/matchState.js';
-import { setBodyScroll } from '../dom.js';
+// (fjernet ubrukte imports)
 import { openModal, closeModal } from './modal.js';
 import { showSplash, setSplashContinueState, syncSplashButtons } from './splash.js';
+
+// Konfig: når turneringen låses (må matche tournamentSetup.js)
+const TOURNAMENT_LOCK_MODE = 'onCreation'; // 'onCreation' | 'onFirstMatch'
 
 function hasActiveMatchState(){
   return (
@@ -4643,6 +4666,11 @@ function bindEvents(){
 
   if(backBtn){
     backBtn.addEventListener('click', function(){
+      // Guard: blokker tilbake-navigasjon når turneringen er låst
+      if(state.tournamentData && state.tournamentData.locked){
+        // Avskjær forsøk på å gå tilbake til setup når låst
+        return;
+      }
       hideTournamentOverview();
       // Import and show tournament setup
       import('./tournamentSetup.js').then(function(module){
@@ -4674,6 +4702,15 @@ export function showTournamentOverview(){
   // Set the tournament name dynamically
   nameElement.textContent = state.tournamentData.name;
 
+  // Hide/disable back button when tournament is locked
+  if(backBtn){
+    if(state.tournamentData.locked){
+      backBtn.style.display = 'none';
+    } else {
+      backBtn.style.display = '';
+    }
+  }
+
   openModal('#tournamentOverviewMask');
 
   if (startBtn) {
@@ -4697,6 +4734,11 @@ export function hideTournamentOverview(){
 function startFirstMatch(){
   // Set tournament mode
   state.playMode = 'tournament';
+  
+  // Lock tournament when first match starts (if configured)
+  if(TOURNAMENT_LOCK_MODE === 'onFirstMatch' && state.tournamentData && !state.tournamentData.locked){
+    state.tournamentData.locked = true;
+  }
 
   // Finn første pending kamp (ikke completed/walkover)
   const matches = state.tournamentData?.matches || [];
@@ -4999,13 +5041,16 @@ File End
 js\ui\tournamentSetup.js
 File type: .js
 ﻿import { state } from '../state/matchState.js';
-import { setBodyScroll } from '../dom.js';
+// (fjernet ubrukte imports)
 import { openModal, closeModal } from './modal.js';
 import { showSplash, setSplashContinueState, syncSplashButtons } from './splash.js';
 import { getRecentNames, getPrevNames } from '../services/storage.js';
 import { saveIndividual } from '../services/namesStore.js';
 import { generateSwissRoundOne } from '../services/tournament.js';
 import { attachAutocomplete, toggleDropdownFor, updateDropdownButtons } from './autocomplete.js';
+
+// Konfig: når turneringen låses
+const TOURNAMENT_LOCK_MODE = 'onCreation'; // 'onCreation' | 'onFirstMatch'
 
 function hasActiveMatchState(){
   return (
@@ -5207,6 +5252,16 @@ function updateContinueButton(){
 
 export function showTournamentSetup(){
   if(!ensureElements()) return;
+  
+  // Guard: blokker tilgang til setup når turneringen er låst
+  if(state.tournamentData && state.tournamentData.locked){
+    // Redirect til oversikt hvis noen prøver å gå direkte hit via URL/historikk
+    import('./tournamentOverview.js').then(function(module){
+      module.showTournamentOverview();
+    });
+    return;
+  }
+  
   state.allowScoring = false;
   document.body.classList.remove('areas-active');
 
@@ -5287,7 +5342,8 @@ function saveTournamentParticipants(){
     name: draft.name,
     participants: participants,
     matches: tournamentData.round1.concat(tournamentData.placeholderRounds),
-    matchStates: {}
+    matchStates: {},
+    locked: TOURNAMENT_LOCK_MODE === 'onCreation' ? true : false
   };
   
   // Oppdater dropdown-knapper etter lagring av navn

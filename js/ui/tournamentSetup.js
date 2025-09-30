@@ -1,11 +1,14 @@
 ﻿import { state } from '../state/matchState.js';
-import { setBodyScroll } from '../dom.js';
+// (fjernet ubrukte imports)
 import { openModal, closeModal } from './modal.js';
 import { showSplash, setSplashContinueState, syncSplashButtons } from './splash.js';
 import { getRecentNames, getPrevNames } from '../services/storage.js';
 import { saveIndividual } from '../services/namesStore.js';
 import { generateSwissRoundOne } from '../services/tournament.js';
 import { attachAutocomplete, toggleDropdownFor, updateDropdownButtons } from './autocomplete.js';
+
+// Konfig: når turneringen låses
+const TOURNAMENT_LOCK_MODE = 'onCreation'; // 'onCreation' | 'onFirstMatch'
 
 function hasActiveMatchState(){
   return (
@@ -207,6 +210,16 @@ function updateContinueButton(){
 
 export function showTournamentSetup(){
   if(!ensureElements()) return;
+  
+  // Guard: blokker tilgang til setup når turneringen er låst
+  if(state.tournamentData && state.tournamentData.locked){
+    // Redirect til oversikt hvis noen prøver å gå direkte hit via URL/historikk
+    import('./tournamentOverview.js').then(function(module){
+      module.showTournamentOverview();
+    });
+    return;
+  }
+  
   state.allowScoring = false;
   document.body.classList.remove('areas-active');
 
@@ -287,7 +300,8 @@ function saveTournamentParticipants(){
     name: draft.name,
     participants: participants,
     matches: tournamentData.round1.concat(tournamentData.placeholderRounds),
-    matchStates: {}
+    matchStates: {},
+    locked: TOURNAMENT_LOCK_MODE === 'onCreation' ? true : false
   };
   
   // Oppdater dropdown-knapper etter lagring av navn

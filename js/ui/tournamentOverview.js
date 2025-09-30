@@ -1,7 +1,10 @@
 import { state } from '../state/matchState.js';
-import { setBodyScroll } from '../dom.js';
+// (fjernet ubrukte imports)
 import { openModal, closeModal } from './modal.js';
 import { showSplash, setSplashContinueState, syncSplashButtons } from './splash.js';
+
+// Konfig: når turneringen låses (må matche tournamentSetup.js)
+const TOURNAMENT_LOCK_MODE = 'onCreation'; // 'onCreation' | 'onFirstMatch'
 
 function hasActiveMatchState(){
   return (
@@ -57,6 +60,11 @@ function bindEvents(){
 
   if(backBtn){
     backBtn.addEventListener('click', function(){
+      // Guard: blokker tilbake-navigasjon når turneringen er låst
+      if(state.tournamentData && state.tournamentData.locked){
+        // Avskjær forsøk på å gå tilbake til setup når låst
+        return;
+      }
       hideTournamentOverview();
       // Import and show tournament setup
       import('./tournamentSetup.js').then(function(module){
@@ -88,6 +96,15 @@ export function showTournamentOverview(){
   // Set the tournament name dynamically
   nameElement.textContent = state.tournamentData.name;
 
+  // Hide/disable back button when tournament is locked
+  if(backBtn){
+    if(state.tournamentData.locked){
+      backBtn.style.display = 'none';
+    } else {
+      backBtn.style.display = '';
+    }
+  }
+
   openModal('#tournamentOverviewMask');
 
   if (startBtn) {
@@ -111,6 +128,11 @@ export function hideTournamentOverview(){
 function startFirstMatch(){
   // Set tournament mode
   state.playMode = 'tournament';
+  
+  // Lock tournament when first match starts (if configured)
+  if(TOURNAMENT_LOCK_MODE === 'onFirstMatch' && state.tournamentData && !state.tournamentData.locked){
+    state.tournamentData.locked = true;
+  }
 
   // Finn første pending kamp (ikke completed/walkover)
   const matches = state.tournamentData?.matches || [];

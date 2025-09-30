@@ -24,7 +24,8 @@ export const state = {
   playMode: 'singleMatch',
   VIEW_MODE: 'match',
   IS_SPECTATOR: MODE === 'spectator',
-  tournamentData: { name: '', participants: [], matches: [] }
+  tournamentData: { name: '', participants: [], matches: [], locked: false },
+  ui: { nextNavHint: null }
 };
 
 const DEFAULT_NAMES = {

@@ -1,7 +1,7 @@
 ﻿import { state } from '../state/matchState.js';
 import { loadMatches, saveMatches } from '../services/storage.js';
 import { fitScores } from './layout.js';
-import { setBodyScroll } from '../dom.js';
+// (fjernet ubrukte imports)
 import { openModal, closeModal } from './modal.js';
 
 let lastRenderMenu = null;
