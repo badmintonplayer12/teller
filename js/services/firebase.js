@@ -177,6 +177,26 @@ export function ensureGameId(){
   }
 }
 
+/**
+ * Get Firebase reference for a specific game
+ * @param {string} gameId - Game ID to get reference for
+ * @returns {Object|null} Firebase reference or null if not available
+ */
+export function getGameRef(gameId){
+  var db = rtdb();
+  if (!db) return null;
+  var gid = gameId || ensureGameId();
+  return gid ? db.ref('games/' + gid) : null;
+}
+
+/**
+ * Get Firebase reference for current game
+ * @returns {Object|null} Firebase reference for current game or null
+ */
+export function currentGameRef(){
+  return getGameRef(ensureGameId());
+}
+
 export function spectatorShareUrl(){
   var gid = ensureGameId();
   try{

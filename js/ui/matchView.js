@@ -8,6 +8,8 @@ import { setupMenu, renderMenu } from './menu.js';
 import { hasActiveMatchState, getContinueLabel, isAtStart } from './session.js';
 import { setupSplash, showSplash, hideSplash, syncSplashButtons, setSplashContinueState } from './splash.js';
 import { setupTournamentSetup, showTournamentSetup } from './tournamentSetup.js';
+import { getGameRef, ensureGameId } from '../services/firebase.js';
+import { bindControlReadHandlers, unbindControlRead } from '../services/controlRead.js';
 import { setupTournamentOverview, hideTournamentOverview, renderTournamentOverview } from './tournamentOverview.js';
 import { setupFirebase, pushStateThrottled, pushStateNow, spectatorShareUrl } from '../services/firebase.js';
 import { setSpectatorDependencies } from '../services/spectator.js';
@@ -52,6 +54,9 @@ let boundHandlers = {
   rightArea: null,
   keydown: null
 };
+
+// Control read state
+let _unsubControl = null;
 
 setLayoutDependencies({
   saveLiveState: saveState,
@@ -297,19 +302,11 @@ export function enterMatch(){
   
   // Bind control read handlers for live updates
   if(!state.IS_SPECTATOR) {
-    import('../services/firebase.js').then(function(module) {
-      if(module.rtdb && module.getGameRef) {
-        var gameId = state.gameId;
-        if(gameId) {
-          var ref = module.getGameRef(gameId);
-          import('../services/spectator.js').then(function(spectatorModule) {
-            if(spectatorModule.bindControlReadHandlers) {
-              spectatorModule.bindControlReadHandlers(ref);
-            }
-          });
-        }
-      }
-    });
+    var gid = ensureGameId();
+    var ref = getGameRef(gid);
+    if(ref){
+      _unsubControl = bindControlReadHandlers(ref);
+    }
   }
   
   isMatchBound = true;
@@ -337,6 +334,15 @@ export function exitMatch(){
   if(boundHandlers.keydown) {
     document.removeEventListener('keydown', boundHandlers.keydown);
   }
+  
+  // Clean up control read handlers
+  try { 
+    if (_unsubControl) _unsubControl(); 
+  } catch(e){}
+  try { 
+    unbindControlRead(); 
+  } catch(e){}
+  _unsubControl = null;
   
   // Reset state
   isMatchBound = false;
