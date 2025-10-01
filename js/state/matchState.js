@@ -18,6 +18,7 @@ export const state = {
   pendingSetWinner: null,
   setHistory: [],
   allowScoring: false,
+  role: 'writer', // TODO: Implement proper role-gating in later PR
   nameEditMode: false,
   matchDiscipline: 'single',
   playMode: 'singleMatch',

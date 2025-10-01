@@ -147,7 +147,12 @@ function afterSDK(){
 
       db.ref('games/' + gid + '/online').onDisconnect().set(false);
       db.ref('games/' + gid + '/online').set(true);
-      pushStateNow();
+      
+      // TODO: Migrate to mutations.js in later PR
+      // Guard: Only push initial state if we have writer role
+      if (state.role === 'writer') {
+        pushStateNow();
+      }
     }
   });
 }
