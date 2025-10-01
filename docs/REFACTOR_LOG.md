@@ -45,6 +45,7 @@ Denne filen føres KUN for **refaktorering/rydding** (ikke features). Etter hver
 > Legg nederst i tabellen, nyeste først.
 
 ```
+| 2025-01-27 | 6270 | Refactor-14: Konsolider bump-logikk | Laget handleScoreBump() for å fjerne duplisering av bump-effekter |
 | 2024-12-19 | 5146 | Fix-09: Spectator vinnerglød | Rettet spectator til å vise vinnerglød basert på sett-telling i stedet for msg |
 | 2024-12-19 | 5124 | Refactor-17: DOM-helper utilities | Laget js/util/domUtils.js med qs/on/toggle helpers og byttet mikro-snutter |
 | 2024-12-19 | 5111 | Refactor-16: Dynamisk skriptlasting | Konsoliderte loadScript/loadScriptOnce til js/util/loadScript.js |
