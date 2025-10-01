@@ -16,12 +16,14 @@ const prev = {
 let _updateScores = function(){};
 let _fitScores = function(){};
 let _handleScoreBump = function(){};
+let _getSuppressUntil = function(){};
 
 export function setControlReadDependencies(deps){
   deps = deps || {};
   if (typeof deps.updateScores === 'function') _updateScores = deps.updateScores;
   if (typeof deps.fitScores === 'function') _fitScores = deps.fitScores;
   if (typeof deps.handleScoreBump === 'function') _handleScoreBump = deps.handleScoreBump;
+  if (typeof deps.getSuppressUntil === 'function') _getSuppressUntil = deps.getSuppressUntil;
 }
 
 export function unbindControlRead(){
@@ -78,13 +80,22 @@ export function bindControlReadHandlers(ref){
       if(elA) elA.classList.remove('pop', 'popMinus');
       if(elB) elB.classList.remove('pop', 'popMinus');
     } else {
-      // Bump effects for score changes (like spectator)
-      try { 
-        _handleScoreBump(prevScoreA, state.scoreA, document.getElementById('A_digits')); 
-      } catch(_){}
-      try { 
-        _handleScoreBump(prevScoreB, state.scoreB, document.getElementById('B_digits')); 
-      } catch(_){}
+      // Bump effects for score changes with echo-guard
+      var now = Date.now();
+      if (prevScoreA !== null && state.scoreA !== prevScoreA) {
+        if (now >= _getSuppressUntil('A')) {
+          try { 
+            _handleScoreBump(prevScoreA, state.scoreA, document.getElementById('A_digits')); 
+          } catch(_){}
+        }
+      }
+      if (prevScoreB !== null && state.scoreB !== prevScoreB) {
+        if (now >= _getSuppressUntil('B')) {
+          try { 
+            _handleScoreBump(prevScoreB, state.scoreB, document.getElementById('B_digits')); 
+          } catch(_){}
+        }
+      }
     }
     
     // Update previous values

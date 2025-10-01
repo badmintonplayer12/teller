@@ -62,6 +62,9 @@ let _unsubControl = null;
 const elA = document.getElementById('A_digits');
 const elB = document.getElementById('B_digits');
 
+// Lokalt suppress-vindu for å ignorere umiddelbar echo fra RTDB (ms tidsstempel per side)
+let _localBumpSuppress = { A: 0, B: 0 };
+
 setLayoutDependencies({
   saveLiveState: saveState,
   pushStateThrottled: () => pushStateThrottled(),
@@ -73,7 +76,8 @@ setLayoutDependencies({
 setControlReadDependencies({
   updateScores,
   fitScores,
-  handleScoreBump
+  handleScoreBump,
+  getSuppressUntil: (side) => _localBumpSuppress[side] || 0
 });
 
 let menuHandlers;
@@ -364,6 +368,9 @@ export function exitMatch(){
     rightArea: null,
     keydown: null
   };
+  
+  // Reset suppress window
+  _localBumpSuppress.A = _localBumpSuppress.B = 0;
 }
 
 function updateTournamentActionButtons(){
@@ -524,11 +531,23 @@ function updateScores(){
 function addPoint(side){
   if(!state.allowScoring || state.locked || state.swapping || state.IS_SPECTATOR) return;
   
+  var oldScore = side === 'A' ? state.scoreA : state.scoreB;
   if(side === 'A') state.scoreA++; else state.scoreB++;
+  var newScore = side === 'A' ? state.scoreA : state.scoreB;
+  
+  // Immediate local bump for responsiveness
+  var now = Date.now();
+  if (side === 'A' && elA) {
+    handleScoreBump(oldScore, newScore, elA);
+    _localBumpSuppress.A = now + 250;
+  } else if (side === 'B' && elB) {
+    handleScoreBump(oldScore, newScore, elB);
+    _localBumpSuppress.B = now + 250;
+  }
   
   // (ikke nødvendig lenger – navn lagres når de settes i modal/turnering)
   checkSetEnd();
-  updateScores(); // Bump logic now handled in updateScores()
+  updateScores();
   
   fitScores();
   pushStateThrottled();
@@ -537,10 +556,22 @@ function addPoint(side){
 function removePoint(side){
   if(!state.allowScoring || state.locked || state.swapping || state.IS_SPECTATOR) return;
   
+  var oldScore = side === 'A' ? state.scoreA : state.scoreB;
   if(side === 'A' && state.scoreA > 0) state.scoreA--;
   if(side === 'B' && state.scoreB > 0) state.scoreB--;
+  var newScore = side === 'A' ? state.scoreA : state.scoreB;
   
-  updateScores(); // Bump logic now handled in updateScores()
+  // Immediate local bump for responsiveness
+  var now = Date.now();
+  if (side === 'A' && elA) {
+    handleScoreBump(oldScore, newScore, elA);
+    _localBumpSuppress.A = now + 250;
+  } else if (side === 'B' && elB) {
+    handleScoreBump(oldScore, newScore, elB);
+    _localBumpSuppress.B = now + 250;
+  }
+  
+  updateScores();
   
   fitScores();
   pushStateThrottled();
