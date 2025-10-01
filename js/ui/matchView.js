@@ -58,6 +58,13 @@ let boundHandlers = {
 // Control read state
 let _unsubControl = null;
 
+// UI state cache for bump detection
+const prevUI = { a: null, b: null };
+
+// Cache DOM elements for performance
+const elA = document.getElementById('A_digits');
+const elB = document.getElementById('B_digits');
+
 setLayoutDependencies({
   saveLiveState: saveState,
   pushStateThrottled: () => pushStateThrottled(),
@@ -510,6 +517,16 @@ function updateScores(){
   // Update tournament action buttons
   updateTournamentActionButtons();
   
+  // Bump effects for score changes (deterministic based on data changes)
+  if(elA && elB) {
+    handleScoreBump(prevUI.a, state.scoreA, elA);
+    handleScoreBump(prevUI.b, state.scoreB, elB);
+    
+    // Update previous values
+    prevUI.a = state.scoreA;
+    prevUI.b = state.scoreB;
+  }
+  
   saveState();
 }
 
@@ -517,16 +534,11 @@ function updateScores(){
 function addPoint(side){
   if(!state.allowScoring || state.locked || state.swapping || state.IS_SPECTATOR) return;
   
-  var oldScore = side === 'A' ? state.scoreA : state.scoreB;
   if(side === 'A') state.scoreA++; else state.scoreB++;
-  var newScore = side === 'A' ? state.scoreA : state.scoreB;
   
   // (ikke nødvendig lenger – navn lagres når de settes i modal/turnering)
   checkSetEnd();
-  updateScores();
-  
-  // Only bump if score actually increased
-  handleScoreBump(oldScore, newScore, document.getElementById(side === 'A' ? 'A_digits' : 'B_digits'));
+  updateScores(); // Bump logic now handled in updateScores()
   
   fitScores();
   pushStateThrottled();
@@ -535,15 +547,10 @@ function addPoint(side){
 function removePoint(side){
   if(!state.allowScoring || state.locked || state.swapping || state.IS_SPECTATOR) return;
   
-  var oldScore = side === 'A' ? state.scoreA : state.scoreB;
   if(side === 'A' && state.scoreA > 0) state.scoreA--;
   if(side === 'B' && state.scoreB > 0) state.scoreB--;
-  var newScore = side === 'A' ? state.scoreA : state.scoreB;
   
-  updateScores();
-  
-  // Only bump if score actually decreased
-  handleScoreBump(oldScore, newScore, document.getElementById(side === 'A' ? 'A_digits' : 'B_digits'));
+  updateScores(); // Bump logic now handled in updateScores()
   
   fitScores();
   pushStateThrottled();

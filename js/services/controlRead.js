@@ -66,13 +66,26 @@ export function bindControlReadHandlers(ref){
     try { _updateScores(); } catch(_){}
     try { _fitScores(); } catch(_){}
     
-    // Bump effects for score changes (like spectator)
-    try { 
-      _handleScoreBump(prevScoreA, state.scoreA, document.getElementById('A_digits')); 
-    } catch(_){}
-    try { 
-      _handleScoreBump(prevScoreB, state.scoreB, document.getElementById('B_digits')); 
-    } catch(_){}
+    // Suppress bumps logic (like spectator)
+    var isSetChange = (prev.setsA != null) && (prev.setsA !== state.setsA || prev.setsB !== state.setsB);
+    var dropToZero = (state.scoreA === 0 && state.scoreB === 0) && ((prev.scoreA > 0) || (prev.scoreB > 0));
+    var suppressBumps = isSetChange || dropToZero;
+    
+    if(suppressBumps) {
+      // Remove existing bump classes
+      var elA = document.getElementById('A_digits');
+      var elB = document.getElementById('B_digits');
+      if(elA) elA.classList.remove('pop', 'popMinus');
+      if(elB) elB.classList.remove('pop', 'popMinus');
+    } else {
+      // Bump effects for score changes (like spectator)
+      try { 
+        _handleScoreBump(prevScoreA, state.scoreA, document.getElementById('A_digits')); 
+      } catch(_){}
+      try { 
+        _handleScoreBump(prevScoreB, state.scoreB, document.getElementById('B_digits')); 
+      } catch(_){}
+    }
     
     // Update previous values
     prev.scoreA = state.scoreA;
