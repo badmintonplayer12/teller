@@ -63,7 +63,9 @@ export function renderMenu(mode, handlers){
   if(mode === 'match'){
     html += menuItem('miNewMatch', '🏠 Til start', menuHandlers.onNewMatch);
     html += menuItem('miShare', '🔗 Del…', menuHandlers.onShare);
+    html += menuItem('miOpenControl', '📱 Åpne kontroll i ny fane', menuHandlers.onOpenControl);
     html += menuItem('miTournamentOverview', '📋 Kampoversikt', menuHandlers.onTournamentOverview);
+    html += menuItem('miOpenDashboard', '📺 Åpne kampoversikt i ny fane', menuHandlers.onOpenDashboard);
     html += menuItem('miFinishMatch', '✅ Ferdigstill kamp', menuHandlers.onFinishMatch);
     html += menuItem('miResetSet', '♻️ Nullstill sett', menuHandlers.onResetSet);
     html += menuItem('miSwap', '⇄ Bytt side', menuHandlers.onSwap);
@@ -117,6 +119,8 @@ function handlerIdFor(key){
     case 'onTournamentOverview': return 'miTournamentOverview';
     case 'onFinishMatch': return 'miFinishMatch';
     case 'onBackToMatch': return 'miBackToMatch';
+    case 'onOpenDashboard': return 'miOpenDashboard';
+    case 'onOpenControl': return 'miOpenControl';
     default: return null;
   }
 }

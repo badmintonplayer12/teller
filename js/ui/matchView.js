@@ -1018,6 +1018,7 @@ function buildMenuHandlers(){
     onTournamentOverview: state.playMode === 'tournament' ? () => showTournamentOverview() : undefined,
     onFinishMatch: state.playMode === 'tournament' ? () => openFinishDialog() : undefined,
     onOpenDashboard: state.playMode === 'tournament' ? () => openDashboard() : undefined,
+    onOpenControl: () => openControlTab(),
     onBackToMatch: () => {
       showMatch();
       state.VIEW_MODE = 'match';
@@ -1047,6 +1048,15 @@ function openDashboard(){
     var url = location.origin + location.pathname + '?mode=dashboard&game=' + encodeURIComponent(gameId);
     window.open(url, '_blank');
   });
+}
+
+function openControlTab(){
+  // Get game ID and open new control tab
+  var gameId = ensureGameId();
+  if(!gameId) return;
+  
+  var url = location.origin + location.pathname + '?game=' + encodeURIComponent(gameId);
+  window.open(url, '_blank');
 }
 
 export function applyRestoredState(){
