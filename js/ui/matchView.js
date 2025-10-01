@@ -68,7 +68,9 @@ setLayoutDependencies({
 // Gi kontroll-leseren tilgang til våre UI-oppdaterere (unngår window.*)
 setControlReadDependencies({
   updateScores,
-  fitScores
+  fitScores,
+  bumpPlus,
+  bumpMinus
 });
 
 let menuHandlers;
@@ -515,21 +517,39 @@ function updateScores(){
 
 function addPoint(side){
   if(!state.allowScoring || state.locked || state.swapping || state.IS_SPECTATOR) return;
+  
+  var oldScore = side === 'A' ? state.scoreA : state.scoreB;
   if(side === 'A') state.scoreA++; else state.scoreB++;
+  var newScore = side === 'A' ? state.scoreA : state.scoreB;
+  
   // (ikke nødvendig lenger – navn lagres når de settes i modal/turnering)
   checkSetEnd();
   updateScores();
-  bumpPlus(document.getElementById(side === 'A' ? 'A_digits' : 'B_digits'));
+  
+  // Only bump if score actually increased
+  if(newScore > oldScore) {
+    bumpPlus(document.getElementById(side === 'A' ? 'A_digits' : 'B_digits'));
+  }
+  
   fitScores();
   pushStateThrottled();
 }
 
 function removePoint(side){
   if(!state.allowScoring || state.locked || state.swapping || state.IS_SPECTATOR) return;
+  
+  var oldScore = side === 'A' ? state.scoreA : state.scoreB;
   if(side === 'A' && state.scoreA > 0) state.scoreA--;
   if(side === 'B' && state.scoreB > 0) state.scoreB--;
+  var newScore = side === 'A' ? state.scoreA : state.scoreB;
+  
   updateScores();
-  bumpMinus(document.getElementById(side === 'A' ? 'A_digits' : 'B_digits'));
+  
+  // Only bump if score actually decreased
+  if(newScore < oldScore) {
+    bumpMinus(document.getElementById(side === 'A' ? 'A_digits' : 'B_digits'));
+  }
+  
   fitScores();
   pushStateThrottled();
 }

@@ -4,14 +4,26 @@ import { state } from '../state/matchState.js';
 var _boundRef = null;
 var _onValue = null;
 
+// Previous values for bump detection
+const prev = {
+  scoreA: null,
+  scoreB: null,
+  setsA: null,
+  setsB: null
+};
+
 // Injiserte UI-callbacks (unngå window.*)
 let _updateScores = function(){};
 let _fitScores = function(){};
+let _bumpPlus = function(){};
+let _bumpMinus = function(){};
 
 export function setControlReadDependencies(deps){
   deps = deps || {};
   if (typeof deps.updateScores === 'function') _updateScores = deps.updateScores;
   if (typeof deps.fitScores === 'function') _fitScores = deps.fitScores;
+  if (typeof deps.bumpPlus === 'function') _bumpPlus = deps.bumpPlus;
+  if (typeof deps.bumpMinus === 'function') _bumpMinus = deps.bumpMinus;
 }
 
 export function unbindControlRead(){
@@ -29,6 +41,10 @@ export function bindControlReadHandlers(ref){
   _onValue = function(snap){
     var v = snap && snap.val ? snap.val() : null;
     if (!v) return;
+    
+    // Store previous values for bump detection
+    var prevScoreA = prev.scoreA;
+    var prevScoreB = prev.scoreB;
     
     // Hydrer felter vi viser i kontroll
     if (v.scores){
@@ -51,6 +67,24 @@ export function bindControlReadHandlers(ref){
     // Oppdater UI via injiserte callbacks
     try { _updateScores(); } catch(_){}
     try { _fitScores(); } catch(_){}
+    
+    // Bump effects for score changes (like spectator)
+    if(prevScoreA !== null && state.scoreA !== prevScoreA) {
+      try { 
+        ((state.scoreA > prevScoreA) ? _bumpPlus : _bumpMinus)(document.getElementById('A_digits')); 
+      } catch(_){}
+    }
+    if(prevScoreB !== null && state.scoreB !== prevScoreB) {
+      try { 
+        ((state.scoreB > prevScoreB) ? _bumpPlus : _bumpMinus)(document.getElementById('B_digits')); 
+      } catch(_){}
+    }
+    
+    // Update previous values
+    prev.scoreA = state.scoreA;
+    prev.scoreB = state.scoreB;
+    prev.setsA = state.setsA;
+    prev.setsB = state.setsB;
   };
   ref.on('value', _onValue);
   return unbindControlRead;
