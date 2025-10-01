@@ -15,15 +15,13 @@ const prev = {
 // Injiserte UI-callbacks (unngå window.*)
 let _updateScores = function(){};
 let _fitScores = function(){};
-let _bumpPlus = function(){};
-let _bumpMinus = function(){};
+let _handleScoreBump = function(){};
 
 export function setControlReadDependencies(deps){
   deps = deps || {};
   if (typeof deps.updateScores === 'function') _updateScores = deps.updateScores;
   if (typeof deps.fitScores === 'function') _fitScores = deps.fitScores;
-  if (typeof deps.bumpPlus === 'function') _bumpPlus = deps.bumpPlus;
-  if (typeof deps.bumpMinus === 'function') _bumpMinus = deps.bumpMinus;
+  if (typeof deps.handleScoreBump === 'function') _handleScoreBump = deps.handleScoreBump;
 }
 
 export function unbindControlRead(){
@@ -69,16 +67,12 @@ export function bindControlReadHandlers(ref){
     try { _fitScores(); } catch(_){}
     
     // Bump effects for score changes (like spectator)
-    if(prevScoreA !== null && state.scoreA !== prevScoreA) {
-      try { 
-        ((state.scoreA > prevScoreA) ? _bumpPlus : _bumpMinus)(document.getElementById('A_digits')); 
-      } catch(_){}
-    }
-    if(prevScoreB !== null && state.scoreB !== prevScoreB) {
-      try { 
-        ((state.scoreB > prevScoreB) ? _bumpPlus : _bumpMinus)(document.getElementById('B_digits')); 
-      } catch(_){}
-    }
+    try { 
+      _handleScoreBump(prevScoreA, state.scoreA, document.getElementById('A_digits')); 
+    } catch(_){}
+    try { 
+      _handleScoreBump(prevScoreB, state.scoreB, document.getElementById('B_digits')); 
+    } catch(_){}
     
     // Update previous values
     prev.scoreA = state.scoreA;

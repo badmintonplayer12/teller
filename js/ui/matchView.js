@@ -1,5 +1,5 @@
 import { state, saveLiveState, restoreLiveState, clearLiveState, namesState, normalizeNameEntry, alignNamesState, getDisplayName } from '../state/matchState.js';
-import { setDigits, fitScores, queueFit, bumpPlus, bumpMinus, swapSides, setLayoutDependencies, readABFromModalInputs, writeModalInputsFromAB, clearWinner, isALeft, startVisualSwap, setSidesDomTo } from './layout.js';
+import { setDigits, fitScores, queueFit, handleScoreBump, swapSides, setLayoutDependencies, readABFromModalInputs, writeModalInputsFromAB, clearWinner, isALeft, startVisualSwap, setSidesDomTo } from './layout.js';
 import { showNameModal, hideNameModal, updateEditableState, updateNameChips, autocomplete, onSaveNames } from './namesModal.js';
 import { loadMatches, saveMatches, saveLastNames, loadLastNames } from '../services/storage.js';
 import { initShare, openShare, closeShare } from './share.js';
@@ -69,8 +69,7 @@ setLayoutDependencies({
 setControlReadDependencies({
   updateScores,
   fitScores,
-  bumpPlus,
-  bumpMinus
+  handleScoreBump
 });
 
 let menuHandlers;
@@ -527,9 +526,7 @@ function addPoint(side){
   updateScores();
   
   // Only bump if score actually increased
-  if(newScore > oldScore) {
-    bumpPlus(document.getElementById(side === 'A' ? 'A_digits' : 'B_digits'));
-  }
+  handleScoreBump(oldScore, newScore, document.getElementById(side === 'A' ? 'A_digits' : 'B_digits'));
   
   fitScores();
   pushStateThrottled();
@@ -546,9 +543,7 @@ function removePoint(side){
   updateScores();
   
   // Only bump if score actually decreased
-  if(newScore < oldScore) {
-    bumpMinus(document.getElementById(side === 'A' ? 'A_digits' : 'B_digits'));
-  }
+  handleScoreBump(oldScore, newScore, document.getElementById(side === 'A' ? 'A_digits' : 'B_digits'));
   
   fitScores();
   pushStateThrottled();

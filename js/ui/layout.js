@@ -311,6 +311,12 @@ export function bumpMinus(el){
   setTimeout(function(){ el.classList.remove('popMinus'); }, 550);
 }
 
+export function handleScoreBump(prevScore, newScore, element){
+  if(prevScore !== null && newScore !== prevScore) {
+    ((newScore > prevScore) ? bumpPlus : bumpMinus)(element);
+  }
+}
+
 export function clearWinner(){
   ['#scoreA','#scoreB'].forEach(function(sel){
     var el = $(sel);

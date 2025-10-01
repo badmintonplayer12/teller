@@ -1,5 +1,5 @@
 import { state, getDisplayName } from '../state/matchState.js';
-import { setSidesDomTo, fitScores, queueFit, bumpPlus, bumpMinus, clearWinner } from '../ui/layout.js';
+import { setSidesDomTo, fitScores, queueFit, handleScoreBump, clearWinner } from '../ui/layout.js';
 
 let updateScores = function(){};
 
@@ -133,8 +133,8 @@ export function bindSpectatorHandlers(ref){
     var elB = document.getElementById('B_digits');
 
     if(!suppressBumps){
-      if(prev.scoreA != null && a !== prev.scoreA) ((a > prev.scoreA) ? bumpPlus : bumpMinus)(elA);
-      if(prev.scoreB != null && b !== prev.scoreB) ((b > prev.scoreB) ? bumpPlus : bumpMinus)(elB);
+      handleScoreBump(prev.scoreA, a, elA);
+      handleScoreBump(prev.scoreB, b, elB);
     }else{
       elA?.classList.remove('pop','popMinus');
       elB?.classList.remove('pop','popMinus');
