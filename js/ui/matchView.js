@@ -58,10 +58,7 @@ let boundHandlers = {
 // Control read state
 let _unsubControl = null;
 
-// UI state cache for bump detection
-const prevUI = { a: null, b: null };
-
-// Cache DOM elements for performance
+// Cache DOM elements for performance (used by controlRead.js)
 const elA = document.getElementById('A_digits');
 const elB = document.getElementById('B_digits');
 
@@ -517,15 +514,8 @@ function updateScores(){
   // Update tournament action buttons
   updateTournamentActionButtons();
   
-  // Bump effects for score changes (deterministic based on data changes)
-  if(elA && elB) {
-    handleScoreBump(prevUI.a, state.scoreA, elA);
-    handleScoreBump(prevUI.b, state.scoreB, elB);
-    
-    // Update previous values
-    prevUI.a = state.scoreA;
-    prevUI.b = state.scoreB;
-  }
+  // Bump effects handled by controlRead.js for live updates
+  // Local bump logic removed to prevent double bump
   
   saveState();
 }
