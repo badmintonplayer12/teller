@@ -9,7 +9,7 @@ import { hasActiveMatchState, getContinueLabel, isAtStart } from './session.js';
 import { setupSplash, showSplash, hideSplash, syncSplashButtons, setSplashContinueState } from './splash.js';
 import { setupTournamentSetup, showTournamentSetup } from './tournamentSetup.js';
 import { getGameRef, ensureGameId } from '../services/firebase.js';
-import { bindControlReadHandlers, unbindControlRead } from '../services/controlRead.js';
+import { bindControlReadHandlers, unbindControlRead, setControlReadDependencies } from '../services/controlRead.js';
 import { setupTournamentOverview, hideTournamentOverview, renderTournamentOverview } from './tournamentOverview.js';
 import { setupFirebase, pushStateThrottled, pushStateNow, spectatorShareUrl } from '../services/firebase.js';
 import { setSpectatorDependencies } from '../services/spectator.js';
@@ -63,6 +63,12 @@ setLayoutDependencies({
   pushStateThrottled: () => pushStateThrottled(),
   pushStateNow: () => pushStateNow(),
   updateNameChips
+});
+
+// Gi kontroll-leseren tilgang til våre UI-oppdaterere (unngår window.*)
+setControlReadDependencies({
+  updateScores,
+  fitScores
 });
 
 let menuHandlers;

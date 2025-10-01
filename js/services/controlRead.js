@@ -4,6 +4,16 @@ import { state } from '../state/matchState.js';
 var _boundRef = null;
 var _onValue = null;
 
+// Injiserte UI-callbacks (unngå window.*)
+let _updateScores = function(){};
+let _fitScores = function(){};
+
+export function setControlReadDependencies(deps){
+  deps = deps || {};
+  if (typeof deps.updateScores === 'function') _updateScores = deps.updateScores;
+  if (typeof deps.fitScores === 'function') _fitScores = deps.fitScores;
+}
+
 export function unbindControlRead(){
   try {
     if (_boundRef && _onValue) _boundRef.off('value', _onValue);
@@ -38,19 +48,9 @@ export function bindControlReadHandlers(ref){
     if (v.format) state.format = v.format;
     if (typeof v.msg !== 'undefined') state.msg = v.msg;
     
-    // Kall eksisterende UI-oppdaterere hvis de finnes
-    try { 
-      if (typeof window.updateScores === 'function') window.updateScores(); 
-    } catch(e){}
-    try { 
-      if (typeof window.fitScores === 'function') window.fitScores(); 
-    } catch(e){}
-    try { 
-      if (typeof window.renderNames === 'function') window.renderNames(); 
-    } catch(e){}
-    try { 
-      if (typeof window.renderFormatBadges === 'function') window.renderFormatBadges(); 
-    } catch(e){}
+    // Oppdater UI via injiserte callbacks
+    try { _updateScores(); } catch(_){}
+    try { _fitScores(); } catch(_){}
   };
   ref.on('value', _onValue);
   return unbindControlRead;
