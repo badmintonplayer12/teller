@@ -17,6 +17,15 @@ import { qs, on, toggle } from '../util/domUtils.js';
 import { LONGPRESS_MS, MOVE_THRESH } from '../constants.js';
 import { bindNameInput } from '../services/namesStore.js';
 
+/**
+ * Match View Event Binding Contract:
+ * 
+ * enterMatch() - Binds all necessary event listeners for match interaction
+ * exitMatch() - Removes all bound event listeners to prevent double-binding
+ * 
+ * This prevents duplicate event handlers when navigating in/out of match view
+ */
+
 
 function openFinishDialog(){
   const settled = (state.setsA >= 2 || state.setsB >= 2);
@@ -33,6 +42,16 @@ function getCurrentDisplayNames(){
 }
 
 const saveState = () => saveLiveState(readABFromModalInputs);
+
+// Event binding state
+let isMatchBound = false;
+let boundHandlers = {
+  scoreA: null,
+  scoreB: null,
+  leftArea: null,
+  rightArea: null,
+  keydown: null
+};
 
 setLayoutDependencies({
   saveLiveState: saveState,
@@ -54,7 +73,6 @@ export function mount(){
     shareInitialized = true;
   }
 
-  bindCoreEvents();
   bindModalEvents();
   bindSummaryEvents();
 
@@ -123,18 +141,27 @@ export function startMatchFlow(opts){
 
   updateEditableState();
   saveState();
+  
+  // Enter match view - bind event listeners
+  enterMatch();
 }
 
 function bindCoreEvents(){
   if(!state.IS_SPECTATOR){
+    // Store handlers for cleanup
+    boundHandlers.scoreA = () => addPoint('A');
+    boundHandlers.scoreB = () => addPoint('B');
+    boundHandlers.leftArea = () => addPointByPosition('left');
+    boundHandlers.rightArea = () => addPointByPosition('right');
+    
     bindLongPressOne($('#scoreA'), () => removePoint('A'));
     bindLongPressOne($('#scoreB'), () => removePoint('B'));
-    bindTap($('#scoreA'), () => addPoint('A'));
-    bindTap($('#scoreB'), () => addPoint('B'));
+    bindTap($('#scoreA'), boundHandlers.scoreA);
+    bindTap($('#scoreB'), boundHandlers.scoreB);
     bindLongPressOne($('#leftArea'), () => removePointByPosition('left'));
     bindLongPressOne($('#rightArea'), () => removePointByPosition('right'));
-    bindTap($('#leftArea'), () => addPointByPosition('left'));
-    bindTap($('#rightArea'), () => addPointByPosition('right'));
+    bindTap($('#leftArea'), boundHandlers.leftArea);
+    bindTap($('#rightArea'), boundHandlers.rightArea);
   }
 
   const nameAInput = qs('#nameA');
@@ -249,13 +276,77 @@ function bindSummaryEvents(){
   if(mask) mask.addEventListener('click', function(e){ if(e.target === mask) closeSummaryModal(); });
   if(nextSetBtn) nextSetBtn.addEventListener('click', function(){ if(!state.IS_SPECTATOR) advanceToNextSet(); });
 
-  document.addEventListener('keydown', function(e){
+  // Store keydown handler for cleanup
+  boundHandlers.keydown = function(e){
     if(state.IS_SPECTATOR) return;
     if(state.betweenSets && (e.key === 'Enter' || e.key === ' ' || e.key.toLowerCase() === 'n')){
       e.preventDefault();
       advanceToNextSet();
     }
-  });
+  };
+  document.addEventListener('keydown', boundHandlers.keydown);
+}
+
+/**
+ * Enter match view - bind all necessary event listeners
+ */
+export function enterMatch(){
+  if(isMatchBound) return; // Prevent double-binding
+  
+  bindCoreEvents();
+  
+  // Bind control read handlers for live updates
+  if(!state.IS_SPECTATOR) {
+    import('../services/firebase.js').then(function(module) {
+      if(module.rtdb && module.getGameRef) {
+        var gameId = state.gameId;
+        if(gameId) {
+          var ref = module.getGameRef(gameId);
+          import('../services/spectator.js').then(function(spectatorModule) {
+            if(spectatorModule.bindControlReadHandlers) {
+              spectatorModule.bindControlReadHandlers(ref);
+            }
+          });
+        }
+      }
+    });
+  }
+  
+  isMatchBound = true;
+}
+
+/**
+ * Exit match view - remove all bound event listeners
+ */
+export function exitMatch(){
+  if(!isMatchBound) return;
+  
+  // Remove event listeners
+  if(boundHandlers.scoreA && $('#scoreA')) {
+    $('#scoreA').removeEventListener('click', boundHandlers.scoreA);
+  }
+  if(boundHandlers.scoreB && $('#scoreB')) {
+    $('#scoreB').removeEventListener('click', boundHandlers.scoreB);
+  }
+  if(boundHandlers.leftArea && $('#leftArea')) {
+    $('#leftArea').removeEventListener('click', boundHandlers.leftArea);
+  }
+  if(boundHandlers.rightArea && $('#rightArea')) {
+    $('#rightArea').removeEventListener('click', boundHandlers.rightArea);
+  }
+  if(boundHandlers.keydown) {
+    document.removeEventListener('keydown', boundHandlers.keydown);
+  }
+  
+  // Reset state
+  isMatchBound = false;
+  boundHandlers = {
+    scoreA: null,
+    scoreB: null,
+    leftArea: null,
+    rightArea: null,
+    keydown: null
+  };
 }
 
 function updateTournamentActionButtons(){
@@ -920,6 +1011,7 @@ function buildMenuHandlers(){
     onStats: () => renderStats(loadMatches(), mode => { state.VIEW_MODE = mode; }, renderMenu, menuHandlers),
     onTournamentOverview: state.playMode === 'tournament' ? () => showTournamentOverview() : undefined,
     onFinishMatch: state.playMode === 'tournament' ? () => openFinishDialog() : undefined,
+    onOpenDashboard: state.playMode === 'tournament' ? () => openDashboard() : undefined,
     onBackToMatch: () => {
       showMatch();
       state.VIEW_MODE = 'match';
@@ -936,6 +1028,19 @@ function toggleFullscreen(){
   }else{
     if(document.exitFullscreen) document.exitFullscreen();
   }
+}
+
+function openDashboard(){
+  if(!state.tournamentData) return;
+  
+  // Get game ID from Firebase
+  import('../services/firebase.js').then(function(module) {
+    var gameId = module.ensureGameId();
+    if(!gameId) return;
+    
+    var url = location.origin + location.pathname + '?mode=dashboard&game=' + encodeURIComponent(gameId);
+    window.open(url, '_blank');
+  });
 }
 
 export function applyRestoredState(){

@@ -169,3 +169,67 @@ export function bindSpectatorHandlers(ref){
     console.warn('RTDB lesefeil', err && err.code);
   });
 }
+
+/**
+ * Bind control read handlers for live updates
+ * Control client reads live snapshots from RTDB without writing
+ */
+export function bindControlReadHandlers(ref){
+  if(!ref) return;
+  
+  ref.on('value', function(snap){
+    var v = snap.val();
+    if(!v) return;
+    
+    // Import isEcho to check if this is our own write
+    import('./firebase.js').then(function(module) {
+      if(module.isEcho && module.isEcho(snap)) {
+        // Skip updates from our own writes to prevent echo-loops
+        return;
+      }
+      
+      // Update state from live snapshot
+      var a = Number(v.scores?.A || 0);
+      var b = Number(v.scores?.B || 0);
+      var setsA = Number(v.sets?.A || 0);
+      var setsB = Number(v.sets?.B || 0);
+      var nextIsALeft = !!v.isALeft;
+      
+      // Only update if values have changed
+      if(state.scoreA !== a || state.scoreB !== b || 
+         state.setsA !== setsA || state.setsB !== setsB) {
+        
+        state.scoreA = a;
+        state.scoreB = b;
+        state.setsA = setsA;
+        state.setsB = setsB;
+        state.currentSet = Number(v.currentSet || state.currentSet);
+        
+        // Update names if available
+        if(v.names) {
+          setNameChipsDirect(v.names.A, v.names.B);
+        }
+        
+        // Update sides if changed
+        if(prev.isALeft !== nextIsALeft) {
+          setSidesDomTo(nextIsALeft);
+          prev.isALeft = nextIsALeft;
+        }
+        
+        // Update UI
+        updateScores();
+        queueFit();
+        
+        // Update previous values
+        prev.scoreA = state.scoreA;
+        prev.scoreB = state.scoreB;
+        prev.setsA = state.setsA;
+        prev.setsB = state.setsB;
+      }
+    }).catch(function(err) {
+      console.warn('Control read handler error:', err);
+    });
+  }, function(err){
+    console.warn('Control RTDB read error:', err && err.code);
+  });
+}
