@@ -388,3 +388,253 @@ function handleStartMatch(matchId) {
 
 // Make showTournamentOverview available globally
 window.showTournamentOverview = showTournamentOverview;
+
+export function renderTournamentOverviewFromSnapshot(tSnap, root){
+  if(!ensureElements()) return;
+  
+  // Hide interactive controls for dashboard mode
+  hideInteractiveControlsForDashboard();
+  
+  // Set tournament name if available
+  if(nameElement && tSnap && tSnap.name) {
+    nameElement.textContent = tSnap.name;
+  }
+  
+  // Open modal
+  openModal('#tournamentOverviewMask');
+  
+  // Get match states
+  var ms = (tSnap && tSnap.matchStates) || {};
+  var active = tSnap && tSnap.activeMatchId;
+  
+  // Render tournament overview
+  renderDashboardTournamentOverview(ms, active, root);
+}
+
+function hideInteractiveControlsForDashboard(){
+  if(!ensureElements()) return;
+  
+  // Hide back button
+  if(backBtn) backBtn.style.display = 'none';
+  
+  // Hide start button
+  if(startBtn) startBtn.style.display = 'none';
+  
+  // Hide close button
+  if(closeBtn) closeBtn.style.display = 'none';
+}
+
+function renderDashboardTournamentOverview(matchStates, activeMatchId, root){
+  const roundsElement = document.getElementById('tournamentRounds');
+  if(!roundsElement) return;
+  
+  // Clear existing content
+  roundsElement.innerHTML = '';
+  
+  // Group matches by round (we need to get matches from somewhere)
+  // For now, create a simple list of all match states
+  var matches = [];
+  Object.keys(matchStates).forEach(function(matchId) {
+    var matchState = matchStates[matchId];
+    matches.push({
+      id: matchId,
+      playerA: matchState.playerA || 'TBD',
+      playerB: matchState.playerB || 'TBD',
+      round: matchState.round || 1,
+      state: matchState
+    });
+  });
+  
+  // Group by round
+  var matchesByRound = {};
+  matches.forEach(function(match) {
+    if(!matchesByRound[match.round]) {
+      matchesByRound[match.round] = [];
+    }
+    matchesByRound[match.round].push(match);
+  });
+  
+  // Render each round
+  Object.keys(matchesByRound).sort(function(a, b) { return parseInt(a) - parseInt(b); }).forEach(function(roundNumber) {
+    // Round header
+    var roundHeader = document.createElement('h4');
+    roundHeader.className = 'tournament-round-header';
+    roundHeader.textContent = 'Runde ' + roundNumber;
+    roundsElement.appendChild(roundHeader);
+    
+    // Create table
+    var table = document.createElement('table');
+    table.className = 'tournament-table';
+    
+    // Table header
+    var thead = document.createElement('thead');
+    var headerRow = document.createElement('tr');
+    headerRow.innerHTML = '<th>#</th><th>Spillere</th><th>Status</th><th>Handling</th>';
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+    
+    // Table body
+    var tbody = document.createElement('tbody');
+    
+    matchesByRound[roundNumber].forEach(function(match, index) {
+      var row = document.createElement('tr');
+      row.dataset.matchId = match.id;
+      
+      var matchState = match.state;
+      var isActive = match.id === activeMatchId;
+      var isCompleted = matchState.status === 'completed';
+      var isWalkover = matchState.status === 'walkover';
+      var isOngoing = matchState.status === 'in_progress';
+      
+      // Highlight active row
+      if(isActive) {
+        row.classList.add('active-match');
+      }
+      
+      // Match number column
+      var matchNumberCell = document.createElement('td');
+      matchNumberCell.className = 'match-number';
+      matchNumberCell.textContent = '#' + (index + 1);
+      row.appendChild(matchNumberCell);
+      
+      // Players column
+      var playersCell = document.createElement('td');
+      playersCell.className = 'match-players';
+      
+      var playerA = document.createElement('span');
+      playerA.className = 'player-name';
+      playerA.textContent = match.playerA;
+      if(isCompleted && matchState.finalScore && matchState.finalScore.setsA > matchState.finalScore.setsB) {
+        playerA.classList.add('winner-name');
+      }
+      
+      var vs = document.createElement('span');
+      vs.className = 'vs';
+      vs.textContent = 'vs';
+      
+      var playerB = document.createElement('span');
+      playerB.className = 'player-name';
+      playerB.textContent = match.playerB;
+      if(isCompleted && matchState.finalScore && matchState.finalScore.setsB > matchState.finalScore.setsA) {
+        playerB.classList.add('winner-name');
+      }
+      
+      playersCell.appendChild(playerA);
+      playersCell.appendChild(vs);
+      playersCell.appendChild(playerB);
+      row.appendChild(playersCell);
+      
+      // Status column
+      var statusCell = document.createElement('td');
+      statusCell.className = 'match-status-cell';
+      
+      if(!matchState || matchState.status === 'pending') {
+        statusCell.innerHTML = '<span class="status-waiting">Venter</span>';
+      } else if(isCompleted) {
+        var setScores = document.createElement('div');
+        setScores.className = 'set-scores';
+        
+        if(matchState.finalScore && matchState.finalScore.setHistory) {
+          matchState.finalScore.setHistory.forEach(function(set) {
+            var setScore = document.createElement('span');
+            setScore.className = 'set-score';
+            
+            // Create separate spans for each score
+            var scoreASpan = document.createElement('span');
+            scoreASpan.textContent = set.a;
+            if(set.a > set.b) scoreASpan.classList.add('winner-scores');
+            
+            var dashSpan = document.createElement('span');
+            dashSpan.textContent = '-';
+            
+            var scoreBSpan = document.createElement('span');
+            scoreBSpan.textContent = set.b;
+            if(set.b > set.a) scoreBSpan.classList.add('winner-scores');
+            
+            setScore.appendChild(scoreASpan);
+            setScore.appendChild(dashSpan);
+            setScore.appendChild(scoreBSpan);
+            setScores.appendChild(setScore);
+          });
+        }
+        
+        statusCell.appendChild(setScores);
+        
+        var statusDiv = document.createElement('div');
+        statusDiv.className = 'status-finished';
+        statusDiv.textContent = 'Ferdig';
+        statusCell.appendChild(statusDiv);
+      } else if(isWalkover) {
+        var winnerName = matchState.walkoverWinner === 'A' ? match.playerA : match.playerB;
+        statusCell.innerHTML = '<div class="status-finished">Walkover</div><div class="walkover-info">' + winnerName + ' vant</div>';
+      } else if(isActive && root) {
+        // Active match - show live scores from root
+        var setScores = document.createElement('div');
+        setScores.className = 'set-scores';
+        
+        // Show completed sets from setHistory
+        var setHistory = Array.isArray(matchState.setHistory) ? matchState.setHistory : [];
+        setHistory.forEach(function(set) {
+          var setScore = document.createElement('span');
+          setScore.className = 'set-score';
+          setScore.textContent = set.a + '-' + set.b;
+          setScores.appendChild(setScore);
+        });
+        
+        // Show current/live set
+        var currentSetScore = document.createElement('span');
+        currentSetScore.className = 'set-score current live-set';
+        
+        if(matchState.betweenSets === true) {
+          currentSetScore.textContent = '0-0';
+        } else {
+          var scoreA = root.scores ? root.scores.A : 0;
+          var scoreB = root.scores ? root.scores.B : 0;
+          currentSetScore.textContent = scoreA + '-' + scoreB;
+        }
+        
+        setScores.appendChild(currentSetScore);
+        statusCell.appendChild(setScores);
+        
+        var statusDiv = document.createElement('div');
+        statusDiv.className = 'status-ongoing';
+        statusDiv.textContent = 'Pågår';
+        statusCell.appendChild(statusDiv);
+      } else {
+        statusCell.innerHTML = '<span class="status-waiting">Venter</span>';
+      }
+      
+      row.appendChild(statusCell);
+      
+      // Action column (read-only)
+      var actionCell = document.createElement('td');
+      actionCell.className = 'match-action';
+      
+      var actionBtn = document.createElement('button');
+      actionBtn.className = 'tournament-table-btn';
+      actionBtn.disabled = true;
+      
+      if(isCompleted) {
+        actionBtn.textContent = 'Ferdig';
+        actionBtn.classList.add('disabled');
+      } else if(isWalkover) {
+        actionBtn.textContent = 'Walkover';
+        actionBtn.classList.add('disabled');
+      } else if(isActive) {
+        actionBtn.textContent = 'Aktiv';
+        actionBtn.classList.add('disabled');
+      } else {
+        actionBtn.textContent = 'Venter';
+        actionBtn.classList.add('disabled');
+      }
+      
+      actionCell.appendChild(actionBtn);
+      row.appendChild(actionCell);
+      
+      tbody.appendChild(row);
+    });
+    
+    table.appendChild(tbody);
+    roundsElement.appendChild(table);
+  });
+}

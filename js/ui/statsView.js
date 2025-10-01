@@ -95,6 +95,11 @@ export function renderStats(matches, modeChangeCb, renderMenuFn, handlers){
     state.VIEW_MODE = 'stats';
     document.body.classList.add('stats-mode');
 
+    // Exit match view - remove event listeners
+    import('./matchView.js').then(function(module) {
+      if(module.exitMatch) module.exitMatch();
+    });
+
     if(typeof onModeChange === 'function') onModeChange('stats');
     if(lastRenderMenu) lastRenderMenu('stats', lastHandlers);
 
@@ -194,6 +199,11 @@ export function showMatch(){
   document.body.classList.remove('stats-mode');
   if(typeof onModeChange === 'function') onModeChange('match');
   if(lastRenderMenu) lastRenderMenu('match', lastHandlers);
+
+  // Enter match view - bind event listeners
+  import('./matchView.js').then(function(module) {
+    if(module.enterMatch) module.enterMatch();
+  });
 
   fitScores();
 }
