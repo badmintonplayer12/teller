@@ -8,7 +8,43 @@ import { loadScript } from '../util/loadScript.js';
 let pushStateThrottled = function(){};
 let pushStateNow = function(){};
 
+// Echo-guard memory
+let lastWrite = null;
+let firebaseDb = null;
+
 export { pushStateThrottled, pushStateNow };
+
+/**
+ * Get Firebase database instance
+ * @returns {Object|null} Firebase database or null if not available
+ */
+export function rtdb() {
+  return firebaseDb;
+}
+
+/**
+ * Get current timestamp
+ * @returns {number} Current timestamp
+ */
+export function nowTs() {
+  return Date.now();
+}
+
+/**
+ * Set last write info for echo-guard
+ * @param {Object} writeInfo - Write information {path, ts, hash}
+ */
+export function setLastWrite(writeInfo) {
+  lastWrite = writeInfo;
+}
+
+/**
+ * Get last write info
+ * @returns {Object|null} Last write information
+ */
+export function getLastWrite() {
+  return lastWrite;
+}
 
 export function getStateForSync(){
   var names = readABFromModalInputs();
@@ -16,7 +52,7 @@ export function getStateForSync(){
   // Convert names to sync format
   const syncNames = { A: getDisplayName(names.A, 'A'), B: getDisplayName(names.B, 'B') };
   
-  return {
+  var base = {
     ts: Date.now(),
     hostUid: (window.firebase && firebase.auth && firebase.auth().currentUser ? firebase.auth().currentUser.uid : null),
     names: syncNames,
@@ -27,6 +63,18 @@ export function getStateForSync(){
     online: true,
     format: { discipline: state.matchDiscipline, playMode: state.playMode }
   };
+  
+  // Add tournament snapshot for dashboard
+  var td = state.tournamentData;
+  if (td) {
+    var tSnap = {
+      activeMatchId: td.activeMatchId || null,
+      matchStates: td.matchStates || {}
+    };
+    base.tournament = tSnap;
+  }
+  
+  return base;
 }
 
 export function setupFirebase(options){
@@ -70,6 +118,7 @@ function afterSDK(){
     }
 
     var db = firebase.database();
+    firebaseDb = db; // Store for mutations.js
 
     if(state.IS_SPECTATOR){
       var gid = qs('game');
@@ -141,5 +190,16 @@ function makeId(n){
   var out = '';
   for(var i=0;i<n;i++) out += alphabet[(Math.random() * alphabet.length) | 0];
   return out;
+}
+
+export function bindDashboardHandlers(ref, cb){
+  ref.on('value', function(snap){
+    var v = snap && snap.val ? snap.val() : null;
+    try { 
+      cb && cb(v || {}); 
+    } catch(e){
+      console.warn('Dashboard handler error:', e);
+    }
+  });
 }
 
