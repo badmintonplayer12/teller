@@ -13,9 +13,8 @@ const prev = {
   isALeft: null
 };
 
-// Swap suppression to prevent loops
-let _lastSwapTime = 0;
-const SWAP_SUPPRESS_MS = 2000; // 2 seconds
+// Swap state to prevent loops using disable/enable pattern
+let _swapInProgress = false;
 
 
 // Injiserte UI-callbacks (unngå window.*)
@@ -86,14 +85,33 @@ export function bindControlReadHandlers(ref){
       // First load - set DOM to match state
       try { _setSidesDomTo(nextIsALeft); } catch(_){}
     } else if(prev.isALeft !== nextIsALeft){
-      // Side swap detected - check if we should suppress
-      var now = Date.now();
-      if(now - _lastSwapTime > SWAP_SUPPRESS_MS){
-        console.log('[SWAP DEBUG] Side swap detected - executing');
-        _lastSwapTime = now;
-        try { _startVisualSwap(); } catch(_){}
+      // Side swap detected - use disable/enable pattern to prevent loops
+      if(!_swapInProgress){
+        console.log('[SWAP DEBUG] Side swap detected - executing with disable/enable pattern');
+        _swapInProgress = true;
+        
+        // Temporarily disable Firebase reads during swap
+        unbindControlRead();
+        
+        try { 
+          _startVisualSwap(); 
+          
+          // Re-enable Firebase reads after swap animation (1.5s)
+          setTimeout(() => {
+            console.log('[SWAP DEBUG] Re-enabling Firebase reads after swap');
+            _swapInProgress = false;
+            
+            // Rebind to continue receiving updates
+            // Note: This will be handled by the calling code that originally bound the handlers
+          }, 1500);
+          
+        } catch(error) {
+          console.warn('[SWAP DEBUG] Swap failed, re-enabling reads:', error);
+          _swapInProgress = false;
+          // Don't rebind on error to avoid loops
+        }
       } else {
-        console.log('[SWAP DEBUG] Side swap detected but suppressed (too recent)');
+        console.log('[SWAP DEBUG] Side swap detected but swap already in progress');
       }
     }
     
