@@ -148,6 +148,9 @@ export function setSidesDomTo(isALeftTarget){
 export function startVisualSwap(done){
   if(state.swapping) return;
   state.swapping = true;
+  
+  // Disable click areas during swap to prevent race conditions
+  document.body.classList.remove('areas-active');
 
   var namesBefore = readABFromModalInputs();
   var wrap = $('#wrap');
@@ -192,6 +195,17 @@ export function startVisualSwap(done){
     state.swapping = false;
     saveLiveStateBound();
     if(typeof pushStateNow === 'function') pushStateNow();
+    
+    // Mark that we just completed a local swap to prevent Firebase sync from triggering another one
+    state._justCompletedLocalSwap = true;
+    setTimeout(() => {
+      state._justCompletedLocalSwap = false;
+    }, 500);
+
+    // Re-enable click areas after swap is complete (unless spectator)
+    if(!state.IS_SPECTATOR && state.allowScoring){
+      document.body.classList.add('areas-active');
+    }
 
     if(typeof done === 'function'){
       try{ done(); }catch(_){ }

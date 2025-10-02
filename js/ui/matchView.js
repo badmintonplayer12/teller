@@ -569,13 +569,31 @@ function updateScores(){
 
   const counterA = document.getElementById('setCounterA');
   const counterB = document.getElementById('setCounterB');
-  if(counterA){
-    counterA.textContent = String(state.setsA);
-    counterA.style.display = state.setsA > 0 ? 'flex' : 'none';
-  }
-  if(counterB){
-    counterB.textContent = String(state.setsB);
-    counterB.style.display = state.setsB > 0 ? 'flex' : 'none';
+  
+  if(counterA && counterB){
+    if (state.matchDiscipline === 'double') {
+      // In double matches, determine which player is on which side
+      const aLeft = isALeft();
+      if (aLeft) {
+        // A is on left, B is on right - show sets correctly
+        counterA.textContent = String(state.setsA);
+        counterA.style.display = state.setsA > 0 ? 'flex' : 'none';
+        counterB.textContent = String(state.setsB);
+        counterB.style.display = state.setsB > 0 ? 'flex' : 'none';
+      } else {
+        // A is on right, B is on left - swap the display
+        counterA.textContent = String(state.setsB);  // Left counter shows B's sets
+        counterA.style.display = state.setsB > 0 ? 'flex' : 'none';
+        counterB.textContent = String(state.setsA);  // Right counter shows A's sets
+        counterB.style.display = state.setsA > 0 ? 'flex' : 'none';
+      }
+    } else {
+      // Single matches - direct mapping
+      counterA.textContent = String(state.setsA);
+      counterA.style.display = state.setsA > 0 ? 'flex' : 'none';
+      counterB.textContent = String(state.setsB);
+      counterB.style.display = state.setsB > 0 ? 'flex' : 'none';
+    }
   }
 
   const setsEl = document.getElementById('sets');
@@ -702,8 +720,11 @@ function removePoint(side){
 }
 
 function addPointByPosition(pos){
+  if(state.swapping) return;
+  
   const aLeft = isALeft();
-  addPoint((pos === 'left') ? (aLeft ? 'A' : 'B') : (aLeft ? 'B' : 'A'));
+  const side = (pos === 'left') ? (aLeft ? 'A' : 'B') : (aLeft ? 'B' : 'A');
+  addPoint(side);
 }
 
 function removePointByPosition(pos){
@@ -788,17 +809,24 @@ function renderSummary(finalWinnerName){
 
 
 function checkSetEnd(){
+  // Don't check set end if match is already finished or between sets
+  if(state.locked || state.betweenSets) return;
+  
   const leadOk = Math.abs(state.scoreA - state.scoreB) >= 2 || state.scoreA === state.cap || state.scoreB === state.cap;
   if((state.scoreA >= state.target || state.scoreB >= state.target) && leadOk){
     const winner = (state.scoreA > state.scoreB) ? 'A' : 'B';
     pushSetToHistory(state.scoreA, state.scoreB);
 
+    // Best of 3 sets - first to 2 sets wins
     const willFinish = (winner === 'A') ? (state.setsA + 1 >= 2) : (state.setsB + 1 >= 2);
     if(willFinish){
       if(winner === 'A') state.setsA++; else state.setsB++;
       state.locked = true;
       state.betweenSets = false;
       state.pendingSetWinner = null;
+      
+      // Immediately disable click areas to prevent further scoring
+      document.body.classList.remove('areas-active');
 
       const { aDisplay, bDisplay } = getCurrentDisplayNames();
       const winnerName = winner === 'A' ? aDisplay : bDisplay;
@@ -832,6 +860,9 @@ function checkSetEnd(){
     state.betweenSets = true;
     state.locked = true;
 
+    // Immediately disable click areas to prevent further scoring
+    document.body.classList.remove('areas-active');
+
     const nextSetBtn = document.getElementById('nextSetBtn');
     if(nextSetBtn && !state.IS_SPECTATOR) nextSetBtn.style.display = 'block';
 
@@ -853,6 +884,7 @@ function checkSetEnd(){
 
 function advanceToNextSet(){
   if(!state.betweenSets) return;
+  
   state.locked = true;
   const nextSetBtn = document.getElementById('nextSetBtn');
   if(nextSetBtn) nextSetBtn.style.display = 'none';

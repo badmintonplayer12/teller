@@ -215,13 +215,11 @@ export function bindFirebaseSync(options){
       try { _setSidesDomTo(nextIsALeft); } catch(_){}
     } else if(prev.isALeft !== nextIsALeft){
       // Side swap detected
-      console.log('[SWAP DEBUG] Side swap detected - prev.isALeft:', prev.isALeft, 'nextIsALeft:', nextIsALeft, 'role:', role, '_swapInProgress:', _swapInProgress, 'state.swapping:', state.swapping);
       
       if (role === 'spectator') {
         try { _startVisualSwap(); } catch(_){}
-      } else if ((role === 'counter' || role === 'cocounter') && !_swapInProgress && !state.swapping) {
+      } else if ((role === 'counter' || role === 'cocounter') && !_swapInProgress && !state.swapping && !state._justCompletedLocalSwap) {
         // Counter role: use disable/enable pattern to prevent loops
-        console.log('[SWAP DEBUG] Side swap detected - executing with disable/enable pattern');
         _swapInProgress = true;
         
         // Temporarily disable Firebase reads during swap
@@ -230,12 +228,10 @@ export function bindFirebaseSync(options){
         try { 
           _startVisualSwap(() => {
             // Re-enable Firebase reads AFTER swap animation AND score reset is complete
-            console.log('[SWAP DEBUG] Re-enabling Firebase reads after swap completion');
             _swapInProgress = false;
             // Note: Rebinding should be handled by calling code
           });
         } catch(error) {
-          console.warn('[SWAP DEBUG] Swap failed, re-enabling reads:', error);
           _swapInProgress = false;
           // Don't rebind on error to avoid loops
         }
