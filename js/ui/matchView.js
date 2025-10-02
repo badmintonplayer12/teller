@@ -931,12 +931,12 @@ function startNewMatch(opts){
   });
   
   // Generate new game ID for new match to avoid permission conflicts
-  generateNewGameId();
+  const newGameId = generateNewGameId();
   
   // Navigate to match URL for refresh support
   try {
     import('../services/firebase.js').then(function(firebaseModule) {
-      const matchUrl = firebaseModule.generateShareUrl('counter', firebaseModule.ensureGameId());
+      const matchUrl = firebaseModule.generateShareUrl('counter', newGameId);
       window.history.replaceState({}, '', matchUrl);
       console.log('[NEW MATCH] Navigated to match URL:', matchUrl);
     });
