@@ -205,14 +205,12 @@ export function bindFirebaseSync(options){
         unbindFirebaseSync();
         
         try { 
-          _startVisualSwap(); 
-          
-          // Re-enable Firebase reads after swap animation (1.5s)
-          setTimeout(() => {
-            console.log('[SWAP DEBUG] Re-enabling Firebase reads after swap');
+          _startVisualSwap(() => {
+            // Re-enable Firebase reads AFTER swap animation AND score reset is complete
+            console.log('[SWAP DEBUG] Re-enabling Firebase reads after swap completion');
             _swapInProgress = false;
             // Note: Rebinding should be handled by calling code
-          }, 1500);
+          });
         } catch(error) {
           console.warn('[SWAP DEBUG] Swap failed, re-enabling reads:', error);
           _swapInProgress = false;
