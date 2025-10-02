@@ -1,5 +1,360 @@
-#shareMask{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:60}
-#shareCard{background:#0b1224;border:1px solid #122042;border-radius:.8rem;padding:1rem;max-width:92vw;width:min(560px,92vw)}
-#qrBox{display:block;margin:.5rem auto;background:#0f172a;border:1px solid #233454;border-radius:.4rem;padding:.5rem;min-width:240px;text-align:center}
-.shareRow{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;margin-top:.5rem}
-#shareUrl{text-align:center;word-break:break-all;margin-top:.25rem;font-size:.85rem;color:#93c5fd}
+/* Share Modal Layout - Glass/Blur Style */
+#shareMask {
+  position: fixed;
+  inset: 0;
+  background: rgba(20,20,30,0.7);
+  backdrop-filter: blur(20px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+}
+
+.share-modal {
+  background: rgba(8,14,30,.9);
+  border: 1px solid rgba(59,130,246,.35);
+  border-radius: 1.1rem;
+  padding: clamp(26px,4vw,52px);
+  max-width: 480px;
+  width: min(480px, 92vw);
+  margin: 0 auto;
+  text-align: center;
+  box-shadow: 0 25px 60px rgba(15,23,42,.65), 0 0 45px rgba(59,130,246,.35);
+  position: relative;
+  overflow: hidden;
+}
+
+.share-modal::before {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  background: radial-gradient(circle at center, rgba(96,165,250,.28), rgba(96,165,250,0));
+  opacity: .9;
+  z-index: -1;
+  animation: shareGlow 6s ease-in-out infinite;
+}
+
+@keyframes shareGlow {
+  0% { transform: rotate(0deg); }
+  50% { transform: rotate(8deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* Header */
+.share-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.share-title {
+  font-size: clamp(1.8rem,4vw,2.6rem);
+  font-weight: 700;
+  color: #e2e8f0;
+  text-shadow: 0 0 18px rgba(96,165,250,.45);
+  margin: 0;
+  text-align: center;
+  flex: 1;
+}
+
+/* Sections - Tighter spacing */
+.share-section {
+  margin-bottom: 12px;
+}
+
+.share-section:last-child {
+  margin-bottom: 0;
+}
+
+/* Role Selection - Segmented Control Style */
+.role-label {
+  font-size: 0.75rem;
+  color: rgba(148,163,184,0.8);
+  margin-bottom: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.role-segments {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.role-segment {
+  flex: 1 1 calc(50% - 0.75rem);
+  min-width: 140px;
+  padding: 0.85rem 1.2rem;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(59,130,246,.35);
+  background: rgba(17,24,39,.85);
+  color: #dbeafe;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  isolation: isolate;
+}
+
+.role-segment::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(96,165,250,.55), rgba(59,130,246,0));
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  z-index: -1;
+}
+
+.role-segment.active {
+  background: rgba(30,64,175,.95);
+  border-color: rgba(96,165,250,.9);
+  box-shadow: 0 10px 30px rgba(37,99,235,.45), 0 0 25px rgba(96,165,250,.55);
+}
+
+.role-segment.active::after {
+  opacity: 1;
+}
+
+.role-segment:focus-visible {
+  outline: 2px solid rgba(96,165,250,.9);
+  outline-offset: 3px;
+}
+
+@media (max-width: 520px) {
+  .role-segment {
+    min-width: 120px;
+    padding: 0.8rem 1rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* QR Container - Matching Splash Style */
+.qr-container {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 320px;
+  height: 320px;
+  padding: 12px;
+  border: 1px solid rgba(59,130,246,.35);
+  border-radius: 0.9rem;
+  background: rgba(17,24,39,.85);
+  margin: 0.5rem auto;
+  transition: all 0.25s ease;
+  position: relative;
+  isolation: isolate;
+}
+
+.qr-container::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(96,165,250,.55), rgba(59,130,246,0));
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  z-index: -1;
+}
+
+.qr-container:hover {
+  border-color: rgba(96,165,250,.9);
+  box-shadow: 0 0 25px rgba(96,165,250,.55);
+}
+
+.qr-container:hover::after {
+  opacity: 1;
+}
+
+/* Clickable QR styling */
+.qr-container.is-clickable {
+  cursor: zoom-in;
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.qr-container.is-clickable:hover {
+  box-shadow: 0 0 0 8px rgba(96,165,250,.12);
+  transform: scale(1.02);
+}
+
+.qr-container img {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+@media (max-width: 420px) {
+  .qr-container {
+    width: 260px;
+    height: 260px;
+  }
+}
+
+/* URL Field */
+.url-container {
+  margin: 8px 0;
+}
+
+.url-input {
+  width: 100%;
+  padding: 8px 12px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 0.85rem;
+  text-align: center;
+  font-family: monospace;
+  word-break: break-all;
+}
+
+.url-input::placeholder {
+  color: #64748b;
+}
+
+/* Alert styles removed - no longer needed */
+
+/* Buttons - Reprioritized Hierarchy */
+.share-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Primary Action Button - Copy Link (Same as splash "Start") */
+.btn--primary-action {
+  width: 100%;
+  max-width: 260px;
+  padding: 1rem 2.6rem;
+  border-radius: 2rem;
+  border: none;
+  background: linear-gradient(135deg, rgba(96,165,250,.95), rgba(14,165,233,.9));
+  color: #041225;
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 0 18px 45px rgba(37,99,235,.55);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
+}
+
+.btn--primary-action:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn--primary-action:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 22px 55px rgba(59,130,246,.6);
+}
+
+.btn--primary-action:active {
+  transform: translateY(0);
+  box-shadow: 0 12px 30px rgba(59,130,246,.5);
+}
+
+/* Secondary Button - Web Share (Same as splash "Continue") */
+.btn--secondary {
+  width: 100%;
+  max-width: 260px;
+  padding: 0.85rem 2.4rem;
+  border-radius: 2rem;
+  border: 1px solid rgba(148,163,184,.6);
+  background: rgba(15,23,42,.85);
+  color: #e2e8f0;
+  font-weight: 650;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+}
+
+.btn--secondary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 30px rgba(30,41,59,.45);
+  background: rgba(30,41,59,.92);
+}
+
+.btn--secondary:active {
+  transform: translateY(0);
+  box-shadow: 0 8px 20px rgba(30,41,59,.4);
+}
+
+/* QR Lightbox Styles */
+.qr-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5,10,20,.8);
+  backdrop-filter: blur(12px);
+}
+
+.qr-lightbox__wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+  border-radius: 20px;
+  background: rgba(18,22,34,.9);
+  border: 1px solid rgba(59,130,246,.35);
+  box-shadow: 0 25px 60px rgba(15,23,42,.65), 0 0 45px rgba(59,130,246,.35);
+  position: relative;
+}
+
+.qr-lightbox__canvas {
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(0,0,0,.3);
+}
+
+.qr-lightbox__close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.2);
+  padding: 8px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  color: #e2e8f0;
+  font-size: 1.2rem;
+  transition: all 0.25s ease;
+}
+
+.qr-lightbox__close:hover {
+  background: rgba(255,255,255,.2);
+  border-color: rgba(255,255,255,.3);
+}
+
+.qr-lightbox__actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.qr-lightbox__btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(148,163,184,.6);
+  background: rgba(15,23,42,.85);
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.qr-lightbox__btn:hover {
+  background: rgba(30,41,59,.92);
+  border-color: rgba(96,165,250,.6);
+}

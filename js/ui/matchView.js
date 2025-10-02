@@ -299,9 +299,38 @@ function bindCoreEvents(){
   }
 }
 
+function handleNameModalCancel(){
+  // Check if we're in "start new match" mode vs "edit names" mode
+  var startBtn = $('#btnStart');
+  var isStartMode = startBtn && startBtn.style.display !== 'none';
+  
+  if(isStartMode){
+    // Starting new match - cancel should abort the match entirely
+    console.log('[NAME MODAL] Canceling new match start');
+    
+    // Clear any partial state
+    state.allowScoring = false;
+    state.nameEditMode = false;
+    
+    // Clear any saved state from the aborted match
+    clearLiveState();
+    
+    // Return to splash
+    hideNameModal();
+    import('./splash.js').then(function(module) {
+      module.showSplash();
+    });
+    
+  } else {
+    // Editing existing names - just close modal and continue
+    console.log('[NAME MODAL] Canceling name edit');
+    hideNameModal();
+  }
+}
+
 function bindModalEvents(){
   const cancel = $('#btnCancelNames');
-  if(cancel) on(cancel, 'click', hideNameModal);
+  if(cancel) on(cancel, 'click', handleNameModalCancel);
 
   const saveBtn = $('#btnSaveNames');
   if(saveBtn) on(saveBtn, 'click', function(){
