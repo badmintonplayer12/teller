@@ -74,9 +74,15 @@ export async function getStateForSync(includeHostUid = false){
     // hostUid is omitted from regular sync data
   }
   
-  // Don't include currentWriter in regular sync data
-  // The currentWriter field is managed separately by writeAccess.js
-  // to avoid race conditions between releases and throttled writes
+  // Include currentWriter in sync data to satisfy Firebase rules
+  // Get current writer from writeAccess.js
+  try {
+    const writeAccess = await import('./writeAccess.js');
+    base.currentWriter = writeAccess.getCurrentWriter();
+  } catch (e) {
+    console.warn('[FIREBASE] Failed to get currentWriter:', e);
+    base.currentWriter = null; // Fallback
+  }
   
   // Add tournament snapshot for dashboard
   var td = state.tournamentData;

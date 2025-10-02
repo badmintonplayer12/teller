@@ -12,6 +12,7 @@ Denne filen føres KUN for **refaktorering/rydding** (ikke features). Etter hver
 
 | Dato       | Totale linjer | Endring                                          | Notat |
 |------------|----------------|--------------------------------------------------|-------|
+| 2025-10-02 | 7970           | Feat-04: Router system og multi-user write access   | Implementerte router for delte linker og multi-user kontroll med Firebase-sync |
 | 2025-09-xx | 5314           | **Baseline**                                     | Utgangspunkt før rydding. |
 | 2025-09-xx | 5375           | Refactor-01: felles `ui/modal.js`                | Fokusfelle/scroll-lås samlet; litt engangskost i LOC. |
 | 2025-09-xx | 5242           | Refactor-02: felles autocomplete                 | Fjernet duplisering i Navn/Turnering. |
@@ -45,12 +46,12 @@ Denne filen føres KUN for **refaktorering/rydding** (ikke features). Etter hver
 > Legg nederst i tabellen, nyeste først.
 
 ```
-| 2025-01-02 | ~6280 | Refactor-17: Firebase konsolidering spectator+counterRead → firebaseSync | Konsoliderte spectator.js og counterRead.js til én firebaseSync.js med rolle-basert oppførsel og eliminert duplikasjon |
-| 2025-01-02 | ~6280 | Refactor-16: Navngiving controller → counter/teller | Erstattet "control/controller" med "counter" (kode) og "teller" (GUI) for badminton-spesifikt språk |
-| 2025-01-02 | ~6280 | Refactor-15: Swap suppression - timing til disable/enable | Fjernet timing-basert suppression, erstattet med robust disable/enable pattern |
-| 2025-01-27 | 6270 | Refactor-14: Konsolider bump-logikk | Laget handleScoreBump() for å fjerne duplisering av bump-effekter |
-| 2024-12-19 | 5146 | Fix-09: Spectator vinnerglød | Rettet spectator til å vise vinnerglød basert på sett-telling i stedet for msg |
-| 2024-12-19 | 5124 | Refactor-17: DOM-helper utilities | Laget js/util/domUtils.js med qs/on/toggle helpers og byttet mikro-snutter |
-| 2024-12-19 | 5111 | Refactor-16: Dynamisk skriptlasting | Konsoliderte loadScript/loadScriptOnce til js/util/loadScript.js |
-| YYYY-MM-DD | <totale linjer> | Refactor-NN: <kort tittel> | <én kort setning om ryddingen> |
+|| 2025-01-02 | ~6280 | Refactor-17: Firebase konsolidering spectator+counterRead → firebaseSync | Konsoliderte spectator.js og counterRead.js til én firebaseSync.js med rolle-basert oppførsel og eliminert duplikasjon |
+|| 2025-01-02 | ~6280 | Refactor-16: Navngiving controller → counter/teller | Erstattet "control/controller" med "counter" (kode) og "teller" (GUI) for badminton-spesifikt språk |
+|| 2025-01-02 | ~6280 | Refactor-15: Swap suppression - timing til disable/enable | Fjernet timing-basert suppression, erstattet med robust disable/enable pattern |
+|| 2025-01-27 | 6270 | Refactor-14: Konsolider bump-logikk | Laget handleScoreBump() for å fjerne duplisering av bump-effekter |
+|| 2024-12-19 | 5146 | Fix-09: Spectator vinnerglød | Rettet spectator til å vise vinnerglød basert på sett-telling i stedet for msg |
+|| 2024-12-19 | 5124 | Refactor-17: DOM-helper utilities | Laget js/util/domUtils.js med qs/on/toggle helpers og byttet mikro-snutter |
+|| 2024-12-19 | 5111 | Refactor-16: Dynamisk skriptlasting | Konsoliderte loadScript/loadScriptOnce til js/util/loadScript.js |
+|| YYYY-MM-DD | <totale linjer> | Refactor-NN: <kort tittel> | <én kort setning om ryddingen> |
 ```

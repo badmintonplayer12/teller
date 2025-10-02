@@ -9,19 +9,51 @@ Transformere BadmintonTeller fra kompleks, duplikert kode til elegant, security-
 
 ---
 
-## 📋 **FASE 0: Pre-konsolidering (1 uke)**
+## ✅ **FASE 0: FERDIG IMPLEMENTERT (2025-10-02)**
+*Router system og multi-user write access*
+
+### **✅ IMPLEMENTERT**
+
+#### **Router System**
+- **Implementert:** Sentral router i `main.js` for URL-parametere
+- **Implementert:** Early router i `index.html` mot splash-flicker
+- **Implementert:** URL cleaning for navigation tilbake til splash
+- **Status:** ✅ Complete
+
+#### **Multi-User Write Access**
+- **Implementert:** `writeAccess.js` med claim/release funksjonalitet
+- **Implementert:** Firebase security rules for `currentWriter` field
+- **Implementert:** Local-only fallback mode med brukervarsel
+- **Status:** ✅ Complete
+
+---
+
+## 📋 **FASE 1: Local-Only Mode UX (1 uke)**
+*Forbedre brukeropplevelse i offline-modus*
+
+### **🔥 HØY PRIORITET**
+
+#### **1.1 Local-Only Mode UX**
+- **Problem:** Bruker får kun toast-varsel, begrenset funksjonalitet
+- **Løsning:** Modal-varsel, deaktiver deling/multi-user, visuell indikator
+- **Estimat:** 1-2 dager, lav risiko
+- **Status:** ⏳ Pending
+
+---
+
+## 📋 **FASE 2: Pre-konsolidering (1 uke)**
 *Kritiske forberedelser som må gjøres først*
 
 ### **🔥 KRITISK (må gjøres først)**
 
-#### **0.1 Swap Suppression Fix**
+#### **2.1 Swap Suppression Fix**
 - **Problem:** Timing-basert `_lastSwapTime` suppression system
 - **Løsning:** Bruk disable/enable pattern som vi gjorde for reset
 - **Estimat:** 1 dag, lav risiko
 - **Hvorfor først:** Konsolideringen vil røre ved samme kode
 - **Status:** ⏳ Pending
 
-#### **0.2 Bump-effekt Stabilisering**
+#### **2.2 Bump-effekt Stabilisering**
 - **Problem:** Sikre at bump-systemet er 100% stabilt
 - **Løsning:** Grundig testing av nylig implementerte endringer
 - **Estimat:** 0.5 dag, lav risiko
@@ -30,7 +62,7 @@ Transformere BadmintonTeller fra kompleks, duplikert kode til elegant, security-
 
 ### **🚀 QUICK WIN (høy synlig gevinst)**
 
-#### **0.3 Navngiving - Controller → Counter**
+#### **2.3 Navngiving - Controller → Counter**
 - **Problem:** "Controller" er ikke badminton-spesifikt
 - **Løsning:** Erstatt med "counter" gjennom hele kodebasen
 - **Estimat:** 2 dager, lav risiko
@@ -56,14 +88,14 @@ setControlReadDependencies → setCounterDependencies
 
 ### **⚠️ VURDER (kan spare tid senere)**
 
-#### **0.4 Minimal Firebase Abstraction**
+#### **2.4 Minimal Firebase Abstraction**
 - **Problem:** Konsolidering vil lage ny Firebase-kode
 - **Løsning:** Grunnleggende abstraction før konsolidering
 - **Estimat:** 2-3 dager, medium risiko
 - **Vurdering:** Kan unngå dobbel refaktorering
 - **Status:** 🤔 Under vurdering
 
-#### **0.5 Error Handling Patterns**
+#### **2.5 Error Handling Patterns**
 - **Problem:** Inkonsistent error handling vil påvirke konsolidert kode
 - **Løsning:** Definer standarder først
 - **Estimat:** 1 dag, lav risiko
@@ -72,10 +104,10 @@ setControlReadDependencies → setCounterDependencies
 
 ---
 
-## 📋 **FASE 1: Konsolidering (2-3 uker)**
+## 📋 **FASE 3: Konsolidering (2-3 uker)**
 *Hovedrefaktorering av spectator/controlRead systemet*
 
-### **1.1 Firebase Sync Konsolidering**
+### **3.1 Firebase Sync Konsolidering**
 - **Problem:** spectator.js og controlRead.js dupliserer Firebase-lytting
 - **Løsning:** Felles firebaseSync.js modul
 - **Estimat:** 3-4 dager, medium risiko
@@ -126,10 +158,10 @@ export const ROLES = {
 
 ---
 
-## 📋 **FASE 2: Security-Ready Architecture (2-3 uker)**
+## 📋 **FASE 4: Security-Ready Architecture (2-3 uker)**
 *Forberede for fremtidig token-basert sikkerhet*
 
-### **2.1 Permission Abstraction Layer**
+### **4.1 Permission Abstraction Layer**
 - **Problem:** Hardkodet tilgangskontroll spredt i koden
 - **Løsning:** Sentral permissions.js modul
 - **Estimat:** 2-3 dager, lav risiko
@@ -192,20 +224,20 @@ export async function writeScore(gameId, side, newScore) {
 
 ---
 
-## 📋 **FASE 3: Fremtidig Sikkerhet (senere)**
+## 📋 **FASE 5: Fremtidig Sikkerhet (senere)**
 *Full token-basert sikkerhet når det trengs*
 
-### **3.1 Firebase Security Rules**
+### **5.1 Firebase Security Rules**
 - **Løsning:** Server-side validering basert på tokens
 - **Estimat:** 1-2 dager, medium risiko
 - **Status:** 📋 Future
 
-### **3.2 QR-kode Generering**
+### **5.2 QR-kode Generering**
 - **Løsning:** QR-koder med embedded tokens for enkel tilgangsdeling
 - **Estimat:** 2-3 dager, lav risiko
 - **Status:** 📋 Future
 
-### **3.3 Token Management**
+### **5.3 Token Management**
 - **Løsning:** Admin-interface for token-generering og -administrasjon
 - **Estimat:** 3-4 dager, medium risiko
 - **Status:** 📋 Future
