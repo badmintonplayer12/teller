@@ -14,3 +14,4 @@ Som <rolle> vil jeg <mål> slik at <verdi>.
 **Output:**
 - Diff + kort beskrivelse
 - Manuell testliste (3–5 trinn)
+

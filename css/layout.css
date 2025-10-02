@@ -1,6 +1,6 @@
 .wrap{flex:1 1 auto;min-height:100vh;display:grid;grid-template-columns:1fr var(--divider) 1fr;column-gap:var(--gap);padding:var(--gap);align-items:stretch;overflow:hidden;position:relative}
 .divider{width:var(--divider);background:#1e293b;z-index:2}
-.side{position:relative;background:#0f172a;border-radius:.8rem;padding:clamp(8px,1.8vw,16px);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow:hidden;will-change:transform;transition:transform 1s ease;z-index:1}
+.side{position:relative;background:#0f172a;border-radius:.8rem;padding:clamp(8px,1.8vw,16px);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow:hidden;transition:transform 1s ease;z-index:1}
 .wrap.swap-go .left{transform:translateX(calc(100% + var(--gap) + var(--divider)))}
 .wrap.swap-go .right{transform:translateX(calc(-100% - var(--gap) - var(--divider)))}
 .no-trans .side{transition:none!important}
@@ -14,10 +14,12 @@
 .digits{display:flex;gap:.08em;align-items:baseline;max-width:100%;overflow:visible}
 .digit{display:inline-block;width:1ch;text-align:center}
 .digit.ghost{visibility:hidden}
-.pop{animation:glowBurst .55s ease-out 1}
-.popMinus{animation:minusBurst .55s ease-out 1}
-@keyframes glowBurst{0%{text-shadow:0 0 0 rgba(96,165,250,0);transform:scale(1)}20%{text-shadow:0 0 30px rgba(96,165,250,.95),0 0 70px rgba(59,130,246,.8),0 0 110px rgba(37,99,235,.7);transform:scale(1.08)}60%{text-shadow:0 0 20px rgba(96,165,250,.55),0 0 50px rgba(59,130,246,.45);transform:scale(1.03)}100%{text-shadow:0 0 0 rgba(96,165,250,0);transform:scale(1)}}
-@keyframes minusBurst{0%{text-shadow:0 0 0 rgba(239,68,68,0);transform:scale(1)}20%{text-shadow:0 0 30px rgba(239,68,68,.95),0 0 70px rgba(239,68,68,.7),0 0 110px rgba(185,28,28,.6);transform:scale(0.96)}60%{text-shadow:0 0 20px rgba(239,68,68,.5),0 0 50px rgba(185,28,28,.4);transform:scale(0.985)}100%{text-shadow:0 0 0 rgba(239,68,68,0);transform:scale(1)}}
+#A_digits.pop{animation:glowBurst .55s ease-out 1;isolation:isolate;transform-origin:center center;contain:layout style paint}
+#B_digits.pop{animation:glowBurst .55s ease-out 1;isolation:isolate;transform-origin:center center;contain:layout style paint}
+#A_digits.popMinus{animation:minusBurst .55s ease-out 1;isolation:isolate;transform-origin:center center;contain:layout style paint}
+#B_digits.popMinus{animation:minusBurst .55s ease-out 1;isolation:isolate;transform-origin:center center;contain:layout style paint}
+@keyframes glowBurst{0%{text-shadow:0 0 0 rgba(96,165,250,0);transform:scale3d(1,1,1)}20%{text-shadow:0 0 30px rgba(96,165,250,.95),0 0 70px rgba(59,130,246,.8),0 0 110px rgba(37,99,235,.7);transform:scale3d(1.08,1.08,1)}60%{text-shadow:0 0 20px rgba(96,165,250,.55),0 0 50px rgba(59,130,246,.45);transform:scale3d(1.03,1.03,1)}100%{text-shadow:0 0 0 rgba(96,165,250,0);transform:scale3d(1,1,1)}}
+@keyframes minusBurst{0%{text-shadow:0 0 0 rgba(239,68,68,0);transform:scale3d(1,1,1)}20%{text-shadow:0 0 30px rgba(239,68,68,.95),0 0 70px rgba(239,68,68,.7),0 0 110px rgba(185,28,28,.6);transform:scale3d(0.96,0.96,1)}60%{text-shadow:0 0 20px rgba(239,68,68,.5),0 0 50px rgba(185,28,28,.4);transform:scale3d(0.985,0.985,1)}100%{text-shadow:0 0 0 rgba(239,68,68,0);transform:scale3d(1,1,1)}}
 .winner,.winnerName{color:#ffd700!important;animation:goldPulse 3s ease-in-out infinite}
 @keyframes goldPulse{0%{text-shadow:0 0 3px rgba(255,215,0,.25),0 0 6px rgba(255,220,50,.2)}50%{text-shadow:0 0 8px rgba(255,215,0,.5),0 0 16px rgba(255,220,50,.4)}100%{text-shadow:0 0 3px rgba(255,215,0,.25),0 0 6px rgba(255,220,50,.2)}}
 #sets{padding:.35rem 1rem .2rem;text-align:center;font-size:1rem;display:none}

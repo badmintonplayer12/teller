@@ -19,7 +19,10 @@ css/
     stats.css
     tournament.css
 docs/
+    ARCHITECTURE.md
+    ARCHITECTURE_TODO.md
     ignore-files.md
+    README_transition.md
     REFACTOR_LOG.md
     utf8-guide.md
     prompts/
@@ -32,7 +35,9 @@ js/
     dom.js
     main.js
     services/
+        controlRead.js
         firebase.js
+        mutations.js
         namesStore.js
         spectator.js
         storage.js
@@ -95,6 +100,7 @@ Disse reglene gjelder alle PR-er, spesielt de som lages med AI (Cursor/ChatGPT).
 ## Stil
 - Bruk modulstruktur (ui/core/util) og unngå duplisering.
 - En funksjon = ett ansvar. Korte, tydelige navn.
+
 
 
 --------------------------------------------------
@@ -563,6 +569,7 @@ Hvorfor var dette nødvendig / hva forenkles eller forbedres?
 - Feat: kort brukerhistorie og hva som er nytt
 
 
+
 --------------------------------------------------
 File End
 --------------------------------------------------
@@ -620,7 +627,7 @@ css\layout.css
 File type: .css
 .wrap{flex:1 1 auto;min-height:100vh;display:grid;grid-template-columns:1fr var(--divider) 1fr;column-gap:var(--gap);padding:var(--gap);align-items:stretch;overflow:hidden;position:relative}
 .divider{width:var(--divider);background:#1e293b;z-index:2}
-.side{position:relative;background:#0f172a;border-radius:.8rem;padding:clamp(8px,1.8vw,16px);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow:hidden;will-change:transform;transition:transform 1s ease;z-index:1}
+.side{position:relative;background:#0f172a;border-radius:.8rem;padding:clamp(8px,1.8vw,16px);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow:hidden;transition:transform 1s ease;z-index:1}
 .wrap.swap-go .left{transform:translateX(calc(100% + var(--gap) + var(--divider)))}
 .wrap.swap-go .right{transform:translateX(calc(-100% - var(--gap) - var(--divider)))}
 .no-trans .side{transition:none!important}
@@ -634,10 +641,12 @@ File type: .css
 .digits{display:flex;gap:.08em;align-items:baseline;max-width:100%;overflow:visible}
 .digit{display:inline-block;width:1ch;text-align:center}
 .digit.ghost{visibility:hidden}
-.pop{animation:glowBurst .55s ease-out 1}
-.popMinus{animation:minusBurst .55s ease-out 1}
-@keyframes glowBurst{0%{text-shadow:0 0 0 rgba(96,165,250,0);transform:scale(1)}20%{text-shadow:0 0 30px rgba(96,165,250,.95),0 0 70px rgba(59,130,246,.8),0 0 110px rgba(37,99,235,.7);transform:scale(1.08)}60%{text-shadow:0 0 20px rgba(96,165,250,.55),0 0 50px rgba(59,130,246,.45);transform:scale(1.03)}100%{text-shadow:0 0 0 rgba(96,165,250,0);transform:scale(1)}}
-@keyframes minusBurst{0%{text-shadow:0 0 0 rgba(239,68,68,0);transform:scale(1)}20%{text-shadow:0 0 30px rgba(239,68,68,.95),0 0 70px rgba(239,68,68,.7),0 0 110px rgba(185,28,28,.6);transform:scale(0.96)}60%{text-shadow:0 0 20px rgba(239,68,68,.5),0 0 50px rgba(185,28,28,.4);transform:scale(0.985)}100%{text-shadow:0 0 0 rgba(239,68,68,0);transform:scale(1)}}
+#A_digits.pop{animation:glowBurst .55s ease-out 1;isolation:isolate;transform-origin:center center;contain:layout style paint}
+#B_digits.pop{animation:glowBurst .55s ease-out 1;isolation:isolate;transform-origin:center center;contain:layout style paint}
+#A_digits.popMinus{animation:minusBurst .55s ease-out 1;isolation:isolate;transform-origin:center center;contain:layout style paint}
+#B_digits.popMinus{animation:minusBurst .55s ease-out 1;isolation:isolate;transform-origin:center center;contain:layout style paint}
+@keyframes glowBurst{0%{text-shadow:0 0 0 rgba(96,165,250,0);transform:scale3d(1,1,1)}20%{text-shadow:0 0 30px rgba(96,165,250,.95),0 0 70px rgba(59,130,246,.8),0 0 110px rgba(37,99,235,.7);transform:scale3d(1.08,1.08,1)}60%{text-shadow:0 0 20px rgba(96,165,250,.55),0 0 50px rgba(59,130,246,.45);transform:scale3d(1.03,1.03,1)}100%{text-shadow:0 0 0 rgba(96,165,250,0);transform:scale3d(1,1,1)}}
+@keyframes minusBurst{0%{text-shadow:0 0 0 rgba(239,68,68,0);transform:scale3d(1,1,1)}20%{text-shadow:0 0 30px rgba(239,68,68,.95),0 0 70px rgba(239,68,68,.7),0 0 110px rgba(185,28,28,.6);transform:scale3d(0.96,0.96,1)}60%{text-shadow:0 0 20px rgba(239,68,68,.5),0 0 50px rgba(185,28,28,.4);transform:scale3d(0.985,0.985,1)}100%{text-shadow:0 0 0 rgba(239,68,68,0);transform:scale3d(1,1,1)}}
 .winner,.winnerName{color:#ffd700!important;animation:goldPulse 3s ease-in-out infinite}
 @keyframes goldPulse{0%{text-shadow:0 0 3px rgba(255,215,0,.25),0 0 6px rgba(255,220,50,.2)}50%{text-shadow:0 0 8px rgba(255,215,0,.5),0 0 16px rgba(255,220,50,.4)}100%{text-shadow:0 0 3px rgba(255,215,0,.25),0 0 6px rgba(255,220,50,.2)}}
 #sets{padding:.35rem 1rem .2rem;text-align:center;font-size:1rem;display:none}
@@ -1162,7 +1171,7 @@ File type: .css
 }
 
 .status-finished {
-  color: #fbbf24;
+  color: #cbd5e1;
   font-weight: 600;
 }
 
@@ -1219,10 +1228,9 @@ File type: .css
   font-weight: 700;
 }
 
-.winner-scores .set-score {
-  background: #fbbf24;
-  color: #061a2e;
-  border-color: #fbbf24;
+.set-score.winner-scores {
+  color: #fbbf24;
+  font-weight: 700;
 }
 
 /* Action column */
@@ -1293,6 +1301,347 @@ File End
 --------------------------------------------------
 
 
+docs\ARCHITECTURE.md
+File type: .md
+# Arkitekturprinsipper for BadmintonTeller
+
+Dette dokumentet definerer de grunnleggende prinsippene for hvordan kode skal skrives og struktureres i BadmintonTeller-prosjektet.
+
+---
+
+## 🎯 Kjerneprinsipp: Eleganse over kompleksitet
+
+**"Velg alltid den enkleste løsningen som løser problemet fullstendig."**
+
+### ✅ Foretrekk:
+- **Enkle, forståelige løsninger** over smarte, komplekse hacks
+- **Direkte årsak-virkning** over indirekte koblinger
+- **Få moving parts** over mange koordinerte komponenter
+- **Tydelig kontrollflyt** over implisitt timing og state
+
+### ❌ Unngå:
+- **Symptombehandling** - fiks rotårsaken, ikke symptomene
+- **Race condition-patches** - redesign for å eliminere racet
+- **Timing-avhengig kode** - bruk promises/callbacks i stedet
+- **Cross-module koordinering** - reduser avhengigheter
+
+---
+
+## 🏗️ Arkitekturprinsipper
+
+### 1. **Separation of Concerns**
+```javascript
+// ✅ Bra: Hver modul har ett ansvar
+firebase.js    // Kun Firebase-kommunikasjon
+matchView.js   // Kun UI-logikk for kamper
+state.js       // Kun state-håndtering
+
+// ❌ Dårlig: Blandet ansvar
+matchView.js   // UI + Firebase + state + validering
+```
+
+### 2. **Fail Fast & Graceful Degradation**
+```javascript
+// ✅ Bra: Håndter feil eksplisitt
+pushResult
+  .then(() => reEnableReads())
+  .catch(() => reEnableReads()); // Fortsett selv ved feil
+
+// ❌ Dårlig: Anta at alt går bra
+setTimeout(reEnableReads, 200); // Hva hvis push feiler?
+```
+
+### 3. **Predictable State Flow**
+```javascript
+// ✅ Bra: Tydelig rekkefølge
+unbindReads() → resetState() → pushState() → bindReads()
+
+// ❌ Dårlig: Timing-avhengig suppression
+suppressReads(1000); resetState(); pushState();
+```
+
+### 4. **Single Source of Truth**
+- **Firebase** er master for delt state
+- **Lokal state** er kun for UI-optimering
+- **Ved konflikt:** Firebase vinner alltid
+
+---
+
+## 🔧 Praktiske retningslinjer
+
+### **Race Conditions**
+```javascript
+// ✅ Bra: Disable → Modify → Enable
+unbindListener();
+modifyState();
+pushToServer().then(() => bindListener());
+
+// ❌ Dårlig: Suppression-flags
+if (suppressUntil > now) return; // Komplekst og feilpront
+```
+
+### **Error Handling**
+```javascript
+// ✅ Bra: Eksplisitt error-håndtering
+try {
+  await riskyOperation();
+} catch (error) {
+  console.warn('Operation failed, continuing:', error);
+  fallbackOperation();
+}
+
+// ❌ Dårlig: Stille feil
+try { riskyOperation(); } catch(_) {} // Skjuler problemer
+```
+
+### **Async Operations**
+```javascript
+// ✅ Bra: Promise-basert med fallback
+const result = operation();
+if (result?.then) {
+  result.then(onSuccess).catch(onError);
+} else {
+  setTimeout(onSuccess, 300); // Fallback
+}
+
+// ❌ Dårlig: Kun timeout
+setTimeout(onSuccess, 200); // Hva hvis det tar lengre tid?
+```
+
+---
+
+## 📋 Code Review Checklist
+
+Ved code review, spør:
+
+### **Eleganse**
+- [ ] Er dette den enkleste løsningen som fungerer?
+- [ ] Kan kompleksiteten reduseres uten å miste funksjonalitet?
+- [ ] Er årsak-virkning-forholdet tydelig?
+
+### **Robusthet**
+- [ ] Håndteres edge cases og feil eksplisitt?
+- [ ] Er løsningen timing-uavhengig?
+- [ ] Fungerer det ved treg nettverksforbindelse?
+
+### **Vedlikeholdbarhet**
+- [ ] Kan en ny utvikler forstå koden uten lang forklaring?
+- [ ] Er avhengigheter mellom moduler minimert?
+- [ ] Er state-endringer forutsigbare?
+
+---
+
+## 🎯 Eksempler fra prosjektet
+
+### **Bra refaktorering: Firebase race condition**
+```javascript
+// Før (komplekst): Suppression-flags og timing
+notifyStateReset(); // Cross-module koordinering
+setTimeout(pushState, 200); // Timing-avhengig
+
+// Etter (elegant): Disable → Modify → Enable
+unbindControlRead();
+pushStateNow().then(() => bindControlReadHandlers(ref));
+```
+
+### **Bra refaktorering: Bump-effekt isolation**
+```javascript
+// Før (komplekst): DOM-sjekking og suppression
+if(elA?.classList.contains('pop') || elB?.classList.contains('pop')) return;
+
+// Etter (elegant): Global flag
+if(_bumpInProgress) return;
+```
+
+---
+
+## 💡 Når du er i tvil
+
+1. **Start enkelt** - implementer den mest direkte løsningen først
+2. **Refaktorer ved behov** - ikke over-engineer på forhånd  
+3. **Spør deg selv:** "Vil jeg forstå denne koden om 6 måneder?"
+4. **Test edge cases** - spesielt timing og nettverksfeil
+
+---
+
+*"Perfection is achieved, not when there is nothing more to add, but when there is nothing left to take away." - Antoine de Saint-Exupéry*
+
+
+--------------------------------------------------
+File End
+--------------------------------------------------
+
+
+docs\ARCHITECTURE_TODO.md
+File type: .md
+# 🏗️ Arkitektur TODO - Forbedringspotensial i BadmintonTeller
+
+Basert på gjennomgang av kodebasen mot arkitekturprinsippene i `ARCHITECTURE.md`.
+
+---
+
+## 🔥 **HØYEST PRIORITET - Kritiske arkitekturproblemer**
+
+### **1. matchView.js - God Object Problem**
+- **Problem:** 20 imports, 1190+ linjer, ansvar for alt
+- **Brudd på:** Single Responsibility, Separation of Concerns  
+- **Gevinst:** Massiv reduksjon i kompleksitet og vedlikeholdbarhet
+- **Løsning:** Split i `MatchController`, `MatchUI`, `MatchEvents`
+- **Estimat:** 3-5 dager, høy risiko
+- **Status:** ⏳ Pending
+
+### **2. Callback Injection Pattern**
+- **Problem:** `setControlReadDependencies()`, `setSpectatorDependencies()` etc.
+- **Brudd på:** Tight coupling, indirekte koblinger
+- **Gevinst:** Løsere kobling, lettere testing
+- **Løsning:** Event-basert kommunikasjon eller observables
+- **Estimat:** 2-3 dager, medium risiko
+- **Status:** ⏳ Pending
+
+### **3. Swap Suppression System**
+- **Problem:** `_lastSwapTime`, `SWAP_SUPPRESS_MS` - timing-avhengig
+- **Brudd på:** Timing-avhengig kode, symptombehandling
+- **Gevinst:** Eliminerer race conditions
+- **Løsning:** Bruk disable/enable pattern som vi gjorde for reset
+- **Estimat:** 1 dag, lav risiko
+- **Status:** ⏳ Pending
+
+---
+
+## 🔥 **HØY PRIORITET - Store arkitekturproblemer**
+
+### **4. Firebase-UI Tight Coupling**
+- **Problem:** UI-moduler importerer direkte fra Firebase
+- **Brudd på:** Separation of Concerns
+- **Gevinst:** Lettere testing, mindre avhengigheter
+- **Løsning:** Firebase abstraction layer
+- **Estimat:** 2-3 dager, medium risiko
+- **Status:** ⏳ Pending
+
+### **5. State Synchronization Chaos**
+- **Problem:** Forskjellige patterns i `spectator.js` vs `controlRead.js`
+- **Brudd på:** Konsistens, forutsigbarhet
+- **Gevinst:** Enhetlig state-håndtering
+- **Løsning:** Felles state sync interface
+- **Estimat:** 2-3 dager, medium risiko
+- **Status:** ⏳ Pending
+
+### **6. Modal System Fragmentering**
+- **Problem:** Hver modal har sin egen setup/teardown logikk
+- **Brudd på:** DRY, konsistens
+- **Gevinst:** Mindre kode, færre bugs
+- **Løsning:** Felles modal manager
+- **Estimat:** 1-2 dager, lav risiko
+- **Status:** ⏳ Pending
+
+---
+
+## 🔥 **MEDIUM PRIORITET - Viktige forbedringer**
+
+### **7. Event Binding Patterns**
+- **Problem:** Inkonsistent binding/unbinding på tvers av moduler
+- **Brudd på:** Predictable patterns
+- **Gevinst:** Færre memory leaks, konsistens
+- **Løsning:** Felles event binding interface
+- **Estimat:** 1-2 dager, lav risiko
+- **Status:** ⏳ Pending
+
+### **8. Error Handling Standardisering**
+- **Problem:** `try { } catch(_) {}` overalt, ingen konsistent strategi
+- **Brudd på:** Fail fast & graceful degradation
+- **Gevinst:** Bedre debugging, mer robust
+- **Løsning:** Felles error handling utilities
+- **Estimat:** 1-2 dager, lav risiko
+- **Status:** ⏳ Pending
+
+### **9. Timing Dependencies Eliminering**
+- **Problem:** Mange `setTimeout()` for koordinering
+- **Brudd på:** Timing-uavhengig kode
+- **Gevinst:** Mer pålitelig, mindre race conditions
+- **Løsning:** Promise-baserte patterns
+- **Estimat:** 2-3 dager, medium risiko
+- **Status:** ⏳ Pending
+
+---
+
+## 🔥 **LAV PRIORITET - Kodekvalitet**
+
+### **10. Code Duplication Eliminering**
+- **Problem:** Lignende patterns repetert på tvers av filer
+- **Brudd på:** DRY principle
+- **Gevinst:** Mindre kode å vedlikeholde
+- **Løsning:** Extract common utilities
+- **Estimat:** 1-2 dager, lav risiko
+- **Status:** ⏳ Pending
+
+---
+
+## 📊 **Anbefalt implementeringsrekkefølge:**
+
+### **Fase 1: Quick Wins (1-2 uker)**
+1. **Swap Suppression System** → Anvend reset-pattern
+2. **Modal System** → Felles manager
+3. **Event Binding** → Konsistente patterns
+
+### **Fase 2: Core Architecture (3-4 uker)**
+4. **Callback Injection** → Event-basert kommunikasjon
+5. **State Synchronization** → Felles interface
+6. **Firebase Coupling** → Abstraction layer
+
+### **Fase 3: The Big One (4-6 uker)**
+7. **matchView.js Refaktorering** → Split i moduler
+
+### **Fase 4: Polish (1-2 uker)**
+8. **Error Handling** → Standardisering
+9. **Timing Dependencies** → Promise-basert
+10. **Code Duplication** → Utilities
+
+---
+
+## 🎯 **Suksesskriterier:**
+
+### **Etter Fase 1:**
+- ✅ Ingen timing-baserte suppression systems
+- ✅ Konsistent modal-håndtering
+- ✅ Forutsigbare event patterns
+
+### **Etter Fase 2:**
+- ✅ Løs kobling mellom moduler
+- ✅ Enhetlig state synchronization
+- ✅ Testbar Firebase-integrasjon
+
+### **Etter Fase 3:**
+- ✅ matchView.js under 400 linjer
+- ✅ Klare ansvarsområder per modul
+- ✅ Maksimalt 8 imports per fil
+
+### **Etter Fase 4:**
+- ✅ Konsistent error handling
+- ✅ Ingen setTimeout-koordinering
+- ✅ Minimal code duplication
+
+---
+
+## 💡 **Implementeringstips:**
+
+1. **En oppgave av gangen** - Ikke bland refaktoreringer
+2. **Test grundig** - Spesielt state sync og Firebase-integrasjon
+3. **Behold funksjonalitet** - Ingen nye features under refaktorering
+4. **Dokumenter endringer** - Oppdater REFACTOR_LOG.md
+5. **Bruk arkitekturprinsippene** - Referer til ARCHITECTURE.md
+
+---
+
+*Oppdatert: 2025-01-02*  
+*Estimert total innsats: 12-18 uker*  
+*Forventet gevinst: 80% reduksjon i kompleksitet og vedlikeholdskost*
+
+
+--------------------------------------------------
+File End
+--------------------------------------------------
+
+
 docs\ignore-files.md
 File type: .md
 # Ignore Files
@@ -1309,6 +1658,99 @@ This file contains a dump/printout of all code and can be safely ignored during 
 - Reviewing functionality
 
 The actual source code is in the `js/` directory and other project files.
+
+
+
+--------------------------------------------------
+File End
+--------------------------------------------------
+
+
+docs\README_transition.md
+File type: .md
+# BadmintonTeller – ChatGPT Transition Guide
+
+Dette dokumentet forklarer hvordan vi setter opp en ny ChatGPT-tråd når vi jobber videre med utviklingen av BadmintonTeller.
+
+## Instruksjoner til ChatGPT
+- Du skal alltid formulere utviklingsoppgaver som **Cursor-prompts** i formatet fra md-filene våre (f.eks. `fix-small.md`, `feature-small.md`).
+- Bruk alltid riktig mal (fix-small, feature-small).
+- Inkluder: type, tittel, brukerhistorie, akseptanse, scope, tilnærming, test.
+- Hold oppgavene **små og isolerte**, så de kan gjøres trinnvis.
+- Oppretthold **backward compatibility** og gjør kun additive endringer i Firebase (aldri bryt eksisterende spectator-flyt).
+- All skriving skal gå gjennom `safePush` og kun fra `writer`.
+- Oversikt/spectator skal alltid være **read-only**.
+
+## Teknologisk kontekst
+- **Type prosjekt:** ES5-kompatibel webapp, frontend-only med Firebase RTDB.
+- **Struktur:** modulbasert (`js/services`, `js/ui`, `js/state`, `js/utils`).
+- **Arbeidsflyt:**
+  - Diskusjon og planlegging skjer i ChatGPT.
+  - Cursor brukes til implementasjon via `feature-small` og `fix-small`-prompts.
+  - Firebase-regler endres kun med additive hvitelister (f.eks. `/writer`, `/permissions`).
+
+## Designprinsipper
+- Additive endringer – ikke brekk eksisterende spectator-flyt.
+- Kun writer får lov å skrive.
+- Ingen init-push i kontroll-modus.
+- Bruk `enterMatch/exitMatch`-hooks i match-UI for ryddig mount/unmount.
+- All skriving rutes via `safePush` og `mutations.js`.
+
+## Kjente problemområder
+- Dobbel-binding av event listeners i match-UI.
+- Blink/flimmer i UI ved snapshots.
+- Init-push på feil tidspunkt (overstyrer state).
+- Skriving spredt i match-fila (for tett kobling).
+
+## Overordnet mål
+En webapp som lar frivillige telle badmintonkamper og administrere enkle turneringer. 
+Appen skal fungere uten innlogging, støtte QR-koder/tokens for tilgang, og ha spectator/dashboard-visning i hallen.
+
+## Visjon
+- Kun én teller (writer) kan ha skrivelås på en kamp av gangen.  
+- Andre kan være readers (spectator) men kan overta låsen med en knapp hvis de har riktig token.  
+- Turneringer skal ha en live kampoversikt (dashboard) med snapshot av alle kamper.  
+- Enkeltkamper skal kunne deles med QR.  
+
+## Refactor-behov (grunnarbeid)
+- **Init-push i kontroll:** fjernes, skriv kun når vi har claim’et skrivelås.  
+- **Skriving spredt i match-fila:** samles i `mutations.js` + `safePush()`.  
+- **Kontroll leser ikke RTDB:** legg til `bindControlReadHandlers(ref)`.  
+- **Ingen enter/exit-hooks:** legg til `enterMatch/exitMatch` med cleanup.  
+- **Role-gating mangler:** innfør `state.role` (`writer`/`reader`/`observer`).  
+- **Echo-loop i writer:** ignorér snapshots som matcher egen siste write (ts/hash).  
+
+## Planlagte funksjoner
+### Enkeltkamp delt kontroll (MVP)
+- QR-URL: `?mode=match&game=<gid>&match=<mid>&token=<t>`  
+- Token gir rettigheter (`permissions/<matchId>/<token> = 'scorer'`).  
+- Første åpner blir Writer. Andre blir Reader, men kan trykke **Overta**.  
+- Writer kan slippe lås (Bytt til spectator).  
+- Reader får disabled scoring/Neste sett/Ferdigstill.  
+
+### Dashboard (turnering)
+- Ny URL: `?mode=dashboard&game=<gid>`  
+- Lytter på RTDB og viser oversikt.  
+- Aktiv kamp leser live scoreA/B, setsA/B fra rotfelter.  
+- Andre kamper henter status/sluttsett fra `tournament.matchStates`.  
+
+### Turnerings-snapshot
+- Kontroll skriver atomisk `tournament.activeMatchId` og `tournament.matchStates[matchId]`.  
+- Snapshot brukes i dashboard, ingen duplisering av live-score.  
+
+### Admin-modus (senere)
+- Admin-token gir rettigheter til å generere QR, korrigere poeng, styre permissions.  
+
+### Statistikk/summary (senere)
+- `matchMeta` (regler, deltakere).  
+- `matchSummary` (status, sets, setScores).  
+
+## Roadmap
+1. Refactor grunnmur: safePush, mutations.js, enter/exit-hooks, bindControlReadHandlers, fjern init-push, state.role, echo-guard.  
+2. Enkeltkamp delt kontroll: deviceId + token i URL, claimWriter/releaseWriter, UI-rolleindikator, Overta/Bytt til spectator, permissions.  
+3. Dashboard + turneringssnapshot.  
+4. Admin-modus og QR-generator.  
+5. Statistikk/summary og historikk.  
 
 
 --------------------------------------------------
@@ -1365,6 +1807,7 @@ Denne filen føres KUN for **refaktorering/rydding** (ikke features). Etter hver
 > Legg nederst i tabellen, nyeste først.
 
 ```
+| 2025-01-27 | 6270 | Refactor-14: Konsolider bump-logikk | Laget handleScoreBump() for å fjerne duplisering av bump-effekter |
 | 2024-12-19 | 5146 | Fix-09: Spectator vinnerglød | Rettet spectator til å vise vinnerglød basert på sett-telling i stedet for msg |
 | 2024-12-19 | 5124 | Refactor-17: DOM-helper utilities | Laget js/util/domUtils.js med qs/on/toggle helpers og byttet mikro-snutter |
 | 2024-12-19 | 5111 | Refactor-16: Dynamisk skriptlasting | Konsoliderte loadScript/loadScriptOnce til js/util/loadScript.js |
@@ -1424,6 +1867,7 @@ Som <rolle> vil jeg <mål> slik at <verdi>.
 - Manuell testliste (3–5 trinn)
 
 
+
 --------------------------------------------------
 File End
 --------------------------------------------------
@@ -1449,6 +1893,7 @@ File type: .md
 - En diff med rettingen.
 - Kort forklaring av hva som ble endret.
 - En manuell testliste (hvordan jeg kan verifisere at bugen er borte).
+
 
 
 --------------------------------------------------
@@ -1510,6 +1955,14 @@ Scope: js/ui/summary.js
 - Start alltid med å si hvilken type oppgave det er (`refactor`, `feat`, `fix`).  
 - Peker du til en mal (`@docs/prompts/...`), så bruker Cursor reglene der automatisk.  
 - Be alltid om en kort testliste tilbake, slik at du kan sjekke manuelt før du merger.
+- **Les arkitekturprinsippene:** Se `@docs/ARCHITECTURE.md` for retningslinjer om elegant kode.
+
+---
+
+## 5. Arkitektur og kodestil
+**Fil:** `docs/ARCHITECTURE.md`  
+**Inneholder:** Prinsipper for elegant, vedlikeholdbar kode i BadmintonTeller.  
+**Bruk når:** Du er usikker på hvordan du skal løse et problem, eller vil ha code review-kriterier.
 
 ---
 
@@ -1612,6 +2065,8 @@ import { mount, startMatchFlow, restoreFromStorage, applyRestoredState } from '.
 import { showSplash, hideSplash, setSplashContinueState } from './ui/splash.js';
 import { hasActiveMatchState, getContinueLabel } from './ui/session.js';
 import { setupStatsModal } from './ui/statsView.js';
+import { bindDashboardHandlers, ensureGameId } from './services/firebase.js';
+import { renderTournamentOverviewFromSnapshot } from './ui/tournamentOverview.js';
 
 // Felles helper for å gå til start uten å slette state
 export function goToStart(options){
@@ -1629,9 +2084,43 @@ export function goToStart(options){
   showSplash();
 }
 
+function parseQuery(){
+  try {
+    var params = new URL(location.href).searchParams;
+    return {
+      mode: params.get('mode'),
+      game: params.get('game')
+    };
+  } catch(_) {
+    return {};
+  }
+}
+
 function boot(){
   mount();
   setupStatsModal();
+
+  // Check for dashboard mode
+  var q = parseQuery();
+  if (q.mode === 'dashboard' && q.game) {
+    state.IS_DASHBOARD = true;
+    // Initialize Firebase and bind dashboard handlers
+    import('./services/firebase.js').then(function(module) {
+      module.setupFirebase({});
+      // Wait for Firebase to be ready, then bind handlers
+      setTimeout(function() {
+        if (window.firebase && firebase.database) {
+          var db = firebase.database();
+          var ref = db.ref('games/' + q.game);
+          bindDashboardHandlers(ref, function(v) {
+            var t = v && v.tournament;
+            renderTournamentOverviewFromSnapshot(t, v);
+          });
+        }
+      }, 1000);
+    });
+    return;
+  }
 
   const restored = restoreFromStorage();
   if(restored) applyRestoredState();
@@ -1661,6 +2150,158 @@ File End
 --------------------------------------------------
 
 
+js\services\controlRead.js
+File type: .js
+// Enkel leser for kontroll-modus – ingen writes her.
+import { state } from '../state/matchState.js';
+
+var _boundRef = null;
+var _onValue = null;
+
+// Previous values for bump detection and swap detection
+const prev = {
+  scoreA: null,
+  scoreB: null,
+  setsA: null,
+  setsB: null,
+  isALeft: null
+};
+
+// Swap suppression to prevent loops
+let _lastSwapTime = 0;
+const SWAP_SUPPRESS_MS = 2000; // 2 seconds
+
+
+// Injiserte UI-callbacks (unngå window.*)
+let _updateScores = function(){};
+let _fitScores = function(){};
+let _handleScoreBump = function(){};
+let _getSuppressUntil = function(){};
+let _startVisualSwap = function(){};
+let _setSidesDomTo = function(){};
+
+export function setControlReadDependencies(deps){
+  deps = deps || {};
+  if (typeof deps.updateScores === 'function') _updateScores = deps.updateScores;
+  if (typeof deps.fitScores === 'function') _fitScores = deps.fitScores;
+  if (typeof deps.handleScoreBump === 'function') _handleScoreBump = deps.handleScoreBump;
+  if (typeof deps.getSuppressUntil === 'function') _getSuppressUntil = deps.getSuppressUntil;
+  if (typeof deps.startVisualSwap === 'function') _startVisualSwap = deps.startVisualSwap;
+  if (typeof deps.setSidesDomTo === 'function') _setSidesDomTo = deps.setSidesDomTo;
+}
+
+
+export function unbindControlRead(){
+  try {
+    if (_boundRef && _onValue) _boundRef.off('value', _onValue);
+  } catch (e) {}
+  _boundRef = null;
+  _onValue = null;
+}
+
+export function bindControlReadHandlers(ref){
+  unbindControlRead(); // sikre én binding
+  if (!ref) return function(){};
+  _boundRef = ref;
+  _onValue = function(snap){
+    var v = snap && snap.val ? snap.val() : null;
+    if (!v) return;
+    
+    console.log('[FIREBASE READ] Received data:', {
+      scores: v.scores, sets: v.sets, currentSet: v.currentSet
+    });
+    
+    
+    // Store previous values for bump detection
+    var prevScoreA = prev.scoreA;
+    var prevScoreB = prev.scoreB;
+    
+    // Hydrer felter vi viser i kontroll
+    if (v.scores){
+      state.scoreA = v.scores.A|0;
+      state.scoreB = v.scores.B|0;
+    }
+    if (v.sets){
+      state.setsA = v.sets.A|0;
+      state.setsB = v.sets.B|0;
+    }
+    if (typeof v.currentSet !== 'undefined') state.currentSet = v.currentSet|0;
+    if (typeof v.isALeft !== 'undefined') state.isALeft = !!v.isALeft;
+    if (v.names) {
+      state.nameA = v.names.A;
+      state.nameB = v.names.B;
+    }
+    if (v.format) state.format = v.format;
+    if (typeof v.msg !== 'undefined') state.msg = v.msg;
+    
+    // Handle side swapping based on isALeft changes (with suppression)
+    var nextIsALeft = !!state.isALeft;
+    if(prev.isALeft === null){
+      // First load - set DOM to match state
+      try { _setSidesDomTo(nextIsALeft); } catch(_){}
+    } else if(prev.isALeft !== nextIsALeft){
+      // Side swap detected - check if we should suppress
+      var now = Date.now();
+      if(now - _lastSwapTime > SWAP_SUPPRESS_MS){
+        console.log('[SWAP DEBUG] Side swap detected - executing');
+        _lastSwapTime = now;
+        try { _startVisualSwap(); } catch(_){}
+      } else {
+        console.log('[SWAP DEBUG] Side swap detected but suppressed (too recent)');
+      }
+    }
+    
+    // Oppdater UI via injiserte callbacks
+    try { _updateScores(); } catch(_){}
+    try { _fitScores(); } catch(_){}
+    
+    // Suppress bumps logic (like spectator)
+    var isSetChange = (prev.setsA != null) && (prev.setsA !== state.setsA || prev.setsB !== state.setsB);
+    var dropToZero = (state.scoreA === 0 && state.scoreB === 0) && ((prev.scoreA > 0) || (prev.scoreB > 0));
+    var suppressBumps = isSetChange || dropToZero;
+    
+    if(suppressBumps) {
+      // Remove existing bump classes
+      var elA = document.getElementById('A_digits');
+      var elB = document.getElementById('B_digits');
+      if(elA) elA.classList.remove('pop', 'popMinus');
+      if(elB) elB.classList.remove('pop', 'popMinus');
+    } else {
+      // Bump effects for score changes with echo-guard
+      var now = Date.now();
+      if (prevScoreA !== null && state.scoreA !== prevScoreA) {
+        if (now >= _getSuppressUntil('A')) {
+          try { 
+            _handleScoreBump(prevScoreA, state.scoreA, document.getElementById('A_digits')); 
+          } catch(_){}
+        }
+      }
+      if (prevScoreB !== null && state.scoreB !== prevScoreB) {
+        if (now >= _getSuppressUntil('B')) {
+          try { 
+            _handleScoreBump(prevScoreB, state.scoreB, document.getElementById('B_digits')); 
+          } catch(_){}
+        }
+      }
+    }
+    
+    // Update previous values
+    prev.scoreA = state.scoreA;
+    prev.scoreB = state.scoreB;
+    prev.setsA = state.setsA;
+    prev.setsB = state.setsB;
+    prev.isALeft = nextIsALeft;
+  };
+  ref.on('value', _onValue);
+  return unbindControlRead;
+}
+
+
+--------------------------------------------------
+File End
+--------------------------------------------------
+
+
 js\services\firebase.js
 File type: .js
 import { state, getDisplayName } from '../state/matchState.js';
@@ -1673,7 +2314,43 @@ import { loadScript } from '../util/loadScript.js';
 let pushStateThrottled = function(){};
 let pushStateNow = function(){};
 
+// Echo-guard memory
+let lastWrite = null;
+let firebaseDb = null;
+
 export { pushStateThrottled, pushStateNow };
+
+/**
+ * Get Firebase database instance
+ * @returns {Object|null} Firebase database or null if not available
+ */
+export function rtdb() {
+  return firebaseDb;
+}
+
+/**
+ * Get current timestamp
+ * @returns {number} Current timestamp
+ */
+export function nowTs() {
+  return Date.now();
+}
+
+/**
+ * Set last write info for echo-guard
+ * @param {Object} writeInfo - Write information {path, ts, hash}
+ */
+export function setLastWrite(writeInfo) {
+  lastWrite = writeInfo;
+}
+
+/**
+ * Get last write info
+ * @returns {Object|null} Last write information
+ */
+export function getLastWrite() {
+  return lastWrite;
+}
 
 export function getStateForSync(){
   var names = readABFromModalInputs();
@@ -1681,7 +2358,7 @@ export function getStateForSync(){
   // Convert names to sync format
   const syncNames = { A: getDisplayName(names.A, 'A'), B: getDisplayName(names.B, 'B') };
   
-  return {
+  var base = {
     ts: Date.now(),
     hostUid: (window.firebase && firebase.auth && firebase.auth().currentUser ? firebase.auth().currentUser.uid : null),
     names: syncNames,
@@ -1692,6 +2369,18 @@ export function getStateForSync(){
     online: true,
     format: { discipline: state.matchDiscipline, playMode: state.playMode }
   };
+  
+  // Add tournament snapshot for dashboard
+  var td = state.tournamentData;
+  if (td) {
+    var tSnap = {
+      activeMatchId: td.activeMatchId || null,
+      matchStates: td.matchStates || {}
+    };
+    base.tournament = tSnap;
+  }
+  
+  return base;
 }
 
 export function setupFirebase(options){
@@ -1735,6 +2424,7 @@ function afterSDK(){
     }
 
     var db = firebase.database();
+    firebaseDb = db; // Store for mutations.js
 
     if(state.IS_SPECTATOR){
       var gid = qs('game');
@@ -1763,7 +2453,12 @@ function afterSDK(){
 
       db.ref('games/' + gid + '/online').onDisconnect().set(false);
       db.ref('games/' + gid + '/online').set(true);
-      pushStateNow();
+      
+      // TODO: Migrate to mutations.js in later PR
+      // Guard: Only push initial state if we have writer role
+      if (state.role === 'writer') {
+        pushStateNow();
+      }
     }
   });
 }
@@ -1788,6 +2483,26 @@ export function ensureGameId(){
   }
 }
 
+/**
+ * Get Firebase reference for a specific game
+ * @param {string} gameId - Game ID to get reference for
+ * @returns {Object|null} Firebase reference or null if not available
+ */
+export function getGameRef(gameId){
+  var db = rtdb();
+  if (!db) return null;
+  var gid = gameId || ensureGameId();
+  return gid ? db.ref('games/' + gid) : null;
+}
+
+/**
+ * Get Firebase reference for current game
+ * @returns {Object|null} Firebase reference for current game or null
+ */
+export function currentGameRef(){
+  return getGameRef(ensureGameId());
+}
+
 export function spectatorShareUrl(){
   var gid = ensureGameId();
   try{
@@ -1808,6 +2523,184 @@ function makeId(n){
   return out;
 }
 
+export function bindDashboardHandlers(ref, cb){
+  ref.on('value', function(snap){
+    var v = snap && snap.val ? snap.val() : null;
+    try { 
+      cb && cb(v || {}); 
+    } catch(e){
+      console.warn('Dashboard handler error:', e);
+    }
+  });
+}
+
+
+
+--------------------------------------------------
+File End
+--------------------------------------------------
+
+
+js\services\mutations.js
+File type: .js
+import { rtdb, nowTs, getLastWrite, setLastWrite } from './firebase.js';
+
+/**
+ * Centralized mutation helpers for RTDB writes
+ * All writes should go through these functions to avoid echo-loops and enable future role-gating
+ */
+
+/**
+ * Safe push to RTDB with echo-guard and metadata
+ * @param {string} refPath - Firebase reference path
+ * @param {Object} payload - Data to write
+ * @returns {Promise} Firebase write promise
+ */
+export function safePush(refPath, payload) {
+  if (!refPath || !payload) {
+    return Promise.reject(new Error('safePush: refPath and payload required'));
+  }
+  
+  var db = rtdb();
+  if (!db) {
+    return Promise.reject(new Error('safePush: Firebase not available'));
+  }
+  
+  var ref = db.ref(refPath);
+  var ts = nowTs();
+  
+  // Calculate hash for echo-guard
+  var hash = calculateHash(JSON.stringify(payload) + refPath);
+  
+  // Add metadata
+  var dataWithMeta = Object.assign({}, payload, {
+    _ts: ts,
+    _hash: hash
+  });
+  
+  // Store lastWrite for echo-guard
+  setLastWrite({
+    path: refPath,
+    ts: ts,
+    hash: hash
+  });
+  
+  return ref.set(dataWithMeta);
+}
+
+/**
+ * Set a specific field in RTDB
+ * @param {string} refPath - Firebase reference path
+ * @param {string} field - Field name to set
+ * @param {*} value - Value to set
+ * @returns {Promise} Firebase write promise
+ */
+export function setField(refPath, field, value) {
+  if (!refPath || !field) {
+    return Promise.reject(new Error('setField: refPath and field required'));
+  }
+  
+  var db = rtdb();
+  if (!db) {
+    return Promise.reject(new Error('setField: Firebase not available'));
+  }
+  
+  var ref = db.ref(refPath + '/' + field);
+  var ts = nowTs();
+  
+  // Calculate hash for echo-guard
+  var hash = calculateHash(JSON.stringify(value) + refPath + '/' + field);
+  
+  // Add metadata
+  var dataWithMeta = {
+    _ts: ts,
+    _hash: hash,
+    value: value
+  };
+  
+  // Store lastWrite for echo-guard
+  setLastWrite({
+    path: refPath + '/' + field,
+    ts: ts,
+    hash: hash
+  });
+  
+  return ref.set(dataWithMeta);
+}
+
+/**
+ * Append an event to a list in RTDB
+ * @param {string} refPath - Firebase reference path
+ * @param {Object} event - Event data to append
+ * @returns {Promise} Firebase write promise
+ */
+export function appendEvent(refPath, event) {
+  if (!refPath || !event) {
+    return Promise.reject(new Error('appendEvent: refPath and event required'));
+  }
+  
+  var db = rtdb();
+  if (!db) {
+    return Promise.reject(new Error('appendEvent: Firebase not available'));
+  }
+  
+  var ref = db.ref(refPath);
+  var ts = nowTs();
+  
+  // Add metadata to event
+  var eventWithMeta = Object.assign({}, event, {
+    _ts: ts,
+    _hash: calculateHash(JSON.stringify(event) + refPath + '/append')
+  });
+  
+  // Store lastWrite for echo-guard
+  setLastWrite({
+    path: refPath + '/append',
+    ts: ts,
+    hash: eventWithMeta._hash
+  });
+  
+  return ref.push(eventWithMeta);
+}
+
+/**
+ * Calculate simple hash for echo-guard
+ * @param {string} input - String to hash
+ * @returns {string} Simple hash
+ */
+function calculateHash(input) {
+  var hash = 0;
+  if (input.length === 0) return hash.toString();
+  
+  for (var i = 0; i < input.length; i++) {
+    var char = input.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  
+  return Math.abs(hash).toString(36);
+}
+
+/**
+ * Check if a snapshot is an echo of our last write
+ * @param {Object} snapshot - Firebase snapshot
+ * @returns {boolean} True if this is an echo
+ */
+export function isEcho(snapshot) {
+  var lastWrite = getLastWrite();
+  if (!snapshot || !lastWrite) {
+    return false;
+  }
+  
+  var data = snapshot.val();
+  if (!data || !data._ts || !data._hash) {
+    return false;
+  }
+  
+  // Check if this matches our last write
+  return data._ts === lastWrite.ts && 
+         data._hash === lastWrite.hash;
+}
 
 
 --------------------------------------------------
@@ -1868,7 +2761,7 @@ File End
 js\services\spectator.js
 File type: .js
 import { state, getDisplayName } from '../state/matchState.js';
-import { setSidesDomTo, fitScores, queueFit, bumpPlus, bumpMinus, clearWinner } from '../ui/layout.js';
+import { setSidesDomTo, fitScores, queueFit, handleScoreBump, clearWinner } from '../ui/layout.js';
 
 let updateScores = function(){};
 
@@ -2002,8 +2895,8 @@ export function bindSpectatorHandlers(ref){
     var elB = document.getElementById('B_digits');
 
     if(!suppressBumps){
-      if(prev.scoreA != null && a !== prev.scoreA) ((a > prev.scoreA) ? bumpPlus : bumpMinus)(elA);
-      if(prev.scoreB != null && b !== prev.scoreB) ((b > prev.scoreB) ? bumpPlus : bumpMinus)(elB);
+      handleScoreBump(prev.scoreA, a, elA);
+      handleScoreBump(prev.scoreB, b, elB);
     }else{
       elA?.classList.remove('pop','popMinus');
       elB?.classList.remove('pop','popMinus');
@@ -2036,6 +2929,70 @@ export function bindSpectatorHandlers(ref){
     prev.setsB = state.setsB;
   }, function(err){
     console.warn('RTDB lesefeil', err && err.code);
+  });
+}
+
+/**
+ * Bind control read handlers for live updates
+ * Control client reads live snapshots from RTDB without writing
+ */
+export function bindControlReadHandlers(ref){
+  if(!ref) return;
+  
+  ref.on('value', function(snap){
+    var v = snap.val();
+    if(!v) return;
+    
+    // Import isEcho to check if this is our own write
+    import('./firebase.js').then(function(module) {
+      if(module.isEcho && module.isEcho(snap)) {
+        // Skip updates from our own writes to prevent echo-loops
+        return;
+      }
+      
+      // Update state from live snapshot
+      var a = Number(v.scores?.A || 0);
+      var b = Number(v.scores?.B || 0);
+      var setsA = Number(v.sets?.A || 0);
+      var setsB = Number(v.sets?.B || 0);
+      var nextIsALeft = !!v.isALeft;
+      
+      // Only update if values have changed
+      if(state.scoreA !== a || state.scoreB !== b || 
+         state.setsA !== setsA || state.setsB !== setsB) {
+        
+        state.scoreA = a;
+        state.scoreB = b;
+        state.setsA = setsA;
+        state.setsB = setsB;
+        state.currentSet = Number(v.currentSet || state.currentSet);
+        
+        // Update names if available
+        if(v.names) {
+          setNameChipsDirect(v.names.A, v.names.B);
+        }
+        
+        // Update sides if changed
+        if(prev.isALeft !== nextIsALeft) {
+          setSidesDomTo(nextIsALeft);
+          prev.isALeft = nextIsALeft;
+        }
+        
+        // Update UI
+        updateScores();
+        queueFit();
+        
+        // Update previous values
+        prev.scoreA = state.scoreA;
+        prev.scoreB = state.scoreB;
+        prev.setsA = state.setsA;
+        prev.setsB = state.setsB;
+      }
+    }).catch(function(err) {
+      console.warn('Control read handler error:', err);
+    });
+  }, function(err){
+    console.warn('Control RTDB read error:', err && err.code);
   });
 }
 
@@ -2346,6 +3303,7 @@ export const state = {
   pendingSetWinner: null,
   setHistory: [],
   allowScoring: false,
+  role: 'writer', // TODO: Implement proper role-gating in later PR
   nameEditMode: false,
   matchDiscipline: 'single',
   playMode: 'singleMatch',
@@ -2942,12 +3900,8 @@ export function setDigits(score, prefix){
 }
 
 export function fitScores(){
-  if(state.IS_SPECTATOR && (
-      document.getElementById('A_digits')?.classList.contains('pop') ||
-      document.getElementById('A_digits')?.classList.contains('popMinus') ||
-      document.getElementById('B_digits')?.classList.contains('pop') ||
-      document.getElementById('B_digits')?.classList.contains('popMinus')
-    )) return;
+  // Skip fitScores during bump animations to prevent visual interference
+  if(_bumpInProgress) return;
 
   document.body.classList.add('measuring');
   var base = 100;
@@ -3005,20 +3959,37 @@ export const queueFit = (function(){
   };
 })();
 
+// Global flag to prevent fitScores during bump animations
+let _bumpInProgress = false;
+
 export function bumpPlus(el){
   if(!el) return;
+  _bumpInProgress = true;
   el.classList.remove('pop');
   void el.offsetWidth;
   el.classList.add('pop');
-  setTimeout(function(){ el.classList.remove('pop'); }, 550);
+  setTimeout(function(){ 
+    el.classList.remove('pop');
+    _bumpInProgress = false;
+  }, 550);
 }
 
 export function bumpMinus(el){
   if(!el) return;
+  _bumpInProgress = true;
   el.classList.remove('popMinus');
   void el.offsetWidth;
   el.classList.add('popMinus');
-  setTimeout(function(){ el.classList.remove('popMinus'); }, 550);
+  setTimeout(function(){ 
+    el.classList.remove('popMinus');
+    _bumpInProgress = false;
+  }, 550);
+}
+
+export function handleScoreBump(prevScore, newScore, element){
+  if(prevScore !== null && newScore !== prevScore) {
+    ((newScore > prevScore) ? bumpPlus : bumpMinus)(element);
+  }
 }
 
 export function clearWinner(){
@@ -3041,7 +4012,7 @@ File End
 js\ui\matchView.js
 File type: .js
 import { state, saveLiveState, restoreLiveState, clearLiveState, namesState, normalizeNameEntry, alignNamesState, getDisplayName } from '../state/matchState.js';
-import { setDigits, fitScores, queueFit, bumpPlus, bumpMinus, swapSides, setLayoutDependencies, readABFromModalInputs, writeModalInputsFromAB, clearWinner, isALeft, startVisualSwap, setSidesDomTo } from './layout.js';
+import { setDigits, fitScores, queueFit, handleScoreBump, swapSides, setLayoutDependencies, readABFromModalInputs, writeModalInputsFromAB, clearWinner, isALeft, startVisualSwap, setSidesDomTo } from './layout.js';
 import { showNameModal, hideNameModal, updateEditableState, updateNameChips, autocomplete, onSaveNames } from './namesModal.js';
 import { loadMatches, saveMatches, saveLastNames, loadLastNames } from '../services/storage.js';
 import { initShare, openShare, closeShare } from './share.js';
@@ -3050,6 +4021,8 @@ import { setupMenu, renderMenu } from './menu.js';
 import { hasActiveMatchState, getContinueLabel, isAtStart } from './session.js';
 import { setupSplash, showSplash, hideSplash, syncSplashButtons, setSplashContinueState } from './splash.js';
 import { setupTournamentSetup, showTournamentSetup } from './tournamentSetup.js';
+import { getGameRef, ensureGameId } from '../services/firebase.js';
+import { bindControlReadHandlers, unbindControlRead, setControlReadDependencies } from '../services/controlRead.js';
 import { setupTournamentOverview, hideTournamentOverview, renderTournamentOverview } from './tournamentOverview.js';
 import { setupFirebase, pushStateThrottled, pushStateNow, spectatorShareUrl } from '../services/firebase.js';
 import { setSpectatorDependencies } from '../services/spectator.js';
@@ -3058,6 +4031,15 @@ import { openModal, closeModal } from './modal.js';
 import { qs, on, toggle } from '../util/domUtils.js';
 import { LONGPRESS_MS, MOVE_THRESH } from '../constants.js';
 import { bindNameInput } from '../services/namesStore.js';
+
+/**
+ * Match View Event Binding Contract:
+ * 
+ * enterMatch() - Binds all necessary event listeners for match interaction
+ * exitMatch() - Removes all bound event listeners to prevent double-binding
+ * 
+ * This prevents duplicate event handlers when navigating in/out of match view
+ */
 
 
 function openFinishDialog(){
@@ -3076,11 +4058,42 @@ function getCurrentDisplayNames(){
 
 const saveState = () => saveLiveState(readABFromModalInputs);
 
+// Event binding state
+let isMatchBound = false;
+let boundHandlers = {
+  scoreA: null,
+  scoreB: null,
+  leftArea: null,
+  rightArea: null,
+  keydown: null
+};
+
+// Control read state
+let _unsubControl = null;
+
+// Cache DOM elements for performance (used by controlRead.js)
+const elA = document.getElementById('A_digits');
+const elB = document.getElementById('B_digits');
+
+
+// Lokalt suppress-vindu for å ignorere umiddelbar echo fra RTDB (ms tidsstempel per side)
+let _localBumpSuppress = { A: 0, B: 0 };
+
 setLayoutDependencies({
   saveLiveState: saveState,
   pushStateThrottled: () => pushStateThrottled(),
   pushStateNow: () => pushStateNow(),
   updateNameChips
+});
+
+// Gi kontroll-leseren tilgang til våre UI-oppdaterere (unngår window.*)
+setControlReadDependencies({
+  updateScores,
+  fitScores,
+  handleScoreBump,
+  getSuppressUntil: (side) => _localBumpSuppress[side] || 0,
+  startVisualSwap,
+  setSidesDomTo
 });
 
 let menuHandlers;
@@ -3096,7 +4109,6 @@ export function mount(){
     shareInitialized = true;
   }
 
-  bindCoreEvents();
   bindModalEvents();
   bindSummaryEvents();
 
@@ -3165,18 +4177,27 @@ export function startMatchFlow(opts){
 
   updateEditableState();
   saveState();
+  
+  // Enter match view - bind event listeners
+  enterMatch();
 }
 
 function bindCoreEvents(){
   if(!state.IS_SPECTATOR){
+    // Store handlers for cleanup
+    boundHandlers.scoreA = () => addPoint('A');
+    boundHandlers.scoreB = () => addPoint('B');
+    boundHandlers.leftArea = () => addPointByPosition('left');
+    boundHandlers.rightArea = () => addPointByPosition('right');
+    
     bindLongPressOne($('#scoreA'), () => removePoint('A'));
     bindLongPressOne($('#scoreB'), () => removePoint('B'));
-    bindTap($('#scoreA'), () => addPoint('A'));
-    bindTap($('#scoreB'), () => addPoint('B'));
+    bindTap($('#scoreA'), boundHandlers.scoreA);
+    bindTap($('#scoreB'), boundHandlers.scoreB);
     bindLongPressOne($('#leftArea'), () => removePointByPosition('left'));
     bindLongPressOne($('#rightArea'), () => removePointByPosition('right'));
-    bindTap($('#leftArea'), () => addPointByPosition('left'));
-    bindTap($('#rightArea'), () => addPointByPosition('right'));
+    bindTap($('#leftArea'), boundHandlers.leftArea);
+    bindTap($('#rightArea'), boundHandlers.rightArea);
   }
 
   const nameAInput = qs('#nameA');
@@ -3291,13 +4312,81 @@ function bindSummaryEvents(){
   if(mask) mask.addEventListener('click', function(e){ if(e.target === mask) closeSummaryModal(); });
   if(nextSetBtn) nextSetBtn.addEventListener('click', function(){ if(!state.IS_SPECTATOR) advanceToNextSet(); });
 
-  document.addEventListener('keydown', function(e){
+  // Store keydown handler for cleanup
+  boundHandlers.keydown = function(e){
     if(state.IS_SPECTATOR) return;
     if(state.betweenSets && (e.key === 'Enter' || e.key === ' ' || e.key.toLowerCase() === 'n')){
       e.preventDefault();
       advanceToNextSet();
     }
-  });
+  };
+  document.addEventListener('keydown', boundHandlers.keydown);
+}
+
+/**
+ * Enter match view - bind all necessary event listeners
+ */
+export function enterMatch(){
+  if(isMatchBound) return; // Prevent double-binding
+  
+  bindCoreEvents();
+  
+  // Bind control read handlers for live updates
+  if(!state.IS_SPECTATOR) {
+    var gid = ensureGameId();
+    var ref = getGameRef(gid);
+    if(ref){
+      _unsubControl = bindControlReadHandlers(ref);
+    }
+  }
+  
+  isMatchBound = true;
+}
+
+/**
+ * Exit match view - remove all bound event listeners
+ */
+export function exitMatch(){
+  if(!isMatchBound) return;
+  
+  // Remove event listeners
+  if(boundHandlers.scoreA && $('#scoreA')) {
+    $('#scoreA').removeEventListener('click', boundHandlers.scoreA);
+  }
+  if(boundHandlers.scoreB && $('#scoreB')) {
+    $('#scoreB').removeEventListener('click', boundHandlers.scoreB);
+  }
+  if(boundHandlers.leftArea && $('#leftArea')) {
+    $('#leftArea').removeEventListener('click', boundHandlers.leftArea);
+  }
+  if(boundHandlers.rightArea && $('#rightArea')) {
+    $('#rightArea').removeEventListener('click', boundHandlers.rightArea);
+  }
+  if(boundHandlers.keydown) {
+    document.removeEventListener('keydown', boundHandlers.keydown);
+  }
+  
+  // Clean up control read handlers
+  try { 
+    if (_unsubControl) _unsubControl(); 
+  } catch(e){}
+  try { 
+    unbindControlRead(); 
+  } catch(e){}
+  _unsubControl = null;
+  
+  // Reset state
+  isMatchBound = false;
+  boundHandlers = {
+    scoreA: null,
+    scoreB: null,
+    leftArea: null,
+    rightArea: null,
+    keydown: null
+  };
+  
+  // Reset suppress window
+  _localBumpSuppress.A = _localBumpSuppress.B = 0;
 }
 
 function updateTournamentActionButtons(){
@@ -3413,6 +4502,10 @@ function updateScores(){
 
   updateEditableState();
   
+  // Update "Neste sett" button visibility
+  const nextSetBtn = document.getElementById('nextSetBtn');
+  if(nextSetBtn) nextSetBtn.style.display = (!state.IS_SPECTATOR && state.betweenSets) ? 'block' : 'none';
+  
   // Save tournament match state
   if(state.playMode === 'tournament' && state.tournamentData?.activeMatchId){
     const id = state.tournamentData.activeMatchId;
@@ -3444,27 +4537,58 @@ function updateScores(){
   // Update tournament action buttons
   updateTournamentActionButtons();
   
+  // Bump effects handled by controlRead.js for live updates
+  // Local bump logic removed to prevent double bump
+  
   saveState();
 }
 
 
 function addPoint(side){
   if(!state.allowScoring || state.locked || state.swapping || state.IS_SPECTATOR) return;
+  
+  var oldScore = side === 'A' ? state.scoreA : state.scoreB;
   if(side === 'A') state.scoreA++; else state.scoreB++;
+  var newScore = side === 'A' ? state.scoreA : state.scoreB;
+  
+  // Immediate local bump for responsiveness
+  var now = Date.now();
+  if (side === 'A' && elA) {
+    handleScoreBump(oldScore, newScore, elA);
+    _localBumpSuppress.A = now + 250;
+  } else if (side === 'B' && elB) {
+    handleScoreBump(oldScore, newScore, elB);
+    _localBumpSuppress.B = now + 250;
+  }
+  
   // (ikke nødvendig lenger – navn lagres når de settes i modal/turnering)
   checkSetEnd();
   updateScores();
-  bumpPlus(document.getElementById(side === 'A' ? 'A_digits' : 'B_digits'));
+  
   fitScores();
   pushStateThrottled();
 }
 
 function removePoint(side){
   if(!state.allowScoring || state.locked || state.swapping || state.IS_SPECTATOR) return;
+  
+  var oldScore = side === 'A' ? state.scoreA : state.scoreB;
   if(side === 'A' && state.scoreA > 0) state.scoreA--;
   if(side === 'B' && state.scoreB > 0) state.scoreB--;
+  var newScore = side === 'A' ? state.scoreA : state.scoreB;
+  
+  // Immediate local bump for responsiveness
+  var now = Date.now();
+  if (side === 'A' && elA) {
+    handleScoreBump(oldScore, newScore, elA);
+    _localBumpSuppress.A = now + 250;
+  } else if (side === 'B' && elB) {
+    handleScoreBump(oldScore, newScore, elB);
+    _localBumpSuppress.B = now + 250;
+  }
+  
   updateScores();
-  bumpMinus(document.getElementById(side === 'A' ? 'A_digits' : 'B_digits'));
+  
   fitScores();
   pushStateThrottled();
 }
@@ -3659,6 +4783,13 @@ function startNewMatch(opts){
   opts = opts || {};
   const skipSplash = !!opts.skipSplash;
   
+  console.log('[STATE RESET] startNewMatch called with opts:', opts);
+  console.log('[STATE RESET] Current state before reset:', {
+    scoreA: state.scoreA, scoreB: state.scoreB,
+    setsA: state.setsA, setsB: state.setsB,
+    currentSet: state.currentSet, playMode: state.playMode
+  });
+  
   // Tøm lagret live-state for å unngå at locked/betweenSets lekker inn i ny kamp
   // (clearLiveState lar turneringsdata stå, hvis playMode === 'tournament')
   clearLiveState();
@@ -3693,8 +4824,53 @@ function startNewMatch(opts){
   updateScores();
   fitScores();
   saveState();
-  pushStateThrottled();
+  
+  // ELEGANT: Temporarily disable Firebase reads during reset to prevent race condition
+  console.log('[STATE RESET] Temporarily disabling Firebase reads during reset');
+  unbindControlRead();
+  
+  console.log('[STATE RESET] Pushing reset state to Firebase');
+  
+  const reEnableFirebaseReads = () => {
+    console.log('[STATE RESET] Re-enabling Firebase reads');
+    if(typeof getGameRef === 'function') {
+      const ref = getGameRef();
+      if(ref) bindControlReadHandlers(ref);
+    }
+  };
+  
+  if(typeof pushStateNow === 'function') {
+    // Try to use promise-based approach if pushStateNow returns a promise
+    const pushResult = pushStateNow();
+    if(pushResult && typeof pushResult.then === 'function') {
+      // Promise-based - wait for actual completion
+      pushResult
+        .then(() => {
+          console.log('[STATE RESET] Firebase push completed successfully');
+          reEnableFirebaseReads();
+        })
+        .catch((error) => {
+          console.warn('[STATE RESET] Firebase push failed, re-enabling reads anyway:', error);
+          reEnableFirebaseReads();
+        });
+    } else {
+      // Fallback to timeout if not promise-based
+      console.log('[STATE RESET] Using timeout fallback (no promise support)');
+      setTimeout(reEnableFirebaseReads, 300); // Slightly longer for safety
+    }
+  } else {
+    // Throttled push fallback
+    pushStateThrottled();
+    setTimeout(reEnableFirebaseReads, 800); // Longer for throttled
+  }
+  
   setSplashContinueState({ visible: false });
+  
+  console.log('[STATE RESET] State after reset:', {
+    scoreA: state.scoreA, scoreB: state.scoreB,
+    setsA: state.setsA, setsB: state.setsB,
+    currentSet: state.currentSet, allowScoring: state.allowScoring
+  });
   
   if(skipSplash){
     // Quick start - go directly to name modal
@@ -3958,6 +5134,8 @@ function buildMenuHandlers(){
     onStats: () => renderStats(loadMatches(), mode => { state.VIEW_MODE = mode; }, renderMenu, menuHandlers),
     onTournamentOverview: state.playMode === 'tournament' ? () => showTournamentOverview() : undefined,
     onFinishMatch: state.playMode === 'tournament' ? () => openFinishDialog() : undefined,
+    onOpenDashboard: state.playMode === 'tournament' ? () => openDashboard() : undefined,
+    onOpenControl: () => openControlTab(),
     onBackToMatch: () => {
       showMatch();
       state.VIEW_MODE = 'match';
@@ -3974,6 +5152,28 @@ function toggleFullscreen(){
   }else{
     if(document.exitFullscreen) document.exitFullscreen();
   }
+}
+
+function openDashboard(){
+  if(!state.tournamentData) return;
+  
+  // Get game ID from Firebase
+  import('../services/firebase.js').then(function(module) {
+    var gameId = module.ensureGameId();
+    if(!gameId) return;
+    
+    var url = location.origin + location.pathname + '?mode=dashboard&game=' + encodeURIComponent(gameId);
+    window.open(url, '_blank');
+  });
+}
+
+function openControlTab(){
+  // Get game ID and open new control tab
+  var gameId = ensureGameId();
+  if(!gameId) return;
+  
+  var url = location.origin + location.pathname + '?game=' + encodeURIComponent(gameId);
+  window.open(url, '_blank');
 }
 
 export function applyRestoredState(){
@@ -4075,7 +5275,9 @@ export function renderMenu(mode, handlers){
   if(mode === 'match'){
     html += menuItem('miNewMatch', '🏠 Til start', menuHandlers.onNewMatch);
     html += menuItem('miShare', '🔗 Del…', menuHandlers.onShare);
+    html += menuItem('miOpenControl', '📱 Åpne kontroll i ny fane', menuHandlers.onOpenControl);
     html += menuItem('miTournamentOverview', '📋 Kampoversikt', menuHandlers.onTournamentOverview);
+    html += menuItem('miOpenDashboard', '📺 Åpne kampoversikt i ny fane', menuHandlers.onOpenDashboard);
     html += menuItem('miFinishMatch', '✅ Ferdigstill kamp', menuHandlers.onFinishMatch);
     html += menuItem('miResetSet', '♻️ Nullstill sett', menuHandlers.onResetSet);
     html += menuItem('miSwap', '⇄ Bytt side', menuHandlers.onSwap);
@@ -4129,6 +5331,8 @@ function handlerIdFor(key){
     case 'onTournamentOverview': return 'miTournamentOverview';
     case 'onFinishMatch': return 'miFinishMatch';
     case 'onBackToMatch': return 'miBackToMatch';
+    case 'onOpenDashboard': return 'miOpenDashboard';
+    case 'onOpenControl': return 'miOpenControl';
     default: return null;
   }
 }
@@ -4886,6 +6090,11 @@ export function renderStats(matches, modeChangeCb, renderMenuFn, handlers){
     state.VIEW_MODE = 'stats';
     document.body.classList.add('stats-mode');
 
+    // Exit match view - remove event listeners
+    import('./matchView.js').then(function(module) {
+      if(module.exitMatch) module.exitMatch();
+    });
+
     if(typeof onModeChange === 'function') onModeChange('stats');
     if(lastRenderMenu) lastRenderMenu('stats', lastHandlers);
 
@@ -4986,6 +6195,11 @@ export function showMatch(){
   if(typeof onModeChange === 'function') onModeChange('match');
   if(lastRenderMenu) lastRenderMenu('match', lastHandlers);
 
+  // Enter match view - bind event listeners
+  import('./matchView.js').then(function(module) {
+    if(module.enterMatch) module.enterMatch();
+  });
+
   fitScores();
 }
 
@@ -5040,6 +6254,7 @@ import { openModal, closeModal } from './modal.js';
 import { hasActiveMatchState, getContinueLabel } from './session.js';
 import { showSplash, setSplashContinueState, syncSplashButtons } from './splash.js';
 import { goToStart } from '../main.js';
+import { updateScores } from './matchView.js';
 
 // Konfig: når turneringen låses (må matche tournamentSetup.js)
 const TOURNAMENT_LOCK_MODE = 'onCreation'; // 'onCreation' | 'onFirstMatch'
@@ -5142,6 +6357,9 @@ export function showTournamentOverview(){
 export function hideTournamentOverview(){
   if(!ensureElements()) return;
   closeModal('#tournamentOverviewMask');
+  // Viktig: re-evaluer visning av «Neste sett»-knappen m.m. etter at oversikten lukkes.
+  // updateScores viser knappen igjen hvis state.betweenSets === true.
+  try { updateScores(); } catch(_) {}
 }
 
 function startFirstMatch(){
@@ -5282,15 +6500,33 @@ export function renderTournamentOverview(){
           matchState.finalScore.setHistory.forEach((set, setIndex) => {
             const setScore = document.createElement('span');
             setScore.className = 'set-score';
-            setScore.textContent = `${set.a}-${set.b}`;
-            if (winner === 'A' && set.a > set.b) setScore.classList.add('winner-scores');
-            if (winner === 'B' && set.b > set.a) setScore.classList.add('winner-scores');
+            
+            // Create separate spans for each score to allow individual styling
+            const scoreASpan = document.createElement('span');
+            scoreASpan.textContent = set.a;
+            if (winner === 'A' && set.a > set.b) scoreASpan.classList.add('winner-scores');
+            
+            const dashSpan = document.createElement('span');
+            dashSpan.textContent = '-';
+            
+            const scoreBSpan = document.createElement('span');
+            scoreBSpan.textContent = set.b;
+            if (winner === 'B' && set.b > set.a) scoreBSpan.classList.add('winner-scores');
+            
+            setScore.appendChild(scoreASpan);
+            setScore.appendChild(dashSpan);
+            setScore.appendChild(scoreBSpan);
             setScores.appendChild(setScore);
           });
         }
         
         statusCell.appendChild(setScores);
-        statusCell.innerHTML += '<div class="status-finished">Ferdig</div>';
+        
+        // Add status text using DOM manipulation
+        const statusDiv = document.createElement('div');
+        statusDiv.className = 'status-finished';
+        statusDiv.textContent = 'Ferdig';
+        statusCell.appendChild(statusDiv);
       } else if (isWalkover) {
         const winnerName = matchState.walkoverWinner === 'A' ? match.playerA : match.playerB;
         statusCell.innerHTML = `
@@ -5302,29 +6538,37 @@ export function renderTournamentOverview(){
         const setScores = document.createElement('div');
         setScores.className = 'set-scores';
         
-        const currentSet = matchState.currentSet ?? 1;
-        const totalSets = matchState.totalSets ?? 3;
-        
-        // Show completed sets
-        for (let i = 1; i < currentSet; i++) {
+        // Show completed sets from setHistory
+        const setHistory = Array.isArray(matchState.setHistory) ? matchState.setHistory : [];
+        setHistory.forEach((set) => {
           const setScore = document.createElement('span');
           setScore.className = 'set-score';
-          const setA = matchState[`set${i}A`] || 0;
-          const setB = matchState[`set${i}B`] || 0;
-          setScore.textContent = `${setA}-${setB}`;
+          setScore.textContent = `${set.a}-${set.b}`;
           setScores.appendChild(setScore);
+        });
+        
+        // Show current/live set
+        const currentSetScore = document.createElement('span');
+        currentSetScore.className = 'set-score current live-set';
+        
+        if (matchState.betweenSets === true) {
+          // In pause between sets - show 0-0 with pulse
+          currentSetScore.textContent = '0-0';
+        } else {
+          // Active set - show current scores
+          const scoreA = matchState.scoreA ?? 0;
+          const scoreB = matchState.scoreB ?? 0;
+          currentSetScore.textContent = `${scoreA}-${scoreB}`;
         }
         
-        // Show current set with pulsing effect
-        if (currentSet <= totalSets) {
-          const currentSetScore = document.createElement('span');
-          currentSetScore.className = 'set-score current live-set';
-          currentSetScore.textContent = `${matchState.scoreA}-${matchState.scoreB}`;
-          setScores.appendChild(currentSetScore);
-        }
-        
+        setScores.appendChild(currentSetScore);
         statusCell.appendChild(setScores);
-        statusCell.innerHTML += '<div class="status-ongoing">Pågår</div>';
+        
+        // Add status text using DOM manipulation
+        const statusDiv = document.createElement('div');
+        statusDiv.className = 'status-ongoing';
+        statusDiv.textContent = 'Pågår';
+        statusCell.appendChild(statusDiv);
       }
       
       row.appendChild(statusCell);
@@ -5394,6 +6638,256 @@ function handleStartMatch(matchId) {
 
 // Make showTournamentOverview available globally
 window.showTournamentOverview = showTournamentOverview;
+
+export function renderTournamentOverviewFromSnapshot(tSnap, root){
+  if(!ensureElements()) return;
+  
+  // Hide interactive controls for dashboard mode
+  hideInteractiveControlsForDashboard();
+  
+  // Set tournament name if available
+  if(nameElement && tSnap && tSnap.name) {
+    nameElement.textContent = tSnap.name;
+  }
+  
+  // Open modal
+  openModal('#tournamentOverviewMask');
+  
+  // Get match states
+  var ms = (tSnap && tSnap.matchStates) || {};
+  var active = tSnap && tSnap.activeMatchId;
+  
+  // Render tournament overview
+  renderDashboardTournamentOverview(ms, active, root);
+}
+
+function hideInteractiveControlsForDashboard(){
+  if(!ensureElements()) return;
+  
+  // Hide back button
+  if(backBtn) backBtn.style.display = 'none';
+  
+  // Hide start button
+  if(startBtn) startBtn.style.display = 'none';
+  
+  // Hide close button
+  if(closeBtn) closeBtn.style.display = 'none';
+}
+
+function renderDashboardTournamentOverview(matchStates, activeMatchId, root){
+  const roundsElement = document.getElementById('tournamentRounds');
+  if(!roundsElement) return;
+  
+  // Clear existing content
+  roundsElement.innerHTML = '';
+  
+  // Group matches by round (we need to get matches from somewhere)
+  // For now, create a simple list of all match states
+  var matches = [];
+  Object.keys(matchStates).forEach(function(matchId) {
+    var matchState = matchStates[matchId];
+    matches.push({
+      id: matchId,
+      playerA: matchState.playerA || 'TBD',
+      playerB: matchState.playerB || 'TBD',
+      round: matchState.round || 1,
+      state: matchState
+    });
+  });
+  
+  // Group by round
+  var matchesByRound = {};
+  matches.forEach(function(match) {
+    if(!matchesByRound[match.round]) {
+      matchesByRound[match.round] = [];
+    }
+    matchesByRound[match.round].push(match);
+  });
+  
+  // Render each round
+  Object.keys(matchesByRound).sort(function(a, b) { return parseInt(a) - parseInt(b); }).forEach(function(roundNumber) {
+    // Round header
+    var roundHeader = document.createElement('h4');
+    roundHeader.className = 'tournament-round-header';
+    roundHeader.textContent = 'Runde ' + roundNumber;
+    roundsElement.appendChild(roundHeader);
+    
+    // Create table
+    var table = document.createElement('table');
+    table.className = 'tournament-table';
+    
+    // Table header
+    var thead = document.createElement('thead');
+    var headerRow = document.createElement('tr');
+    headerRow.innerHTML = '<th>#</th><th>Spillere</th><th>Status</th><th>Handling</th>';
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+    
+    // Table body
+    var tbody = document.createElement('tbody');
+    
+    matchesByRound[roundNumber].forEach(function(match, index) {
+      var row = document.createElement('tr');
+      row.dataset.matchId = match.id;
+      
+      var matchState = match.state;
+      var isActive = match.id === activeMatchId;
+      var isCompleted = matchState.status === 'completed';
+      var isWalkover = matchState.status === 'walkover';
+      var isOngoing = matchState.status === 'in_progress';
+      
+      // Highlight active row
+      if(isActive) {
+        row.classList.add('active-match');
+      }
+      
+      // Match number column
+      var matchNumberCell = document.createElement('td');
+      matchNumberCell.className = 'match-number';
+      matchNumberCell.textContent = '#' + (index + 1);
+      row.appendChild(matchNumberCell);
+      
+      // Players column
+      var playersCell = document.createElement('td');
+      playersCell.className = 'match-players';
+      
+      var playerA = document.createElement('span');
+      playerA.className = 'player-name';
+      playerA.textContent = match.playerA;
+      if(isCompleted && matchState.finalScore && matchState.finalScore.setsA > matchState.finalScore.setsB) {
+        playerA.classList.add('winner-name');
+      }
+      
+      var vs = document.createElement('span');
+      vs.className = 'vs';
+      vs.textContent = 'vs';
+      
+      var playerB = document.createElement('span');
+      playerB.className = 'player-name';
+      playerB.textContent = match.playerB;
+      if(isCompleted && matchState.finalScore && matchState.finalScore.setsB > matchState.finalScore.setsA) {
+        playerB.classList.add('winner-name');
+      }
+      
+      playersCell.appendChild(playerA);
+      playersCell.appendChild(vs);
+      playersCell.appendChild(playerB);
+      row.appendChild(playersCell);
+      
+      // Status column
+      var statusCell = document.createElement('td');
+      statusCell.className = 'match-status-cell';
+      
+      if(!matchState || matchState.status === 'pending') {
+        statusCell.innerHTML = '<span class="status-waiting">Venter</span>';
+      } else if(isCompleted) {
+        var setScores = document.createElement('div');
+        setScores.className = 'set-scores';
+        
+        if(matchState.finalScore && matchState.finalScore.setHistory) {
+          matchState.finalScore.setHistory.forEach(function(set) {
+            var setScore = document.createElement('span');
+            setScore.className = 'set-score';
+            
+            // Create separate spans for each score
+            var scoreASpan = document.createElement('span');
+            scoreASpan.textContent = set.a;
+            if(set.a > set.b) scoreASpan.classList.add('winner-scores');
+            
+            var dashSpan = document.createElement('span');
+            dashSpan.textContent = '-';
+            
+            var scoreBSpan = document.createElement('span');
+            scoreBSpan.textContent = set.b;
+            if(set.b > set.a) scoreBSpan.classList.add('winner-scores');
+            
+            setScore.appendChild(scoreASpan);
+            setScore.appendChild(dashSpan);
+            setScore.appendChild(scoreBSpan);
+            setScores.appendChild(setScore);
+          });
+        }
+        
+        statusCell.appendChild(setScores);
+        
+        var statusDiv = document.createElement('div');
+        statusDiv.className = 'status-finished';
+        statusDiv.textContent = 'Ferdig';
+        statusCell.appendChild(statusDiv);
+      } else if(isWalkover) {
+        var winnerName = matchState.walkoverWinner === 'A' ? match.playerA : match.playerB;
+        statusCell.innerHTML = '<div class="status-finished">Walkover</div><div class="walkover-info">' + winnerName + ' vant</div>';
+      } else if(isActive && root) {
+        // Active match - show live scores from root
+        var setScores = document.createElement('div');
+        setScores.className = 'set-scores';
+        
+        // Show completed sets from setHistory
+        var setHistory = Array.isArray(matchState.setHistory) ? matchState.setHistory : [];
+        setHistory.forEach(function(set) {
+          var setScore = document.createElement('span');
+          setScore.className = 'set-score';
+          setScore.textContent = set.a + '-' + set.b;
+          setScores.appendChild(setScore);
+        });
+        
+        // Show current/live set
+        var currentSetScore = document.createElement('span');
+        currentSetScore.className = 'set-score current live-set';
+        
+        if(matchState.betweenSets === true) {
+          currentSetScore.textContent = '0-0';
+        } else {
+          var scoreA = root.scores ? root.scores.A : 0;
+          var scoreB = root.scores ? root.scores.B : 0;
+          currentSetScore.textContent = scoreA + '-' + scoreB;
+        }
+        
+        setScores.appendChild(currentSetScore);
+        statusCell.appendChild(setScores);
+        
+        var statusDiv = document.createElement('div');
+        statusDiv.className = 'status-ongoing';
+        statusDiv.textContent = 'Pågår';
+        statusCell.appendChild(statusDiv);
+      } else {
+        statusCell.innerHTML = '<span class="status-waiting">Venter</span>';
+      }
+      
+      row.appendChild(statusCell);
+      
+      // Action column (read-only)
+      var actionCell = document.createElement('td');
+      actionCell.className = 'match-action';
+      
+      var actionBtn = document.createElement('button');
+      actionBtn.className = 'tournament-table-btn';
+      actionBtn.disabled = true;
+      
+      if(isCompleted) {
+        actionBtn.textContent = 'Ferdig';
+        actionBtn.classList.add('disabled');
+      } else if(isWalkover) {
+        actionBtn.textContent = 'Walkover';
+        actionBtn.classList.add('disabled');
+      } else if(isActive) {
+        actionBtn.textContent = 'Aktiv';
+        actionBtn.classList.add('disabled');
+      } else {
+        actionBtn.textContent = 'Venter';
+        actionBtn.classList.add('disabled');
+      }
+      
+      actionCell.appendChild(actionBtn);
+      row.appendChild(actionCell);
+      
+      tbody.appendChild(row);
+    });
+    
+    table.appendChild(tbody);
+    roundsElement.appendChild(table);
+  });
+}
 
 
 --------------------------------------------------
@@ -5720,6 +7214,7 @@ export const toggle = (el, cls, on) => el && (on ? el.classList.add(cls) : el.cl
 export const reflow = (el) => { if (el) void el.offsetHeight; };
 
 
+
 --------------------------------------------------
 File End
 --------------------------------------------------
@@ -5756,6 +7251,7 @@ export function loadScriptOnce(src){
     document.head.appendChild(s);
   });
 }
+
 
 
 --------------------------------------------------

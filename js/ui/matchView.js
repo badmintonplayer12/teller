@@ -62,6 +62,7 @@ let _unsubControl = null;
 const elA = document.getElementById('A_digits');
 const elB = document.getElementById('B_digits');
 
+
 // Lokalt suppress-vindu for å ignorere umiddelbar echo fra RTDB (ms tidsstempel per side)
 let _localBumpSuppress = { A: 0, B: 0 };
 
@@ -77,7 +78,9 @@ setControlReadDependencies({
   updateScores,
   fitScores,
   handleScoreBump,
-  getSuppressUntil: (side) => _localBumpSuppress[side] || 0
+  getSuppressUntil: (side) => _localBumpSuppress[side] || 0,
+  startVisualSwap,
+  setSidesDomTo
 });
 
 let menuHandlers;
@@ -767,6 +770,13 @@ function startNewMatch(opts){
   opts = opts || {};
   const skipSplash = !!opts.skipSplash;
   
+  console.log('[STATE RESET] startNewMatch called with opts:', opts);
+  console.log('[STATE RESET] Current state before reset:', {
+    scoreA: state.scoreA, scoreB: state.scoreB,
+    setsA: state.setsA, setsB: state.setsB,
+    currentSet: state.currentSet, playMode: state.playMode
+  });
+  
   // Tøm lagret live-state for å unngå at locked/betweenSets lekker inn i ny kamp
   // (clearLiveState lar turneringsdata stå, hvis playMode === 'tournament')
   clearLiveState();
@@ -801,8 +811,53 @@ function startNewMatch(opts){
   updateScores();
   fitScores();
   saveState();
-  pushStateThrottled();
+  
+  // ELEGANT: Temporarily disable Firebase reads during reset to prevent race condition
+  console.log('[STATE RESET] Temporarily disabling Firebase reads during reset');
+  unbindControlRead();
+  
+  console.log('[STATE RESET] Pushing reset state to Firebase');
+  
+  const reEnableFirebaseReads = () => {
+    console.log('[STATE RESET] Re-enabling Firebase reads');
+    if(typeof getGameRef === 'function') {
+      const ref = getGameRef();
+      if(ref) bindControlReadHandlers(ref);
+    }
+  };
+  
+  if(typeof pushStateNow === 'function') {
+    // Try to use promise-based approach if pushStateNow returns a promise
+    const pushResult = pushStateNow();
+    if(pushResult && typeof pushResult.then === 'function') {
+      // Promise-based - wait for actual completion
+      pushResult
+        .then(() => {
+          console.log('[STATE RESET] Firebase push completed successfully');
+          reEnableFirebaseReads();
+        })
+        .catch((error) => {
+          console.warn('[STATE RESET] Firebase push failed, re-enabling reads anyway:', error);
+          reEnableFirebaseReads();
+        });
+    } else {
+      // Fallback to timeout if not promise-based
+      console.log('[STATE RESET] Using timeout fallback (no promise support)');
+      setTimeout(reEnableFirebaseReads, 300); // Slightly longer for safety
+    }
+  } else {
+    // Throttled push fallback
+    pushStateThrottled();
+    setTimeout(reEnableFirebaseReads, 800); // Longer for throttled
+  }
+  
   setSplashContinueState({ visible: false });
+  
+  console.log('[STATE RESET] State after reset:', {
+    scoreA: state.scoreA, scoreB: state.scoreB,
+    setsA: state.setsA, setsB: state.setsB,
+    currentSet: state.currentSet, allowScoring: state.allowScoring
+  });
   
   if(skipSplash){
     // Quick start - go directly to name modal

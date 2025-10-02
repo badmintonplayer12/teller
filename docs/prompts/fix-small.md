@@ -16,3 +16,4 @@
 - En diff med rettingen.
 - Kort forklaring av hva som ble endret.
 - En manuell testliste (hvordan jeg kan verifisere at bugen er borte).
+

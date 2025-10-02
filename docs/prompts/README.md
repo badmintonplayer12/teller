@@ -50,5 +50,13 @@ Scope: js/ui/summary.js
 - Start alltid med å si hvilken type oppgave det er (`refactor`, `feat`, `fix`).  
 - Peker du til en mal (`@docs/prompts/...`), så bruker Cursor reglene der automatisk.  
 - Be alltid om en kort testliste tilbake, slik at du kan sjekke manuelt før du merger.
+- **Les arkitekturprinsippene:** Se `@docs/ARCHITECTURE.md` for retningslinjer om elegant kode.
+
+---
+
+## 5. Arkitektur og kodestil
+**Fil:** `docs/ARCHITECTURE.md`  
+**Inneholder:** Prinsipper for elegant, vedlikeholdbar kode i BadmintonTeller.  
+**Bruk når:** Du er usikker på hvordan du skal løse et problem, eller vil ha code review-kriterier.
 
 ---

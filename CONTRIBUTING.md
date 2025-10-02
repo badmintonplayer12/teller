@@ -28,3 +28,4 @@ Disse reglene gjelder alle PR-er, spesielt de som lages med AI (Cursor/ChatGPT).
 ## Stil
 - Bruk modulstruktur (ui/core/util) og unngå duplisering.
 - En funksjon = ett ansvar. Korte, tydelige navn.
+

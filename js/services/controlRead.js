@@ -4,19 +4,27 @@ import { state } from '../state/matchState.js';
 var _boundRef = null;
 var _onValue = null;
 
-// Previous values for bump detection
+// Previous values for bump detection and swap detection
 const prev = {
   scoreA: null,
   scoreB: null,
   setsA: null,
-  setsB: null
+  setsB: null,
+  isALeft: null
 };
+
+// Swap suppression to prevent loops
+let _lastSwapTime = 0;
+const SWAP_SUPPRESS_MS = 2000; // 2 seconds
+
 
 // Injiserte UI-callbacks (unngå window.*)
 let _updateScores = function(){};
 let _fitScores = function(){};
 let _handleScoreBump = function(){};
 let _getSuppressUntil = function(){};
+let _startVisualSwap = function(){};
+let _setSidesDomTo = function(){};
 
 export function setControlReadDependencies(deps){
   deps = deps || {};
@@ -24,7 +32,10 @@ export function setControlReadDependencies(deps){
   if (typeof deps.fitScores === 'function') _fitScores = deps.fitScores;
   if (typeof deps.handleScoreBump === 'function') _handleScoreBump = deps.handleScoreBump;
   if (typeof deps.getSuppressUntil === 'function') _getSuppressUntil = deps.getSuppressUntil;
+  if (typeof deps.startVisualSwap === 'function') _startVisualSwap = deps.startVisualSwap;
+  if (typeof deps.setSidesDomTo === 'function') _setSidesDomTo = deps.setSidesDomTo;
 }
+
 
 export function unbindControlRead(){
   try {
@@ -41,6 +52,11 @@ export function bindControlReadHandlers(ref){
   _onValue = function(snap){
     var v = snap && snap.val ? snap.val() : null;
     if (!v) return;
+    
+    console.log('[FIREBASE READ] Received data:', {
+      scores: v.scores, sets: v.sets, currentSet: v.currentSet
+    });
+    
     
     // Store previous values for bump detection
     var prevScoreA = prev.scoreA;
@@ -63,6 +79,23 @@ export function bindControlReadHandlers(ref){
     }
     if (v.format) state.format = v.format;
     if (typeof v.msg !== 'undefined') state.msg = v.msg;
+    
+    // Handle side swapping based on isALeft changes (with suppression)
+    var nextIsALeft = !!state.isALeft;
+    if(prev.isALeft === null){
+      // First load - set DOM to match state
+      try { _setSidesDomTo(nextIsALeft); } catch(_){}
+    } else if(prev.isALeft !== nextIsALeft){
+      // Side swap detected - check if we should suppress
+      var now = Date.now();
+      if(now - _lastSwapTime > SWAP_SUPPRESS_MS){
+        console.log('[SWAP DEBUG] Side swap detected - executing');
+        _lastSwapTime = now;
+        try { _startVisualSwap(); } catch(_){}
+      } else {
+        console.log('[SWAP DEBUG] Side swap detected but suppressed (too recent)');
+      }
+    }
     
     // Oppdater UI via injiserte callbacks
     try { _updateScores(); } catch(_){}
@@ -103,6 +136,7 @@ export function bindControlReadHandlers(ref){
     prev.scoreB = state.scoreB;
     prev.setsA = state.setsA;
     prev.setsB = state.setsB;
+    prev.isALeft = nextIsALeft;
   };
   ref.on('value', _onValue);
   return unbindControlRead;

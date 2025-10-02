@@ -12,3 +12,4 @@ This file contains a dump/printout of all code and can be safely ignored during 
 - Reviewing functionality
 
 The actual source code is in the `js/` directory and other project files.
+

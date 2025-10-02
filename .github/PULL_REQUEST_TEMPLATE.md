@@ -22,3 +22,4 @@ Hvorfor var dette nødvendig / hva forenkles eller forbedres?
 ## Notater
 - Refactor: ingen nye features / uendret oppførsel
 - Feat: kort brukerhistorie og hva som er nytt
+

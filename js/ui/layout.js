@@ -232,12 +232,8 @@ export function setDigits(score, prefix){
 }
 
 export function fitScores(){
-  if(state.IS_SPECTATOR && (
-      document.getElementById('A_digits')?.classList.contains('pop') ||
-      document.getElementById('A_digits')?.classList.contains('popMinus') ||
-      document.getElementById('B_digits')?.classList.contains('pop') ||
-      document.getElementById('B_digits')?.classList.contains('popMinus')
-    )) return;
+  // Skip fitScores during bump animations to prevent visual interference
+  if(_bumpInProgress) return;
 
   document.body.classList.add('measuring');
   var base = 100;
@@ -295,20 +291,31 @@ export const queueFit = (function(){
   };
 })();
 
+// Global flag to prevent fitScores during bump animations
+let _bumpInProgress = false;
+
 export function bumpPlus(el){
   if(!el) return;
+  _bumpInProgress = true;
   el.classList.remove('pop');
   void el.offsetWidth;
   el.classList.add('pop');
-  setTimeout(function(){ el.classList.remove('pop'); }, 550);
+  setTimeout(function(){ 
+    el.classList.remove('pop');
+    _bumpInProgress = false;
+  }, 550);
 }
 
 export function bumpMinus(el){
   if(!el) return;
+  _bumpInProgress = true;
   el.classList.remove('popMinus');
   void el.offsetWidth;
   el.classList.add('popMinus');
-  setTimeout(function(){ el.classList.remove('popMinus'); }, 550);
+  setTimeout(function(){ 
+    el.classList.remove('popMinus');
+    _bumpInProgress = false;
+  }, 550);
 }
 
 export function handleScoreBump(prevScore, newScore, element){
