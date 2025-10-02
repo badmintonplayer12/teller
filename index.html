@@ -22,10 +22,29 @@ vNext highlights
 - Scrollbars hidden in match view; autoscale digits; glow animations; set swap & autoswap @11 in set 3
 -->
 
+<style>
+/* Prevent splash from showing at all for match URLs - pure CSS solution */
+body[data-match-mode] {
+  overflow: visible !important;
+}
+
+body[data-match-mode] #splashMask {
+  display: none !important;
+}
+
+/* Ultra-aggressive fallback */
+body.splash-open.no-splash {
+  overflow: visible !important;
+}
+
+body.splash-open.no-splash #splashMask {
+  display: none !important;
+}
+</style>
 </head>
 <body class="splash-open">
 
-<script>
+<script data-match-url data-hide-splash>
 // Early router: Hide splash immediately for direct match links
 (function(){
   try {
@@ -34,12 +53,25 @@ vNext highlights
     var game = params.get('game');
     
     if (mode && game && (mode === 'spectator' || mode === 'counter' || mode === 'cocounter')) {
-      // Remove splash classes immediately
+      // ULTRA-AGGRESSIVE: Set data attribute BEFORE any DOM manipulation
+      document.body.setAttribute('data-match-mode', mode);
+      
+      // Remove splash classes and hide mask immediately
       document.body.classList.remove('splash-open');
-      // Hide splash mask when DOM is ready
+      document.body.classList.add('no-splash');
+      
+      var splashMask = document.getElementById('splashMask');
+      if (splashMask) {
+        splashMask.style.display = 'none';
+        splashMask.classList.remove('show');
+        splashMask.setAttribute('aria-hidden', 'true');
+      }
+      
+      // Triple backup: Ensure splash stays hidden
       document.addEventListener('DOMContentLoaded', function() {
         var splashMask = document.getElementById('splashMask');
         if (splashMask) {
+          splashMask.style.display = 'none';
           splashMask.classList.remove('show');
           splashMask.setAttribute('aria-hidden', 'true');
         }

@@ -188,6 +188,20 @@ export function startMatchFlow(opts){
         if(state.ui) state.ui.nextNavHint = null;
         return;
       }
+      
+      // Navigate to match URL for refresh support when continuing match
+      try {
+        import('../services/firebase.js').then(function(firebaseModule) {
+          const gameId = firebaseModule.ensureGameId();
+          const mode = state.IS_COCOUNTER ? 'cocounter' : 'counter';
+          const matchUrl = firebaseModule.generateShareUrl(mode, gameId);
+          window.history.replaceState({}, '', matchUrl);
+          console.log('[CONTINUE MATCH] Navigated to match URL:', matchUrl);
+        });
+      } catch (e) {
+        console.warn('[CONTINUE MATCH] Failed to navigate to match URL:', e);
+      }
+      
       handledStart = true;
     }
 
@@ -857,6 +871,17 @@ function startNewMatch(opts){
   
   // Generate new game ID for new match to avoid permission conflicts
   generateNewGameId();
+  
+  // Navigate to match URL for refresh support
+  try {
+    import('../services/firebase.js').then(function(firebaseModule) {
+      const matchUrl = firebaseModule.generateShareUrl('counter', firebaseModule.ensureGameId());
+      window.history.replaceState({}, '', matchUrl);
+      console.log('[NEW MATCH] Navigated to match URL:', matchUrl);
+    });
+  } catch (e) {
+    console.warn('[NEW MATCH] Failed to navigate to match URL:', e);
+  }
   
   // Firebase should already be initialized from startMatchFlow
   // No need to set it up again here
