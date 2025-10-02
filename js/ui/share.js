@@ -5,6 +5,7 @@ import { loadScriptOnce } from '../util/loadScript.js';
 let getShareUrl = function(){ return location.href; };
 let qrReady = false;
 let qrLoading = false;
+let currentRole = 'spectator'; // Default role
 
 export function initShare(options){
   options = options || {};
@@ -18,7 +19,7 @@ export function initShare(options){
 
   var openSpectator = document.getElementById('btnOpenSpectator');
   if(openSpectator) openSpectator.addEventListener('click', function(){
-    window.open(getShareUrl(), '_blank');
+    window.open(getCurrentShareUrl(), '_blank');
   });
 
   var webShare = document.getElementById('btnWebShare');
@@ -26,27 +27,64 @@ export function initShare(options){
     if(navigator.share){
       webShare.style.display = 'inline-block';
       webShare.addEventListener('click', function(){
+        var title = currentRole === 'spectator' ? 'Tilskuervy' : 
+                     currentRole === 'cocounter' ? 'Medteller' : 'Teller';
         navigator.share({
-          title: 'Tilskuervy',
+          title: title,
           text: 'Badminton teller',
-          url: getShareUrl()
+          url: getCurrentShareUrl()
         }).catch(function(){});
       });
     }else{
       webShare.style.display = 'none';
     }
   }
+
+  // Setup role toggle listeners
+  setupRoleToggle();
 }
 
-export function openShare(){
-  var url = getShareUrl();
-  var box = document.getElementById('qrBox');
-  var urlEl = document.getElementById('shareUrl');
-  if(urlEl) urlEl.textContent = url;
-  if(box) box.innerHTML = '';
+function setupRoleToggle(){
+  var roleInputs = document.querySelectorAll('input[name="shareRole"]');
+  roleInputs.forEach(function(input){
+    input.addEventListener('change', function(){
+      if(this.checked){
+        currentRole = this.value;
+        updateShareContent();
+      }
+    });
+  });
+}
 
-  ensureQrLib(function(err){
-    if(!err && window.QRCode && box){
+function getCurrentShareUrl(){
+  var baseUrl = getShareUrl();
+  var url = new URL(baseUrl);
+  
+  // Set mode parameter based on current role
+  url.searchParams.set('mode', currentRole);
+  
+  return url.toString();
+}
+
+function updateShareContent(){
+  var url = getCurrentShareUrl();
+  var urlEl = document.getElementById('shareUrl');
+  var openBtn = document.getElementById('btnOpenSpectator');
+  
+  if(urlEl) urlEl.textContent = url;
+  
+  // Update button text based on role
+  if(openBtn) {
+    var btnText = currentRole === 'spectator' ? 'Åpne tilskuer' : 
+                  currentRole === 'cocounter' ? 'Åpne medteller' : 'Åpne teller';
+    openBtn.textContent = btnText;
+  }
+  
+  // Regenerate QR code with new URL
+  var box = document.getElementById('qrBox');
+  if(box) {
+    box.innerHTML = '';
+    if(window.QRCode){
       new QRCode(box, {
         text: url,
         width: 280,
@@ -55,6 +93,24 @@ export function openShare(){
         colorLight: '#0f172a',
         correctLevel: QRCode.CorrectLevel.Q
       });
+    }
+  }
+}
+
+export function openShare(){
+  // Reset to default role when opening
+  currentRole = 'spectator';
+  var spectatorRadio = document.querySelector('input[name="shareRole"][value="spectator"]');
+  if(spectatorRadio) spectatorRadio.checked = true;
+  
+  updateShareContent();
+  
+  var box = document.getElementById('qrBox');
+  if(box) box.innerHTML = '';
+
+  ensureQrLib(function(err){
+    if(!err && window.QRCode){
+      updateShareContent(); // This will generate QR code
     }else if(box){
       box.innerHTML = '<div style="color:#fbbf24;text-align:center">QR utilgjengelig ? bruk lenken under.</div>';
     }
@@ -97,9 +153,13 @@ function ensureQrLib(cb){
 // loadScriptOnce moved to js/util/loadScript.js
 
 function copyLink(){
-  var url = getShareUrl();
+  var url = getCurrentShareUrl();
   if(navigator.clipboard && window.isSecureContext){
-    navigator.clipboard.writeText(url).then(function(){ toast('Lenke kopiert'); });
+    navigator.clipboard.writeText(url).then(function(){ 
+      var toastMsg = currentRole === 'spectator' ? 'Tilskuer-lenke kopiert' : 
+                     currentRole === 'cocounter' ? 'Medteller-lenke kopiert' : 'Teller-lenke kopiert';
+      toast(toastMsg); 
+    });
   }else{
     try{
       var ta = document.createElement('textarea');
@@ -111,7 +171,9 @@ function copyLink(){
       ta.select();
       document.execCommand('copy');
       document.body.removeChild(ta);
-      toast('Lenke kopiert');
+      var toastMsg = currentRole === 'spectator' ? 'Tilskuer-lenke kopiert' : 
+                     currentRole === 'cocounter' ? 'Medteller-lenke kopiert' : 'Teller-lenke kopiert';
+      toast(toastMsg);
     }catch(_){
       toast('Kopier mislyktes');
     }

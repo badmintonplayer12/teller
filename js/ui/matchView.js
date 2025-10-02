@@ -9,10 +9,10 @@ import { hasActiveMatchState, getContinueLabel, isAtStart } from './session.js';
 import { setupSplash, showSplash, hideSplash, syncSplashButtons, setSplashContinueState } from './splash.js';
 import { setupTournamentSetup, showTournamentSetup } from './tournamentSetup.js';
 import { getGameRef, ensureGameId } from '../services/firebase.js';
-import { bindControlReadHandlers, unbindControlRead, setControlReadDependencies } from '../services/controlRead.js';
+import { bindFirebaseSync, unbindFirebaseSync, setFirebaseSyncDependencies } from '../services/firebaseSync.js';
+import { initWriteAccess, hasWriteAccess, claimWriteAccess, releaseWriteAccess, setWriteAccessDependencies, getWriteAccessStatus } from '../services/writeAccess.js';
 import { setupTournamentOverview, hideTournamentOverview, renderTournamentOverview } from './tournamentOverview.js';
 import { setupFirebase, pushStateThrottled, pushStateNow, spectatorShareUrl } from '../services/firebase.js';
-import { setSpectatorDependencies } from '../services/spectator.js';
 import { toast, setBodyScroll, $ } from '../dom.js';
 import { openModal, closeModal } from './modal.js';
 import { qs, on, toggle } from '../util/domUtils.js';
@@ -55,10 +55,10 @@ let boundHandlers = {
   keydown: null
 };
 
-// Control read state
-let _unsubControl = null;
+// Teller read state
+let _unsubCounter = null;
 
-// Cache DOM elements for performance (used by controlRead.js)
+// Cache DOM elements for performance (used by counterRead.js)
 const elA = document.getElementById('A_digits');
 const elB = document.getElementById('B_digits');
 
@@ -73,18 +73,48 @@ setLayoutDependencies({
   updateNameChips
 });
 
-// Gi kontroll-leseren tilgang til våre UI-oppdaterere (unngår window.*)
-setControlReadDependencies({
+// Gi teller-leseren tilgang til våre UI-oppdaterere (unngår window.*)
+setFirebaseSyncDependencies({
   updateScores,
   fitScores,
   handleScoreBump,
+  clearWinner,
   getSuppressUntil: (side) => _localBumpSuppress[side] || 0,
   startVisualSwap,
   setSidesDomTo
 });
 
+// Set up write access system
+setWriteAccessDependencies({
+  onWriteAccessChange: function(status) {
+    console.log('[WRITE ACCESS] Access changed:', status);
+    // Rebind Firebase with new write access status
+    if (state.IS_COUNTER) {
+      rebindFirebaseWithWriteAccess();
+    }
+  },
+  pushStateNow: () => pushStateNow(),
+  getGameRef: () => getGameRef()
+});
+
 let menuHandlers;
 let shareInitialized = false;
+
+// Helper function to rebind Firebase with current write access
+function rebindFirebaseWithWriteAccess(){
+  if (!state.IS_COUNTER) return;
+  
+  unbindFirebaseSync();
+  
+  var gid = ensureGameId();
+  var ref = getGameRef(gid);
+  if(ref){
+    var role = state.IS_COCOUNTER ? 'cocounter' : 'counter';
+    var canWrite = hasWriteAccess();
+    console.log('[WRITE ACCESS] Rebinding Firebase - role:', role, 'canWrite:', canWrite);
+    _unsubCounter = bindFirebaseSync({ role, ref, canWrite });
+  }
+}
 
 export function mount(){
   setupMenu({ isSpectator: state.IS_SPECTATOR });
@@ -108,7 +138,6 @@ export function mount(){
   setupTournamentOverview();
 
   setupFirebase({ updateScores });
-  setSpectatorDependencies({ updateScores });
 
   if(state.IS_SPECTATOR){
     document.body.classList.remove('areas-active');
@@ -318,13 +347,14 @@ export function enterMatch(){
   
   bindCoreEvents();
   
-  // Bind control read handlers for live updates
-  if(!state.IS_SPECTATOR) {
-    var gid = ensureGameId();
-    var ref = getGameRef(gid);
-    if(ref){
-      _unsubControl = bindControlReadHandlers(ref);
-    }
+  // Initialize write access system
+  if(state.IS_COUNTER) {
+    initWriteAccess();
+  }
+  
+  // Bind teller read handlers for live updates
+  if(state.IS_COUNTER) {
+    rebindFirebaseWithWriteAccess();
   }
   
   isMatchBound = true;
@@ -353,14 +383,14 @@ export function exitMatch(){
     document.removeEventListener('keydown', boundHandlers.keydown);
   }
   
-  // Clean up control read handlers
+  // Clean up teller read handlers
   try { 
-    if (_unsubControl) _unsubControl(); 
+    if (_unsubCounter) _unsubCounter(); 
   } catch(e){}
   try { 
-    unbindControlRead(); 
+    unbindFirebaseSync(); 
   } catch(e){}
-  _unsubControl = null;
+  _unsubCounter = null;
   
   // Reset state
   isMatchBound = false;
@@ -524,7 +554,7 @@ function updateScores(){
   // Update tournament action buttons
   updateTournamentActionButtons();
   
-  // Bump effects handled by controlRead.js for live updates
+  // Bump effects handled by counterRead.js for live updates
   // Local bump logic removed to prevent double bump
   
   saveState();
@@ -533,6 +563,12 @@ function updateScores(){
 
 function addPoint(side){
   if(!state.allowScoring || state.locked || state.swapping || state.IS_SPECTATOR) return;
+  
+  // Check write access for counter/cocounter
+  if(state.IS_COUNTER && !hasWriteAccess()) {
+    toast('Du har ikke skrivetilgang. Klikk "Ta kontroll" for å telle poeng.');
+    return;
+  }
   
   var oldScore = side === 'A' ? state.scoreA : state.scoreB;
   if(side === 'A') state.scoreA++; else state.scoreB++;
@@ -558,6 +594,12 @@ function addPoint(side){
 
 function removePoint(side){
   if(!state.allowScoring || state.locked || state.swapping || state.IS_SPECTATOR) return;
+  
+  // Check write access for counter/cocounter
+  if(state.IS_COUNTER && !hasWriteAccess()) {
+    toast('Du har ikke skrivetilgang. Klikk "Ta kontroll" for å telle poeng.');
+    return;
+  }
   
   var oldScore = side === 'A' ? state.scoreA : state.scoreB;
   if(side === 'A' && state.scoreA > 0) state.scoreA--;
@@ -777,6 +819,17 @@ function startNewMatch(opts){
     currentSet: state.currentSet, playMode: state.playMode
   });
   
+  // ELEGANT: When starting new match from splash, ensure user becomes counter (not cocounter)
+  if (!skipSplash && window.location.search.includes('mode=cocounter')) {
+    console.log('[STATE RESET] Removing cocounter mode from URL for new match');
+    const url = new URL(window.location);
+    url.searchParams.delete('mode');
+    window.history.replaceState({}, '', url.toString());
+    // Reload to apply new mode
+    window.location.reload();
+    return;
+  }
+  
   // Tøm lagret live-state for å unngå at locked/betweenSets lekker inn i ny kamp
   // (clearLiveState lar turneringsdata stå, hvis playMode === 'tournament')
   clearLiveState();
@@ -814,15 +867,14 @@ function startNewMatch(opts){
   
   // ELEGANT: Temporarily disable Firebase reads during reset to prevent race condition
   console.log('[STATE RESET] Temporarily disabling Firebase reads during reset');
-  unbindControlRead();
+  unbindFirebaseSync();
   
   console.log('[STATE RESET] Pushing reset state to Firebase');
   
   const reEnableFirebaseReads = () => {
     console.log('[STATE RESET] Re-enabling Firebase reads');
-    if(typeof getGameRef === 'function') {
-      const ref = getGameRef();
-      if(ref) bindControlReadHandlers(ref);
+    if(state.IS_COUNTER) {
+      rebindFirebaseWithWriteAccess();
     }
   };
   
@@ -1122,7 +1174,21 @@ function buildMenuHandlers(){
     onTournamentOverview: state.playMode === 'tournament' ? () => showTournamentOverview() : undefined,
     onFinishMatch: state.playMode === 'tournament' ? () => openFinishDialog() : undefined,
     onOpenDashboard: state.playMode === 'tournament' ? () => openDashboard() : undefined,
-    onOpenControl: () => openControlTab(),
+    onOpenCounter: () => openCounterTab(),
+    onClaimWrite: state.IS_COUNTER ? () => {
+      if(claimWriteAccess()) {
+        toast('Du har nå skrivetilgang');
+      } else {
+        toast('Du har allerede skrivetilgang');
+      }
+    } : undefined,
+    onReleaseWrite: state.IS_COUNTER ? () => {
+      if(releaseWriteAccess()) {
+        toast('Skrivetilgang frigitt');
+      } else {
+        toast('Du har ikke skrivetilgang å frigi');
+      }
+    } : undefined,
     onBackToMatch: () => {
       showMatch();
       state.VIEW_MODE = 'match';
@@ -1154,8 +1220,8 @@ function openDashboard(){
   });
 }
 
-function openControlTab(){
-  // Get game ID and open new control tab
+function openCounterTab(){
+  // Get game ID and open new teller tab
   var gameId = ensureGameId();
   if(!gameId) return;
   

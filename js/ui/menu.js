@@ -63,12 +63,15 @@ export function renderMenu(mode, handlers){
   if(mode === 'match'){
     html += menuItem('miNewMatch', '🏠 Til start', menuHandlers.onNewMatch);
     html += menuItem('miShare', '🔗 Del…', menuHandlers.onShare);
-    html += menuItem('miOpenControl', '📱 Åpne kontroll i ny fane', menuHandlers.onOpenControl);
+    html += menuItem('miOpenCounter', '📱 Åpne teller i ny fane', menuHandlers.onOpenCounter);
     html += menuItem('miTournamentOverview', '📋 Kampoversikt', menuHandlers.onTournamentOverview);
     html += menuItem('miOpenDashboard', '📺 Åpne kampoversikt i ny fane', menuHandlers.onOpenDashboard);
     html += menuItem('miFinishMatch', '✅ Ferdigstill kamp', menuHandlers.onFinishMatch);
     html += menuItem('miResetSet', '♻️ Nullstill sett', menuHandlers.onResetSet);
     html += menuItem('miSwap', '⇄ Bytt side', menuHandlers.onSwap);
+    html += '<div class="menuHR"></div>';
+    html += menuItem('miClaimWrite', '✋ Ta kontroll', menuHandlers.onClaimWrite);
+    html += menuItem('miReleaseWrite', '🤝 Frigi kontroll', menuHandlers.onReleaseWrite);
     html += '<div class="menuHR"></div>';
     html += menuItem('miEditNames', '✏️ Rediger spillernavn', menuHandlers.onEditNames);
     html += menuItem('miClearStorage', '🗑️ Nullstill lagret data', menuHandlers.onClear);
@@ -120,7 +123,9 @@ function handlerIdFor(key){
     case 'onFinishMatch': return 'miFinishMatch';
     case 'onBackToMatch': return 'miBackToMatch';
     case 'onOpenDashboard': return 'miOpenDashboard';
-    case 'onOpenControl': return 'miOpenControl';
+    case 'onOpenCounter': return 'miOpenCounter';
+    case 'onClaimWrite': return 'miClaimWrite';
+    case 'onReleaseWrite': return 'miReleaseWrite';
     default: return null;
   }
 }

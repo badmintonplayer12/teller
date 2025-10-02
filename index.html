@@ -194,9 +194,26 @@ vNext highlights
 <div id="shareMask" role="dialog" aria-modal="true" aria-labelledby="shareTitle">
   <div id="shareCard">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
-      <div id="shareTitle" style="font-weight:700">Del tilskuervy</div>
+      <div id="shareTitle" style="font-weight:700">Del kamp</div>
       <button id="shareClose" class="btn btn--ghost" aria-label="Lukk">✕</button>
     </div>
+    
+    <!-- Role toggle -->
+    <div style="display:flex;align-items:center;justify-content:center;margin-bottom:1rem;gap:0.5rem;flex-wrap:wrap">
+      <label style="display:flex;align-items:center;gap:0.25rem;cursor:pointer">
+        <input type="radio" name="shareRole" value="spectator" checked style="margin:0">
+        <span>👥 Tilskuer</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:0.25rem;cursor:pointer">
+        <input type="radio" name="shareRole" value="counter" style="margin:0">
+        <span>📱 Teller</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:0.25rem;cursor:pointer">
+        <input type="radio" name="shareRole" value="cocounter" style="margin:0">
+        <span>📱 Medteller</span>
+      </label>
+    </div>
+    
     <div id="qrBox" aria-label="QR-kode"></div>
     <div style="text-align:center;word-break:break-all;margin-top:.25rem;font-size:.85rem;color:#93c5fd" id="shareUrl"></div>
     <div class="shareRow">

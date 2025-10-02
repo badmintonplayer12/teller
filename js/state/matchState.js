@@ -1,7 +1,7 @@
 import { LS } from '../constants.js';
 import { qs } from '../dom.js';
 
-const MODE = (qs('mode') || 'control').toLowerCase();
+const MODE = (qs('mode') || 'counter').toLowerCase();
 
 export const state = {
   scoreA: 0,
@@ -24,6 +24,8 @@ export const state = {
   playMode: 'singleMatch',
   VIEW_MODE: 'match',
   IS_SPECTATOR: MODE === 'spectator',
+  IS_COUNTER: MODE === 'counter' || MODE === 'cocounter',
+  IS_COCOUNTER: MODE === 'cocounter',
   tournamentData: { name: '', participants: [], matches: [], locked: false },
   ui: { nextNavHint: null }
 };
@@ -246,11 +248,11 @@ export function restoreLiveState(options){
   }
 }
 
-export function clearLiveState(){
+export function clearLiveState(force = false){
   try{
     localStorage.removeItem(LS.LIVE);
-    // Only clear tournament data if not in tournament mode
-    if(state.playMode !== 'tournament'){
+    // Only clear tournament data if not in tournament mode, unless forced
+    if(force || state.playMode !== 'tournament'){
       state.tournamentData = null;
     }
   }catch(_){ }

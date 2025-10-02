@@ -45,6 +45,9 @@ Denne filen føres KUN for **refaktorering/rydding** (ikke features). Etter hver
 > Legg nederst i tabellen, nyeste først.
 
 ```
+| 2025-01-02 | ~6280 | Refactor-17: Firebase konsolidering spectator+counterRead → firebaseSync | Konsoliderte spectator.js og counterRead.js til én firebaseSync.js med rolle-basert oppførsel og eliminert duplikasjon |
+| 2025-01-02 | ~6280 | Refactor-16: Navngiving controller → counter/teller | Erstattet "control/controller" med "counter" (kode) og "teller" (GUI) for badminton-spesifikt språk |
+| 2025-01-02 | ~6280 | Refactor-15: Swap suppression - timing til disable/enable | Fjernet timing-basert suppression, erstattet med robust disable/enable pattern |
 | 2025-01-27 | 6270 | Refactor-14: Konsolider bump-logikk | Laget handleScoreBump() for å fjerne duplisering av bump-effekter |
 | 2024-12-19 | 5146 | Fix-09: Spectator vinnerglød | Rettet spectator til å vise vinnerglød basert på sett-telling i stedet for msg |
 | 2024-12-19 | 5124 | Refactor-17: DOM-helper utilities | Laget js/util/domUtils.js med qs/on/toggle helpers og byttet mikro-snutter |

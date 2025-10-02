@@ -1,4 +1,4 @@
-﻿import { state } from '../state/matchState.js';
+﻿import { state, clearLiveState } from '../state/matchState.js';
 // (fjernet ubrukte imports)
 import { openModal, closeModal } from './modal.js';
 import { hasActiveMatchState, getContinueLabel } from './session.js';
@@ -260,6 +260,27 @@ export function setupTournamentSetup(){
 
 function saveTournamentParticipants(){
   if(!list) return;
+  
+  // ELEGANT: Clear any existing match state before creating tournament
+  // This prevents single match data from leaking into tournament mode
+  console.log('[TOURNAMENT SETUP] Clearing existing match state before tournament creation');
+  
+  // Reset match state to clean slate
+  state.scoreA = 0;
+  state.scoreB = 0;
+  state.setsA = 0;
+  state.setsB = 0;
+  state.currentSet = 1;
+  state.swappedAt11 = false;
+  state.locked = false;
+  state.betweenSets = false;
+  state.pendingSetWinner = null;
+  state.setHistory = [];
+  state.allowScoring = false;
+  state.nameEditMode = false;
+  
+  // Clear localStorage to prevent restoration of old single match data
+  clearLiveState(true); // Force clear even in tournament mode
   
   // Get all participant names
   const participants = Array.from(list.querySelectorAll('.participantInput')).map(function(input){

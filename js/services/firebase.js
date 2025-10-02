@@ -1,7 +1,7 @@
 import { state, getDisplayName } from '../state/matchState.js';
 import { qs } from '../dom.js';
 import { readABFromModalInputs } from '../ui/layout.js';
-import { setSpectatorDependencies, bindSpectatorHandlers } from './spectator.js';
+import { setFirebaseSyncDependencies, bindFirebaseSync } from './firebaseSync.js';
 import { LS } from '../constants.js';
 import { loadScript } from '../util/loadScript.js';
 
@@ -80,7 +80,7 @@ export function getStateForSync(){
 export function setupFirebase(options){
   options = options || {};
   if(state.IS_SPECTATOR && typeof options.updateScores === 'function'){
-    setSpectatorDependencies({ updateScores: options.updateScores });
+    setFirebaseSyncDependencies({ updateScores: options.updateScores });
   }
 
   loadScript('https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js')
@@ -127,7 +127,7 @@ function afterSDK(){
         return;
       }
       var ref = db.ref('games/' + gid);
-      bindSpectatorHandlers(ref);
+      bindFirebaseSync({ role: 'spectator', ref, canWrite: false });
     }else{
       var gid = ensureGameId();
       var ref = db.ref('games/' + gid);
