@@ -176,7 +176,16 @@ export function syncSplashButtons(){
 }
 
 export function showSplash(){
-  if(!ensureElements()) return;
+  if(!ensureElements()) {
+    console.error('[SPLASH] Critical error: splashMask element not found in DOM');
+    return;
+  }
+  
+  // Remove any CSS hiding that might be applied from match mode
+  splashMask.style.display = '';
+  document.body.classList.remove('no-splash');
+  document.body.removeAttribute('data-match-mode');
+  
   splashMask.classList.add('show');
   splashMask.setAttribute('aria-hidden', 'false');
   document.body.classList.add('splash-open');

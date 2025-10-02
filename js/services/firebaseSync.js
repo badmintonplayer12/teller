@@ -176,7 +176,28 @@ export function bindFirebaseSync(options){
       state.nameA = v.names.A;
       state.nameB = v.names.B;
     }
-    if (v.format) state.format = v.format;
+    if (v.format) {
+      state.format = v.format;
+      // Update match discipline and play mode from format data
+      if (v.format.discipline && v.format.discipline !== state.matchDiscipline) {
+        console.log('[FIREBASE SYNC] Updating matchDiscipline from', state.matchDiscipline, 'to', v.format.discipline);
+        state.matchDiscipline = v.format.discipline;
+        // Update UI to reflect discipline change - use setTimeout to avoid timing issues
+        if (typeof window.updateModalLayout === 'function') {
+          setTimeout(() => {
+            try {
+              window.updateModalLayout();
+            } catch(error) {
+              console.warn('[FIREBASE SYNC] Failed to update modal layout:', error);
+            }
+          }, 100);
+        }
+      }
+      if (v.format.playMode && v.format.playMode !== state.playMode) {
+        console.log('[FIREBASE SYNC] Updating playMode from', state.playMode, 'to', v.format.playMode);
+        state.playMode = v.format.playMode;
+      }
+    }
     if (typeof v.msg !== 'undefined') state.msg = v.msg;
     
     // Update current writer (for counter/cocounter roles)
@@ -194,9 +215,11 @@ export function bindFirebaseSync(options){
       try { _setSidesDomTo(nextIsALeft); } catch(_){}
     } else if(prev.isALeft !== nextIsALeft){
       // Side swap detected
+      console.log('[SWAP DEBUG] Side swap detected - prev.isALeft:', prev.isALeft, 'nextIsALeft:', nextIsALeft, 'role:', role, '_swapInProgress:', _swapInProgress, 'state.swapping:', state.swapping);
+      
       if (role === 'spectator') {
         try { _startVisualSwap(); } catch(_){}
-      } else if ((role === 'counter' || role === 'cocounter') && !_swapInProgress) {
+      } else if ((role === 'counter' || role === 'cocounter') && !_swapInProgress && !state.swapping) {
         // Counter role: use disable/enable pattern to prevent loops
         console.log('[SWAP DEBUG] Side swap detected - executing with disable/enable pattern');
         _swapInProgress = true;

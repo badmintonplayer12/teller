@@ -19,6 +19,7 @@ Dette dokumentet definerer de grunnleggende prinsippene for hvordan kode skal sk
 - **Race condition-patches** - redesign for å eliminere racet
 - **Timing-avhengig kode** - bruk promises/callbacks i stedet
 - **Cross-module koordinering** - reduser avhengigheter
+- **Jallakode** - retry-logikk, multiple fallbacks, bandasjer over åpenbare problemer
 
 ---
 
@@ -103,6 +104,46 @@ if (result?.then) {
 setTimeout(onSuccess, 200); // Hva hvis det tar lengre tid?
 ```
 
+### **Anti-Pattern: Jallakode**
+```javascript
+// ❌ Jallakode: Retry-logikk og multiple fallbacks
+function showSplash() {
+  if (!elementsReady()) {
+    setTimeout(showSplash, 100); // Retry-logikk
+    return;
+  }
+  // Multiple fallbacks
+  try {
+    showSplashInternal();
+  } catch (error) {
+    setTimeout(() => {
+      try {
+        showSplashInternal();
+      } catch (retryError) {
+        console.error('Retry failed:', retryError);
+      }
+    }, 200);
+  }
+}
+
+// ✅ Elegant: Fiks rotårsaken
+function showSplash() {
+  // Remove CSS hiding that prevents splash from showing
+  splashMask.style.display = '';
+  document.body.classList.remove('no-splash');
+  document.body.removeAttribute('data-match-mode');
+  
+  splashMask.classList.add('show');
+}
+```
+
+**Jallakode-indikatorer:**
+- **Retry-logikk** med setTimeout/retry loops
+- **Multiple fallbacks** som prøver samme ting på nytt
+- **Error swallowing** med tomme catch-blokker
+- **Timing-patches** som prøver å "få timing til å fungere"
+- **Bandasjer** over åpenbare problemer i stedet for å fikse årsaken
+
 ---
 
 ## 📋 Code Review Checklist
@@ -113,6 +154,7 @@ Ved code review, spør:
 - [ ] Er dette den enkleste løsningen som fungerer?
 - [ ] Kan kompleksiteten reduseres uten å miste funksjonalitet?
 - [ ] Er årsak-virkning-forholdet tydelig?
+- [ ] Er det jallakode? (retry-logikk, multiple fallbacks, bandasjer)
 
 ### **Robusthet**
 - [ ] Håndteres edge cases og feil eksplisitt?
@@ -146,6 +188,27 @@ if(elA?.classList.contains('pop') || elB?.classList.contains('pop')) return;
 
 // Etter (elegant): Global flag
 if(_bumpInProgress) return;
+```
+
+### **Bra refaktorering: "Til start" jallakode → elegant løsning**
+```javascript
+// Før (jallakode): Retry-logikk og multiple fallbacks
+function showSplash() {
+  if (!ensureElements()) {
+    setTimeout(showSplash, 100); // Retry-logikk
+    return;
+  }
+  // Multiple fallbacks og error handling...
+}
+
+// Etter (elegant): Fiks rotårsaken
+function showSplash() {
+  // Remove CSS hiding that prevents splash from showing
+  splashMask.style.display = '';
+  document.body.classList.remove('no-splash');
+  document.body.removeAttribute('data-match-mode');
+  splashMask.classList.add('show');
+}
 ```
 
 ---
