@@ -8,7 +8,7 @@ import { setupMenu, renderMenu } from './menu.js';
 import { hasActiveMatchState, getContinueLabel, isAtStart } from './session.js';
 import { setupSplash, showSplash, hideSplash, syncSplashButtons, setSplashContinueState } from './splash.js';
 import { setupTournamentSetup, showTournamentSetup } from './tournamentSetup.js';
-import { getGameRef, ensureGameId } from '../services/firebase.js';
+import { getGameRef, ensureGameId, generateNewGameId } from '../services/firebase.js';
 import { bindFirebaseSync, unbindFirebaseSync, setFirebaseSyncDependencies } from '../services/firebaseSync.js';
 import { initWriteAccess, hasWriteAccess, claimWriteAccess, releaseWriteAccess, setWriteAccessDependencies, getWriteAccessStatus } from '../services/writeAccess.js';
 import { setupTournamentOverview, hideTournamentOverview, renderTournamentOverview } from './tournamentOverview.js';
@@ -137,7 +137,15 @@ export function mount(){
   setupTournamentSetup();
   setupTournamentOverview();
 
-  setupFirebase({ updateScores });
+  // Only setup Firebase if we're not just showing splash
+  // Check if we have URL parameters that indicate we need Firebase
+  const urlParams = new URLSearchParams(window.location.search);
+  const hasGameParam = urlParams.has('game');
+  const hasMode = urlParams.has('mode');
+  
+  if (hasGameParam || hasMode || state.IS_SPECTATOR || !document.body.classList.contains('splash-open')) {
+    setupFirebase({ updateScores });
+  }
 
   if(state.IS_SPECTATOR){
     document.body.classList.remove('areas-active');
@@ -156,7 +164,17 @@ export function startMatchFlow(opts){
   const restored = !!opts.restored;
   const skipSplash = !!opts.skipSplash;
   const continueMatch = !!opts.continueMatch;
+  const directJoin = !!opts.directJoin; // Joining via shared URL
+  const fromSplash = !!opts.fromSplash; // Started from splash screen
   let handledStart = false;
+  
+  // Setup Firebase when starting from splash (if not already done)
+  if (fromSplash && !window.firebase) {
+    console.log('[MATCH FLOW] Setting up Firebase from splash');
+    setupFirebase({ updateScores });
+  } else if (fromSplash && window.firebase) {
+    console.log('[MATCH FLOW] Firebase already initialized, skipping setup');
+  }
 
   if(!state.IS_SPECTATOR){
     if(continueMatch){
@@ -185,6 +203,12 @@ export function startMatchFlow(opts){
       handledStart = true;
     }
 
+    // Handle direct join via shared URL - enable scoring immediately
+    if(directJoin && !state.IS_SPECTATOR){
+      state.allowScoring = true;
+      handledStart = true;
+    }
+    
     if(!handledStart && !state.allowScoring){
       showNameModal(true);
     }
@@ -562,12 +586,18 @@ function updateScores(){
 
 
 function addPoint(side){
-  if(!state.allowScoring || state.locked || state.swapping || state.IS_SPECTATOR) return;
+  // Workflow checks: Is match ready for scoring?
+  if(!state.allowScoring || state.locked || state.swapping) return;
   
-  // Check write access for counter/cocounter
-  if(state.IS_COUNTER && !hasWriteAccess()) {
-    toast('Du har ikke skrivetilgang. Klikk "Ta kontroll" for å telle poeng.');
-    return;
+  // Security check: Does user have write access? (handles spectator + counter/cocounter)
+  if(!hasWriteAccess()) {
+    if(state.IS_SPECTATOR) {
+      // Spectators shouldn't even see score buttons, but just in case
+      return;
+    } else {
+      toast('Du har ikke skrivetilgang. Klikk "Ta kontroll" for å telle poeng.');
+      return;
+    }
   }
   
   var oldScore = side === 'A' ? state.scoreA : state.scoreB;
@@ -593,12 +623,18 @@ function addPoint(side){
 }
 
 function removePoint(side){
-  if(!state.allowScoring || state.locked || state.swapping || state.IS_SPECTATOR) return;
+  // Workflow checks: Is match ready for scoring?
+  if(!state.allowScoring || state.locked || state.swapping) return;
   
-  // Check write access for counter/cocounter
-  if(state.IS_COUNTER && !hasWriteAccess()) {
-    toast('Du har ikke skrivetilgang. Klikk "Ta kontroll" for å telle poeng.');
-    return;
+  // Security check: Does user have write access? (handles spectator + counter/cocounter)
+  if(!hasWriteAccess()) {
+    if(state.IS_SPECTATOR) {
+      // Spectators shouldn't even see score buttons, but just in case
+      return;
+    } else {
+      toast('Du har ikke skrivetilgang. Klikk "Ta kontroll" for å telle poeng.');
+      return;
+    }
   }
   
   var oldScore = side === 'A' ? state.scoreA : state.scoreB;
@@ -819,14 +855,20 @@ function startNewMatch(opts){
     currentSet: state.currentSet, playMode: state.playMode
   });
   
+  // Generate new game ID for new match to avoid permission conflicts
+  generateNewGameId();
+  
+  // Firebase should already be initialized from startMatchFlow
+  // No need to set it up again here
+  console.log('[NEW MATCH] Firebase status:', !!window.firebase);
+  
   // ELEGANT: When starting new match from splash, ensure user becomes counter (not cocounter)
   if (!skipSplash && window.location.search.includes('mode=cocounter')) {
     console.log('[STATE RESET] Removing cocounter mode from URL for new match');
-    const url = new URL(window.location);
-    url.searchParams.delete('mode');
-    window.history.replaceState({}, '', url.toString());
-    // Reload to apply new mode
-    window.location.reload();
+    // Use router function instead of direct reload
+    import('../main.js').then(function(module) {
+      module.navigateToCounterMode();
+    });
     return;
   }
   

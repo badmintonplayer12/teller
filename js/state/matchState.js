@@ -17,7 +17,7 @@ export const state = {
   betweenSets: false,
   pendingSetWinner: null,
   setHistory: [],
-  allowScoring: false,
+  allowScoring: false, // Workflow: false = setup/name-editing, true = active match
   role: 'writer', // TODO: Implement proper role-gating in later PR
   nameEditMode: false,
   matchDiscipline: 'single',

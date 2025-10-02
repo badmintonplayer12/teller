@@ -25,6 +25,32 @@ vNext highlights
 </head>
 <body class="splash-open">
 
+<script>
+// Early router: Hide splash immediately for direct match links
+(function(){
+  try {
+    var params = new URL(location.href).searchParams;
+    var mode = params.get('mode');
+    var game = params.get('game');
+    
+    if (mode && game && mode !== 'dashboard') {
+      // Remove splash classes immediately
+      document.body.classList.remove('splash-open');
+      // Hide splash mask when DOM is ready
+      document.addEventListener('DOMContentLoaded', function() {
+        var splashMask = document.getElementById('splashMask');
+        if (splashMask) {
+          splashMask.classList.remove('show');
+          splashMask.setAttribute('aria-hidden', 'true');
+        }
+      });
+    }
+  } catch(e) {
+    // Ignore errors in URL parsing
+  }
+})();
+</script>
+
 <div id="sets" aria-live="polite">Sett: 0-0</div>
 
   <div id="splashMask" class="splashMask show" aria-hidden="false">

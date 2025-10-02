@@ -11,6 +11,7 @@ let pushStateNow = function(){};
 // Echo-guard memory
 let lastWrite = null;
 let firebaseDb = null;
+let isLocalOnlyMode = false;
 
 export { pushStateThrottled, pushStateNow };
 
@@ -46,7 +47,7 @@ export function getLastWrite() {
   return lastWrite;
 }
 
-export function getStateForSync(){
+export async function getStateForSync(includeHostUid = false){
   var names = readABFromModalInputs();
   
   // Convert names to sync format
@@ -54,7 +55,6 @@ export function getStateForSync(){
   
   var base = {
     ts: Date.now(),
-    hostUid: (window.firebase && firebase.auth && firebase.auth().currentUser ? firebase.auth().currentUser.uid : null),
     names: syncNames,
     scores: { A: state.scoreA, B: state.scoreB },
     sets: { A: state.setsA, B: state.setsB },
@@ -63,6 +63,20 @@ export function getStateForSync(){
     online: true,
     format: { discipline: state.matchDiscipline, playMode: state.playMode }
   };
+  
+  // Include hostUid for new game creation, or preserve existing hostUid
+  if (includeHostUid && window.firebase && firebase.auth && firebase.auth().currentUser) {
+    // For new game creation: set hostUid to current user
+    base.hostUid = firebase.auth().currentUser.uid;
+  } else {
+    // For regular updates: don't overwrite hostUid (it should remain unchanged)
+    // This prevents cocounter from overwriting counter's hostUid
+    // hostUid is omitted from regular sync data
+  }
+  
+  // Don't include currentWriter in regular sync data
+  // The currentWriter field is managed separately by writeAccess.js
+  // to avoid race conditions between releases and throttled writes
   
   // Add tournament snapshot for dashboard
   var td = state.tournamentData;
@@ -109,13 +123,16 @@ function afterSDK(){
 
   if(!firebase.apps.length) firebase.initializeApp(conf);
 
-  firebase.auth().onAuthStateChanged(function(user){
+  firebase.auth().onAuthStateChanged(async function(user){
     if(!user){
       firebase.auth().signInAnonymously().catch(function(err){
         console.warn('Anon auth feilet', err);
       });
       return;
     }
+    
+    console.log('[FIREBASE] User authenticated:', user.uid);
+    console.log('[FIREBASE] User is anonymous:', user.isAnonymous);
 
     var db = firebase.database();
     firebaseDb = db; // Store for mutations.js
@@ -135,23 +152,87 @@ function afterSDK(){
 
       pushStateThrottled = function(){
         clearTimeout(timeout);
-        timeout = setTimeout(function(){
-          ref.set(getStateForSync());
+        timeout = setTimeout(async function(){
+          var dataToSync = await getStateForSync();
+          console.log('[FIREBASE DEBUG] Throttled write attempt:', {
+            gameId: gid,
+            hostUid: dataToSync.hostUid,
+            scores: dataToSync.scores,
+            currentWriter: dataToSync.currentWriter
+          });
+          ref.set(dataToSync).then(function() {
+            // Clear error state on successful write
+            import('./firebaseSync.js').then(function(module) {
+              module.clearFirebaseWriteErrors();
+            });
+          }).catch(function(error) {
+            console.warn('[FIREBASE] Throttled push failed:', error);
+            // Report error to suppress conflicting reads
+            import('./firebaseSync.js').then(function(module) {
+              module.reportFirebaseWriteError(error);
+            });
+          });
         }, 180);
       };
 
-      pushStateNow = function(){
+      pushStateNow = async function(){
         clearTimeout(timeout);
-        return ref.set(getStateForSync());
+        var dataToSync = await getStateForSync();
+        console.log('[FIREBASE DEBUG] Attempting to write data:', {
+          gameId: gid,
+          hostUid: dataToSync.hostUid,
+          scores: dataToSync.scores,
+          currentWriter: dataToSync.currentWriter
+        });
+        return ref.set(dataToSync).then(function() {
+          // Clear error state on successful write
+          import('./firebaseSync.js').then(function(module) {
+            module.clearFirebaseWriteErrors();
+          });
+        }).catch(function(error) {
+          console.warn('[FIREBASE] Push now failed:', error);
+          // Report error to suppress conflicting reads
+          import('./firebaseSync.js').then(function(module) {
+            module.reportFirebaseWriteError(error);
+          });
+          throw error; // Re-throw for caller handling
+        });
       };
 
-      db.ref('games/' + gid + '/online').onDisconnect().set(false);
-      db.ref('games/' + gid + '/online').set(true);
+      // Online status is already included in main game data (getStateForSync)
+      // Set disconnect handler only
+      db.ref('games/' + gid + '/online').onDisconnect().set(false).catch(function(error) {
+        console.warn('[FIREBASE INIT] Failed to set disconnect handler:', error);
+        // Don't enable local-only mode for disconnect handler failures
+      });
       
       // TODO: Migrate to mutations.js in later PR
-      // Guard: Only push initial state if we have writer role
-      if (state.role === 'writer') {
-        pushStateNow();
+      // Guard: Only push initial state if we're the counter (not cocounter/spectator) AND user is authenticated
+      if (!state.IS_SPECTATOR && !state.IS_COCOUNTER && user && user.uid) {
+        console.log('[FIREBASE INIT] Setting up new game with hostUid:', user.uid);
+        
+        // Create initial game data with hostUid in one atomic write
+        // This satisfies Firebase rules that require hostUid to be set when creating the node
+        var initialData = await getStateForSync(true); // Include hostUid for new game creation
+        
+        // Set initial currentWriter to null - writeAccess.js will manage it separately
+        initialData.currentWriter = null;
+        
+        console.log('[FIREBASE INIT] Creating game with data:', {
+          hostUid: initialData.hostUid,
+          names: initialData.names,
+          scores: initialData.scores,
+          currentWriter: initialData.currentWriter
+        });
+        
+        ref.set(initialData).then(function() {
+          console.log('[FIREBASE INIT] Initial game data set successfully');
+        }).catch(function(error) {
+          console.warn('[FIREBASE INIT] Failed to initialize game:', error);
+          // If we can't write to this game ID, it might be a permission issue
+          // Enable local-only mode until Firebase works
+          enableLocalOnlyMode(error);
+        });
       }
     }
   });
@@ -171,6 +252,20 @@ export function ensureGameId(){
     if(cur) return cur;
     var g = makeId(9);
     localStorage.setItem(LS.GAME_ID, g);
+    return g;
+  }catch(_){
+    return 'LOCALTEST';
+  }
+}
+
+/**
+ * Generate a new game ID and store it (for new matches)
+ */
+export function generateNewGameId(){
+  try{
+    var g = makeId(9);
+    localStorage.setItem(LS.GAME_ID, g);
+    console.log('[FIREBASE] Generated new game ID:', g);
     return g;
   }catch(_){
     return 'LOCALTEST';
@@ -207,6 +302,52 @@ export function spectatorShareUrl(){
   }catch(_){
     return location.origin + location.pathname + '?mode=spectator&game=' + encodeURIComponent(gid);
   }
+}
+
+// Generate share URL for any mode
+export function generateShareUrl(mode, gameId) {
+  mode = mode || 'spectator';
+  gameId = gameId || ensureGameId();
+  
+  try {
+    var u = new URL(location.href);
+    u.searchParams.set('mode', mode);
+    u.searchParams.set('game', gameId);
+    return u.toString();
+  } catch(_) {
+    return location.origin + location.pathname + '?mode=' + encodeURIComponent(mode) + '&game=' + encodeURIComponent(gameId);
+  }
+}
+
+/**
+ * Enable local-only mode when Firebase permissions fail
+ */
+function enableLocalOnlyMode(error) {
+  if (isLocalOnlyMode) return; // Already enabled
+  
+  isLocalOnlyMode = true;
+  window._badmintonLocalOnlyMode = true; // Global flag for other modules
+  console.warn('[FIREBASE] Enabling local-only mode due to permission error:', error);
+  
+  // Replace push functions with no-ops
+  pushStateThrottled = function() {
+    console.log('[FIREBASE] Skipping throttled push (local-only mode)');
+  };
+  
+  pushStateNow = function() {
+    console.log('[FIREBASE] Skipping immediate push (local-only mode)');
+    return Promise.resolve(); // Return resolved promise for compatibility
+  };
+  
+  // Show user notification
+  import('../dom.js').then(function(module) {
+    module.toast('Lokal modus: Poeng lagres kun på denne enheten');
+  });
+  
+  // Disable Firebase sync to prevent conflicting reads
+  import('./firebaseSync.js').then(function(module) {
+    module.unbindFirebaseSync();
+  });
 }
 
 function makeId(n){

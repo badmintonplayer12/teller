@@ -3,6 +3,7 @@ import { state } from '../state/matchState.js';
 
 // Current write access state (synced via Firebase)
 let _currentWriter = null; // 'counter' | 'cocounter' | null
+let _explicitlyReleased = false; // Track if write access was explicitly released
 let _onWriteAccessChange = function(){};
 let _pushStateNow = function(){};
 let _getGameRef = function(){ return null; };
@@ -32,13 +33,36 @@ export function getCurrentWriter(){
 
 /**
  * Check if current user has write access
+ * Note: This is different from state.allowScoring:
+ * - allowScoring = workflow state (setup vs active match)
+ * - hasWriteAccess = security (who can modify scores right now)
  */
 export function hasWriteAccess(){
   if (state.IS_SPECTATOR) return false;
   
+  // In local-only mode, use the same logic as normal mode
+  // but without Firebase sync (This is set when Firebase permissions fail)
+  if (window._badmintonLocalOnlyMode) {
+    // Use same logic as normal mode for consistency
+    if (_currentWriter === null) {
+      if (_explicitlyReleased) {
+        return false; // No one has access after explicit release
+      }
+      return !state.IS_COCOUNTER; // Counter gets default access on startup
+    }
+    
+    // Check if current user matches the writer
+    const currentRole = state.IS_COCOUNTER ? 'cocounter' : 'counter';
+    return _currentWriter === currentRole;
+  }
+  
   // If no writer is set, counter gets default access
+  // UNLESS write access was explicitly released
   if (_currentWriter === null) {
-    return !state.IS_COCOUNTER;
+    if (_explicitlyReleased) {
+      return false; // No one has access after explicit release
+    }
+    return !state.IS_COCOUNTER; // Counter gets default access on startup
   }
   
   // Check if current user matches the writer
@@ -58,17 +82,23 @@ export function claimWriteAccess(){
   var newWriter = state.IS_COCOUNTER ? 'cocounter' : 'counter';
   
   console.log('[WRITE ACCESS] Claiming write access for:', newWriter);
+  console.log('[WRITE ACCESS] Current writer state:', _currentWriter);
   console.log('[WRITE ACCESS] _getGameRef function:', typeof _getGameRef);
   
   // Update Firebase with new writer
   try {
     var ref = _getGameRef();
-    console.log('[WRITE ACCESS] Firebase ref:', ref);
+    console.log('[WRITE ACCESS] Firebase ref:', !!ref);
     if (ref) {
-      ref.child('currentWriter').set(newWriter);
-      console.log('[WRITE ACCESS] Updated Firebase currentWriter to:', newWriter);
+      ref.child('currentWriter').set(newWriter).then(function() {
+        console.log('[WRITE ACCESS] Successfully updated Firebase currentWriter to:', newWriter);
+        // Clear explicitly released flag when someone claims access
+        _explicitlyReleased = false;
+      }).catch(function(error) {
+        console.warn('[WRITE ACCESS] Failed to set currentWriter:', error);
+      });
     } else {
-      console.warn('[WRITE ACCESS] No Firebase ref available');
+      console.warn('[WRITE ACCESS] No Firebase ref available - Firebase may not be ready');
       return false;
     }
   } catch(error) {
@@ -87,24 +117,57 @@ export function releaseWriteAccess(){
   
   var currentRole = state.IS_COCOUNTER ? 'cocounter' : 'counter';
   
-  if (_currentWriter === currentRole) {
-    console.log('[WRITE ACCESS] Releasing write access from:', currentRole);
+  console.log('[WRITE ACCESS] Attempting to release write access');
+  console.log('[WRITE ACCESS] Current role:', currentRole);
+  console.log('[WRITE ACCESS] Current writer:', _currentWriter);
+  console.log('[WRITE ACCESS] Has access check:', _currentWriter === currentRole);
+  
+  // Allow counter to release even default access, cocounter can only release if they have explicit access
+  var canRelease = (_currentWriter === currentRole) || 
+                   (currentRole === 'counter' && _currentWriter === null && !_explicitlyReleased);
+  
+  if (canRelease) {
+    console.log('[WRITE ACCESS] Releasing write access from:', currentRole, '(current writer:', _currentWriter, ')');
     
     // Update Firebase to remove current writer
     try {
       var ref = _getGameRef();
       if (ref) {
-        ref.child('currentWriter').set(null);
-        console.log('[WRITE ACCESS] Cleared Firebase currentWriter');
+        ref.child('currentWriter').set(null).then(function() {
+          console.log('[WRITE ACCESS] Successfully cleared Firebase currentWriter');
+        }).catch(function(error) {
+          console.warn('[WRITE ACCESS] Failed to clear currentWriter:', error);
+        });
+      } else {
+        console.warn('[WRITE ACCESS] No Firebase ref available for release');
+        // Still allow release in local-only mode
       }
     } catch(error) {
       console.warn('[WRITE ACCESS] Failed to clear Firebase:', error);
-      return false;
+      // Still allow release even if Firebase fails
+    }
+    
+    // Mark as explicitly released and clear local writer state
+    var previousWriter = _currentWriter;
+    _explicitlyReleased = true;
+    _currentWriter = null; // Update local state immediately
+    console.log('[WRITE ACCESS] Write access explicitly released - no one has access now');
+    
+    // Notify about the change immediately (don't wait for Firebase)
+    try {
+      _onWriteAccessChange({
+        writer: _currentWriter,
+        hasAccess: hasWriteAccess(),
+        previousWriter: previousWriter
+      });
+    } catch(e) {
+      console.warn('[WRITE ACCESS] Failed to notify access change:', e);
     }
     
     return true;
   }
   
+  console.log('[WRITE ACCESS] Cannot release - user does not have write access');
   return false; // Didn't have access
 }
 

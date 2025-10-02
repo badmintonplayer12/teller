@@ -6,6 +6,8 @@ import { updateCurrentWriter } from './writeAccess.js';
 let _boundRef = null;
 let _onValue = null;
 let _currentRole = null;
+let _writeErrorCount = 0; // Track consecutive write errors
+let _suppressReadsUntil = 0; // Suppress reads after write errors
 
 // Previous values for change detection
 const prev = {
@@ -61,6 +63,31 @@ export function unbindFirebaseSync(){
 }
 
 /**
+ * Report Firebase write error to suppress conflicting reads
+ */
+export function reportFirebaseWriteError(error) {
+  _writeErrorCount++;
+  console.warn('[FIREBASE SYNC] Write error reported:', error, 'Count:', _writeErrorCount);
+  
+  // Suppress reads for increasing duration based on error count
+  var suppressDuration = Math.min(_writeErrorCount * 1000, 10000); // Max 10 seconds
+  _suppressReadsUntil = Date.now() + suppressDuration;
+  
+  console.log('[FIREBASE SYNC] Suppressing reads for', suppressDuration, 'ms');
+}
+
+/**
+ * Clear write error state (call when write succeeds)
+ */
+export function clearFirebaseWriteErrors() {
+  if (_writeErrorCount > 0) {
+    console.log('[FIREBASE SYNC] Clearing write error state');
+    _writeErrorCount = 0;
+    _suppressReadsUntil = 0;
+  }
+}
+
+/**
  * Set name chips directly (utility from spectator.js)
  */
 export function setNameChipsDirect(nameA, nameB){
@@ -98,6 +125,12 @@ export function bindFirebaseSync(options){
   _onValue = function(snap){
     var v = snap && snap.val ? snap.val() : null;
     if (!v) return;
+    
+    // Suppress reads if we're having write permission issues
+    if (_suppressReadsUntil > Date.now()) {
+      console.log('[FIREBASE READ] Suppressing read due to recent write errors');
+      return;
+    }
     
     // Debug logging for counter role
     if (role === 'counter') {
@@ -147,7 +180,8 @@ export function bindFirebaseSync(options){
     if (typeof v.msg !== 'undefined') state.msg = v.msg;
     
     // Update current writer (for counter/cocounter roles)
-    if (typeof v.currentWriter !== 'undefined' && (role === 'counter' || role === 'cocounter')) {
+    // Skip in local-only mode to prevent incorrect write access assignment
+    if (typeof v.currentWriter !== 'undefined' && (role === 'counter' || role === 'cocounter') && !window._badmintonLocalOnlyMode) {
       updateCurrentWriter(v.currentWriter);
     }
     
