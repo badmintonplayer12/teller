@@ -33,7 +33,7 @@ vNext highlights
     var mode = params.get('mode');
     var game = params.get('game');
     
-    if (mode && game && mode !== 'dashboard') {
+    if (mode && game && (mode === 'spectator' || mode === 'counter' || mode === 'cocounter')) {
       // Remove splash classes immediately
       document.body.classList.remove('splash-open');
       // Hide splash mask when DOM is ready
