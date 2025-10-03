@@ -107,12 +107,17 @@ export function setupFirebase(options){
     .then(() => loadScript('https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js'))
     .then(() => loadScript('https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js'))
     .then(afterSDK)
-    .catch(err => console.error('Firebase SDK load error:', err));
+    .catch(err => {
+      console.error('Firebase SDK load error:', err);
+      // Enable local-only mode when Firebase SDK can't load
+      enableLocalOnlyMode(err);
+    });
 }
 
 function afterSDK(){
   if(!window.firebase){
     console.warn('Firebase ikke tilgjengelig - lokal modus');
+    enableLocalOnlyMode(new Error('Firebase SDK not available'));
     return;
   }
 
@@ -310,6 +315,7 @@ export function spectatorShareUrl(){
   }
 }
 
+
 // Generate share URL for any mode
 export function generateShareUrl(mode, gameId) {
   mode = mode || 'spectator';
@@ -328,12 +334,22 @@ export function generateShareUrl(mode, gameId) {
 /**
  * Enable local-only mode when Firebase permissions fail
  */
-function enableLocalOnlyMode(error) {
+export function enableLocalOnlyMode(error) {
   if (isLocalOnlyMode) return; // Already enabled
   
   isLocalOnlyMode = true;
   window._badmintonLocalOnlyMode = true; // Global flag for other modules
   console.warn('[FIREBASE] Enabling local-only mode due to permission error:', error);
+  
+  // Show toast notification
+  import('../dom.js').then(({ toast }) => {
+    toast('Lokal modus: lagring kun på denne enheten', 'info');
+  });
+  
+  // Update badge immediately
+  import('../ui/header.js').then(({ renderBadge }) => {
+    renderBadge();
+  });
   
   // Replace push functions with no-ops
   pushStateThrottled = function() {

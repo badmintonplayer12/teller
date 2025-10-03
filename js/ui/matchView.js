@@ -121,7 +121,7 @@ export function mount(){
   menuHandlers = buildMenuHandlers();
   renderMenu(state.VIEW_MODE, menuHandlers);
 
-  if(!shareInitialized){
+  if(!shareInitialized && !window._badmintonLocalOnlyMode){
     initShare({ getShareUrl: spectatorShareUrl });
     shareInitialized = true;
   }
@@ -1287,6 +1287,10 @@ function buildMenuHandlers(){
       // Oppdater "valgknappene" på splash til dagens mode/disciplin
       syncSplashButtons();
       if (typeof window.updateModalLayout === 'function') window.updateModalLayout();
+      
+      // Rydd URL for match-parametere
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
       showSplash();
     },
     onResetSet: resetSet,

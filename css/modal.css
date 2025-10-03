@@ -271,6 +271,56 @@
 .finishActions button{margin-top:.5rem}
 .muted{color:#94a3b8;font-size:.9rem}
 
+/* Offline Choice Modal */
+#offlineChoiceMask {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+}
+
+#offlineChoiceMask.show {
+  display: flex;
+}
+
+#offlineChoiceMask .modal {
+  background: #0f172a;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  border: 1px solid #1e293b;
+  text-align: center;
+}
+
+#offlineChoiceMask h2 {
+  margin: 0 0 1rem 0;
+  color: #e2e8f0;
+  font-size: 1.5rem;
+}
+
+#offlineChoiceMask p {
+  margin: 0 0 1.5rem 0;
+  color: #cbd5e1;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+#offlineChoiceMask .row {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+#offlineChoiceMask .gap {
+  gap: 1rem;
+}
+
 /* Fullscreen Panel Styles */
 .modalMask.fullscreen {
   display: flex;

@@ -59,19 +59,28 @@ export function renderMenu(mode, handlers){
 
   kebab.style.display = 'block';
 
+  // Check if we're in local-only mode
+  const isLocal = !!window._badmintonLocalOnlyMode;
+
   var html = '';
   if(mode === 'match'){
     html += menuItem('miNewMatch', '🏠 Til start', menuHandlers.onNewMatch);
-    html += menuItem('miShare', '🔗 Del…', menuHandlers.onShare);
-    html += menuItem('miOpenCounter', '📱 Åpne teller i ny fane', menuHandlers.onOpenCounter);
-    html += menuItem('miTournamentOverview', '📋 Kampoversikt', menuHandlers.onTournamentOverview);
-    html += menuItem('miOpenDashboard', '📺 Åpne kampoversikt i ny fane', menuHandlers.onOpenDashboard);
+    
+    // Only show sharing/tournament/control features when online
+    if (!isLocal) {
+      html += menuItem('miShare', '🔗 Del…', menuHandlers.onShare);
+      html += menuItem('miOpenCounter', '📱 Åpne teller i ny fane', menuHandlers.onOpenCounter);
+      html += menuItem('miTournamentOverview', '📋 Kampoversikt', menuHandlers.onTournamentOverview);
+      html += menuItem('miOpenDashboard', '📺 Åpne kampoversikt i ny fane', menuHandlers.onOpenDashboard);
+      html += '<div class="menuHR"></div>';
+      html += menuItem('miClaimWrite', '✋ Ta kontroll', menuHandlers.onClaimWrite);
+      html += menuItem('miReleaseWrite', '🤝 Frigi kontroll', menuHandlers.onReleaseWrite);
+      html += '<div class="menuHR"></div>';
+    }
+    
     html += menuItem('miFinishMatch', '✅ Ferdigstill kamp', menuHandlers.onFinishMatch);
     html += menuItem('miResetSet', '♻️ Nullstill sett', menuHandlers.onResetSet);
     html += menuItem('miSwap', '⇄ Bytt side', menuHandlers.onSwap);
-    html += '<div class="menuHR"></div>';
-    html += menuItem('miClaimWrite', '✋ Ta kontroll', menuHandlers.onClaimWrite);
-    html += menuItem('miReleaseWrite', '🤝 Frigi kontroll', menuHandlers.onReleaseWrite);
     html += '<div class="menuHR"></div>';
     html += menuItem('miEditNames', '✏️ Rediger spillernavn', menuHandlers.onEditNames);
     html += menuItem('miClearStorage', '🗑️ Nullstill lagret data', menuHandlers.onClear);

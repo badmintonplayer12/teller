@@ -74,6 +74,34 @@ export function reportFirebaseWriteError(error) {
   _suppressReadsUntil = Date.now() + suppressDuration;
   
   console.log('[FIREBASE SYNC] Suppressing reads for', suppressDuration, 'ms');
+  
+  // Show offline modal after 3 consecutive write errors
+  if (_writeErrorCount >= 3) {
+    import('../ui/modal.js').then(({ openModal, closeModal }) => {
+      const modalId = '#offlineChoiceMask';
+      openModal(modalId);
+      const el = document.querySelector(modalId);
+      const retryBtn = el?.querySelector('[data-retry]');
+      const localBtn = el?.querySelector('[data-local]');
+      
+      retryBtn?.addEventListener('click', () => {
+        closeModal(modalId);
+        _writeErrorCount = 0;
+        try {
+          if (typeof requireImmediatePush === 'function') {
+            requireImmediatePush();
+          } else if (typeof pushStateNow === 'function') {
+            pushStateNow();
+          }
+        } catch (_) {}
+      }, { once: true });
+      
+      localBtn?.addEventListener('click', () => {
+        closeModal(modalId);
+        import('./firebase.js').then(m => m.enableLocalOnlyMode && m.enableLocalOnlyMode());
+      }, { once: true });
+    });
+  }
 }
 
 /**

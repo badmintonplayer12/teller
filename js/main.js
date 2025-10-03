@@ -5,6 +5,7 @@ import { hasActiveMatchState, getContinueLabel } from './ui/session.js';
 import { setupStatsModal } from './ui/statsView.js';
 import { bindDashboardHandlers, ensureGameId } from './services/firebase.js';
 import { renderTournamentOverviewFromSnapshot } from './ui/tournamentOverview.js';
+import { initHeader } from './ui/header.js';
 
 // Felles helper for å gå til start uten å slette state
 export function goToStart(options){
@@ -73,6 +74,7 @@ function parseQuery(){
 function boot(){
   mount();
   setupStatsModal();
+  initHeader();
 
   const params = parseQuery();
   
@@ -116,6 +118,7 @@ function bootDashboard(params) {
 
 // Match mode boot (spectator/counter/cocounter)
 function bootMatch(params) {
+  console.log('[BOOT] bootMatch called with params:', params);
   if (!params.game) {
     console.warn('Match mode requires game ID, redirecting to splash');
     return bootSplash();
@@ -135,14 +138,82 @@ function bootMatch(params) {
         });
       } else {
         console.error('Firebase not ready, redirecting to splash');
-        showSplash(); // Show splash if Firebase fails
-        bootSplash();
+        console.log('[BOOT] Checking mode for offline handling:', params.mode);
+        // Check if this is an offline situation (cocounter trying to join)
+        if (params.mode === 'cocounter' || params.mode === 'spectator') {
+          console.log('[BOOT] Attempting to show offline modal for:', params.mode);
+          // Show offline choice modal for cocounter/spectator
+          import('./ui/modal.js').then(({ openModal }) => {
+            console.log('[BOOT] Modal module loaded, attempting to open modal');
+            const modal = document.querySelector('#offlineChoiceMask');
+            console.log('[BOOT] Modal element found:', !!modal);
+            console.log('[BOOT] Modal classes before open:', modal?.className);
+            console.log('[BOOT] Modal display before open:', modal?.style.display);
+            // Remove hidden class before opening modal
+            modal?.classList.remove('hidden');
+            openModal('#offlineChoiceMask');
+            console.log('[BOOT] Modal classes after open:', modal?.className);
+            console.log('[BOOT] Modal display after open:', modal?.style.display);
+            // Update modal text for cocounter/spectator
+            const title = modal?.querySelector('h2');
+            const description = modal?.querySelector('p');
+            const retryBtn = modal?.querySelector('[data-retry]');
+            const localBtn = modal?.querySelector('[data-local]');
+            
+            if (title) title.textContent = 'Får ikke kontakt med server';
+            if (description) description.textContent = 'Vi kan ikke koble til kampen. Sjekk nettverksforbindelsen din.';
+            if (localBtn) localBtn.textContent = 'Avbryt';
+            
+            retryBtn?.addEventListener('click', () => {
+              window.location.reload(); // Simple retry
+            }, { once: true });
+            
+            localBtn?.addEventListener('click', () => {
+              // Go to splash (avbryt)
+              showSplash();
+              bootSplash();
+            }, { once: true });
+          }).catch(err => {
+            console.error('[BOOT] Failed to load modal module:', err);
+          });
+        } else {
+          showSplash(); // Show splash if Firebase fails for counter
+          bootSplash();
+        }
       }
     }, 1000);
   }).catch(function(error) {
     console.error('Failed to load Firebase:', error);
-    showSplash(); // Show splash if Firebase fails
-    bootSplash();
+    // Check if this is an offline situation (cocounter trying to join)
+    if (params.mode === 'cocounter' || params.mode === 'spectator') {
+      // Show offline choice modal for cocounter/spectator
+      import('./ui/modal.js').then(({ openModal }) => {
+        openModal('#offlineChoiceMask');
+        // Update modal text for cocounter/spectator
+        const modal = document.querySelector('#offlineChoiceMask');
+        const title = modal?.querySelector('h2');
+        const description = modal?.querySelector('p');
+        const retryBtn = modal?.querySelector('[data-retry]');
+        const localBtn = modal?.querySelector('[data-local]');
+        
+        if (title) title.textContent = 'Får ikke kontakt med server';
+        if (description) description.textContent = 'Vi kan ikke koble til kampen. Sjekk nettverksforbindelsen din.';
+        if (localBtn) localBtn.textContent = 'Avbryt';
+        
+        retryBtn?.addEventListener('click', () => {
+          window.location.reload(); // Simple retry
+        }, { once: true });
+        
+        localBtn?.addEventListener('click', () => {
+          // Go to splash (avbryt)
+          showSplash();
+          bootSplash();
+        }, { once: true });
+      });
+    } else {
+      showSplash(); // Show splash if Firebase fails for counter
+      bootSplash();
+    }
   });
 }
 

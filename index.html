@@ -170,6 +170,7 @@ body.splash-open.no-splash #splashMask {
 </div>
 
 <div class="wrap" id="wrap">
+  <span id="localModeBadge" class="badge badge-local hidden">Lokal modus</span>
   <div class="clickArea left" id="leftArea" aria-label="Legg til poeng venstre"></div>
   <div class="clickArea right" id="rightArea" aria-label="Legg til poeng høyre"></div>
 
@@ -406,6 +407,17 @@ body.splash-open.no-splash #splashMask {
       <div class="modalActions">
         <button id="confirmStartCancel" class="btn btn--secondary">Avbryt</button>
         <button id="confirmStartOk" class="btn btn--primary">Fortsett</button>
+      </div>
+    </div>
+  </div>
+  <!-- Offline choice modal -->
+  <div id="offlineChoiceMask" class="mask hidden" role="dialog" aria-modal="true">
+    <div class="modal">
+      <h2>Ingen kontakt med databasen</h2>
+      <p>Vi får ikke forbindelse til tjenesten. Du kan prøve igjen, eller kjøre uten deling.</p>
+      <div class="row gap">
+        <button class="btn" data-retry>Prøv igjen</button>
+        <button class="btn btn-secondary" data-local>Kjør lokalt</button>
       </div>
     </div>
   </div>

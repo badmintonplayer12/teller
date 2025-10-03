@@ -48,6 +48,7 @@ js/
         matchState.js
     ui/
         autocomplete.js
+        header.js
         layout.js
         matchView.js
         menu.js
@@ -284,6 +285,7 @@ body.splash-open.no-splash #splashMask {
 </div>
 
 <div class="wrap" id="wrap">
+  <span id="localModeBadge" class="badge badge-local hidden">Lokal modus</span>
   <div class="clickArea left" id="leftArea" aria-label="Legg til poeng venstre"></div>
   <div class="clickArea right" id="rightArea" aria-label="Legg til poeng høyre"></div>
 
@@ -364,30 +366,40 @@ body.splash-open.no-splash #splashMask {
 
 <!-- share -->
 <div id="shareMask" role="dialog" aria-modal="true" aria-labelledby="shareTitle">
-  <div id="shareCard">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
-      <div id="shareTitle" style="font-weight:700">Del kamp</div>
+  <div class="share-modal">
+    <!-- Header -->
+    <div class="share-header">
+      <div id="shareTitle" class="share-title">Del kamp</div>
       <button id="shareClose" class="btn btn--ghost" aria-label="Lukk">✕</button>
     </div>
     
-    <!-- Role toggle -->
-    <div style="display:flex;align-items:center;justify-content:center;margin-bottom:1rem;gap:0.5rem;flex-wrap:wrap">
-      <label style="display:flex;align-items:center;gap:0.25rem;cursor:pointer">
-        <input type="radio" name="shareRole" value="spectator" checked style="margin:0">
-        <span>👥 Tilskuer</span>
-      </label>
-      <label style="display:flex;align-items:center;gap:0.25rem;cursor:pointer">
-        <input type="radio" name="shareRole" value="cocounter" style="margin:0">
-        <span>📱 Medteller</span>
-      </label>
+    <!-- Role selection with clear label -->
+    <div class="share-section">
+      <div class="role-label">Del som:</div>
+      <div class="role-segments">
+        <button class="role-segment active" data-role="spectator">👥 Tilskuer</button>
+        <button class="role-segment" data-role="cocounter">📱 Medteller</button>
+      </div>
     </div>
     
-    <div id="qrBox" aria-label="QR-kode"></div>
-    <div style="text-align:center;word-break:break-all;margin-top:.25rem;font-size:.85rem;color:#93c5fd" id="shareUrl"></div>
-    <div class="shareRow">
-      <button id="btnCopy" class="btn btn--primary">Kopier lenke</button>
-      <button id="btnOpenSpectator" class="btn btn--primary">Åpne tilskuer</button>
-      <button id="btnWebShare" class="btn btn--primary" style="display:none">Del via…</button>
+    <!-- QR Code container -->
+    <div class="share-section">
+      <div id="qrBox" class="qr-container" aria-label="QR-kode"></div>
+    </div>
+    
+    <!-- URL field - Hidden by default -->
+    <div class="share-section" style="display:none">
+      <div class="url-container">
+        <input type="text" id="shareUrlInput" class="url-input" readonly placeholder="Genererer lenke...">
+      </div>
+    </div>
+    
+    <!-- Action buttons -->
+    <div class="share-section">
+      <div class="share-buttons">
+        <button id="btnCopy" class="btn btn--primary btn--primary-action">Kopier lenke</button>
+        <button id="btnWebShare" class="btn btn--secondary" style="display:none">Del via…</button>
+      </div>
     </div>
   </div>
 </div>
@@ -510,6 +522,17 @@ body.splash-open.no-splash #splashMask {
       <div class="modalActions">
         <button id="confirmStartCancel" class="btn btn--secondary">Avbryt</button>
         <button id="confirmStartOk" class="btn btn--primary">Fortsett</button>
+      </div>
+    </div>
+  </div>
+  <!-- Offline choice modal -->
+  <div id="offlineChoiceMask" class="mask hidden" role="dialog" aria-modal="true">
+    <div class="modal">
+      <h2>Ingen kontakt med databasen</h2>
+      <p>Vi får ikke forbindelse til tjenesten. Du kan prøve igjen, eller kjøre uten deling.</p>
+      <div class="row gap">
+        <button class="btn" data-retry>Prøv igjen</button>
+        <button class="btn btn-secondary" data-local>Kjør lokalt</button>
       </div>
     </div>
   </div>
@@ -667,6 +690,26 @@ html,body{height:100%}
 body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:#0b1224;color:#fff;display:flex;flex-direction:column;max-width:100vw;overflow-x:hidden;user-select:none}
 body.no-scroll{overflow-y:hidden}
 body.splash-open{overflow:hidden}
+
+/* Local mode badge styles */
+#localModeBadge {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 100;
+  display: inline-block;
+  padding: 0.25em 0.6em;
+  font-size: 0.8em;
+  border-radius: 0.6em;
+  font-weight: 600;
+  background: #666;
+  color: #fff;
+  opacity: 0.85;
+}
+
+.hidden { 
+  display: none !important; 
+}
 /* Base button (samler dupliserte egenskaper, ingen visuell endring) */
 .btn{
   display:inline-flex; align-items:center; justify-content:center;
@@ -699,18 +742,18 @@ File End
 css\layout.css
 File type: .css
 .wrap{flex:1 1 auto;min-height:100vh;display:grid;grid-template-columns:1fr var(--divider) 1fr;column-gap:var(--gap);padding:var(--gap);align-items:stretch;overflow:hidden;position:relative}
-.divider{width:var(--divider);background:#1e293b;z-index:2}
-.side{position:relative;background:#0f172a;border-radius:.8rem;padding:clamp(8px,1.8vw,16px);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow:hidden;transition:transform 1s ease;z-index:1}
+.divider{width:2px;background:linear-gradient(180deg,rgba(76,132,255,0.00) 0%,rgba(76,132,255,0.12) 50%,rgba(76,132,255,0.00) 100%);z-index:2;box-shadow:0 0 24px rgba(76,132,255,0.10)}
+.side{position:relative;background:#0f172a;border-radius:22px;padding:clamp(8px,1.8vw,16px);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow:hidden;transition:transform 1s ease;z-index:1;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.06),0 6px 28px rgba(0,0,0,0.35)}
 .wrap.swap-go .left{transform:translateX(calc(100% + var(--gap) + var(--divider)))}
 .wrap.swap-go .right{transform:translateX(calc(-100% - var(--gap) - var(--divider)))}
 .no-trans .side{transition:none!important}
 .name{min-height:clamp(36px,6vh,56px);display:flex;align-items:center;justify-content:center;width:100%;margin:.6rem 0 .25rem 0;position:relative}
-.name .chip{background:#111827;border:1px solid #0008;border-radius:.5rem;min-width:12ch;max-width:22ch;padding:.35rem .8rem}
+.name .chip{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:12px;min-width:12ch;max-width:22ch;padding:6px 12px;font-weight:600;letter-spacing:0.02em}
 .name .chip span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .setCounter{position:absolute;right:-.35rem;top:50%;transform:translate(0,-50%);background:var(--accent);color:#061a2e;font-weight:900;border-radius:999px;padding:.18rem .62rem;min-width:2rem;text-align:center;box-shadow:0 0 10px rgba(96,165,250,.45),0 0 24px rgba(59,130,246,.35);display:none}
 @media (max-width:520px){.setCounter{right:-.15rem}}
 .scoreBox{flex:1 1 auto;width:100%;min-height:0;display:flex;align-items:center;justify-content:center;overflow:visible}
-.score{width:100%;display:flex;justify-content:center;align-items:center;text-align:center;font-weight:900;line-height:.92;cursor:pointer;white-space:nowrap;overflow:visible;font-variant-numeric:tabular-nums;will-change:transform,text-shadow;padding:0 2vw;transition:color .6s,text-shadow .6s;font-size:0}
+.score{width:100%;display:flex;justify-content:center;align-items:center;text-align:center;font-weight:800;line-height:.92;cursor:pointer;white-space:nowrap;overflow:visible;font-variant-numeric:tabular-nums;will-change:transform,text-shadow;padding:0 2vw;transition:color .6s,text-shadow .6s;font-size:clamp(96px, 14vw, 320px);letter-spacing:-0.02em;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 .digits{display:flex;gap:.08em;align-items:baseline;max-width:100%;overflow:visible}
 .digit{display:inline-block;width:1ch;text-align:center}
 .digit.ghost{visibility:hidden}
@@ -727,7 +770,8 @@ File type: .css
 .areas-active .clickArea{pointer-events:auto;touch-action:pan-y}
 .clickArea.left{left:0}
 .clickArea.right{right:0}
-#kebab{position:fixed;top:10px;right:10px;z-index:50;background:#0f172a;border:1px solid #233454;border-radius:.6rem;padding:.35rem .55rem;cursor:pointer;display:none}
+#kebab{position:fixed;top:10px;right:10px;z-index:50;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:.35rem .55rem;cursor:pointer;display:none;transition:transform .12s ease,background .12s ease}
+#kebab:active{transform:scale(0.98)}
 #kebab svg{display:block;width:20px;height:20px}
 #kebab.pulse{box-shadow:0 0 0 0 rgba(96,165,250,.55);animation:kebabPulse 1.8s ease-out 2}
 @keyframes kebabPulse{0%{box-shadow:0 0 0 0 rgba(96,165,250,.55)}70%{box-shadow:0 0 0 14px rgba(96,165,250,0)}100%{box-shadow:0 0 0 0 rgba(96,165,250,0)}}
@@ -1016,6 +1060,56 @@ File type: .css
 .finishActions button{margin-top:.5rem}
 .muted{color:#94a3b8;font-size:.9rem}
 
+/* Offline Choice Modal */
+#offlineChoiceMask {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+}
+
+#offlineChoiceMask.show {
+  display: flex;
+}
+
+#offlineChoiceMask .modal {
+  background: #0f172a;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  border: 1px solid #1e293b;
+  text-align: center;
+}
+
+#offlineChoiceMask h2 {
+  margin: 0 0 1rem 0;
+  color: #e2e8f0;
+  font-size: 1.5rem;
+}
+
+#offlineChoiceMask p {
+  margin: 0 0 1.5rem 0;
+  color: #cbd5e1;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+#offlineChoiceMask .row {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+#offlineChoiceMask .gap {
+  gap: 1rem;
+}
+
 /* Fullscreen Panel Styles */
 .modalMask.fullscreen {
   display: flex;
@@ -1085,11 +1179,366 @@ File End
 
 css\share.css
 File type: .css
-#shareMask{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:60}
-#shareCard{background:#0b1224;border:1px solid #122042;border-radius:.8rem;padding:1rem;max-width:92vw;width:min(560px,92vw)}
-#qrBox{display:block;margin:.5rem auto;background:#0f172a;border:1px solid #233454;border-radius:.4rem;padding:.5rem;min-width:240px;text-align:center}
-.shareRow{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;margin-top:.5rem}
-#shareUrl{text-align:center;word-break:break-all;margin-top:.25rem;font-size:.85rem;color:#93c5fd}
+/* Share Modal Layout - Glass/Blur Style */
+#shareMask {
+  position: fixed;
+  inset: 0;
+  background: rgba(20,20,30,0.7);
+  backdrop-filter: blur(20px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+}
+
+.share-modal {
+  background: rgba(8,14,30,.9);
+  border: 1px solid rgba(59,130,246,.35);
+  border-radius: 1.1rem;
+  padding: clamp(26px,4vw,52px);
+  max-width: 480px;
+  width: min(480px, 92vw);
+  margin: 0 auto;
+  text-align: center;
+  box-shadow: 0 25px 60px rgba(15,23,42,.65), 0 0 45px rgba(59,130,246,.35);
+  position: relative;
+  overflow: hidden;
+}
+
+.share-modal::before {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  background: radial-gradient(circle at center, rgba(96,165,250,.28), rgba(96,165,250,0));
+  opacity: .9;
+  z-index: -1;
+  animation: shareGlow 6s ease-in-out infinite;
+}
+
+@keyframes shareGlow {
+  0% { transform: rotate(0deg); }
+  50% { transform: rotate(8deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* Header */
+.share-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.share-title {
+  font-size: clamp(1.8rem,4vw,2.6rem);
+  font-weight: 700;
+  color: #e2e8f0;
+  text-shadow: 0 0 18px rgba(96,165,250,.45);
+  margin: 0;
+  text-align: center;
+  flex: 1;
+}
+
+/* Sections - Tighter spacing */
+.share-section {
+  margin-bottom: 12px;
+}
+
+.share-section:last-child {
+  margin-bottom: 0;
+}
+
+/* Role Selection - Segmented Control Style */
+.role-label {
+  font-size: 0.75rem;
+  color: rgba(148,163,184,0.8);
+  margin-bottom: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.role-segments {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.role-segment {
+  flex: 1 1 calc(50% - 0.75rem);
+  min-width: 140px;
+  padding: 0.85rem 1.2rem;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(59,130,246,.35);
+  background: rgba(17,24,39,.85);
+  color: #dbeafe;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  isolation: isolate;
+}
+
+.role-segment::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(96,165,250,.55), rgba(59,130,246,0));
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  z-index: -1;
+}
+
+.role-segment.active {
+  background: rgba(30,64,175,.95);
+  border-color: rgba(96,165,250,.9);
+  box-shadow: 0 10px 30px rgba(37,99,235,.45), 0 0 25px rgba(96,165,250,.55);
+}
+
+.role-segment.active::after {
+  opacity: 1;
+}
+
+.role-segment:focus-visible {
+  outline: 2px solid rgba(96,165,250,.9);
+  outline-offset: 3px;
+}
+
+@media (max-width: 520px) {
+  .role-segment {
+    min-width: 120px;
+    padding: 0.8rem 1rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* QR Container - Matching Splash Style */
+.qr-container {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 320px;
+  height: 320px;
+  padding: 12px;
+  border: 1px solid rgba(59,130,246,.35);
+  border-radius: 0.9rem;
+  background: rgba(17,24,39,.85);
+  margin: 0.5rem auto;
+  transition: all 0.25s ease;
+  position: relative;
+  isolation: isolate;
+}
+
+.qr-container::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(96,165,250,.55), rgba(59,130,246,0));
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  z-index: -1;
+}
+
+.qr-container:hover {
+  border-color: rgba(96,165,250,.9);
+  box-shadow: 0 0 25px rgba(96,165,250,.55);
+}
+
+.qr-container:hover::after {
+  opacity: 1;
+}
+
+/* Clickable QR styling */
+.qr-container.is-clickable {
+  cursor: zoom-in;
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.qr-container.is-clickable:hover {
+  box-shadow: 0 0 0 8px rgba(96,165,250,.12);
+  transform: scale(1.02);
+}
+
+.qr-container img {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+@media (max-width: 420px) {
+  .qr-container {
+    width: 260px;
+    height: 260px;
+  }
+}
+
+/* URL Field */
+.url-container {
+  margin: 8px 0;
+}
+
+.url-input {
+  width: 100%;
+  padding: 8px 12px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 0.85rem;
+  text-align: center;
+  font-family: monospace;
+  word-break: break-all;
+}
+
+.url-input::placeholder {
+  color: #64748b;
+}
+
+/* Alert styles removed - no longer needed */
+
+/* Buttons - Reprioritized Hierarchy */
+.share-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Primary Action Button - Copy Link (Same as splash "Start") */
+.btn--primary-action {
+  width: 100%;
+  max-width: 260px;
+  padding: 1rem 2.6rem;
+  border-radius: 2rem;
+  border: none;
+  background: linear-gradient(135deg, rgba(96,165,250,.95), rgba(14,165,233,.9));
+  color: #041225;
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 0 18px 45px rgba(37,99,235,.55);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
+}
+
+.btn--primary-action:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn--primary-action:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 22px 55px rgba(59,130,246,.6);
+}
+
+.btn--primary-action:active {
+  transform: translateY(0);
+  box-shadow: 0 12px 30px rgba(59,130,246,.5);
+}
+
+/* Secondary Button - Web Share (Same as splash "Continue") */
+.btn--secondary {
+  width: 100%;
+  max-width: 260px;
+  padding: 0.85rem 2.4rem;
+  border-radius: 2rem;
+  border: 1px solid rgba(148,163,184,.6);
+  background: rgba(15,23,42,.85);
+  color: #e2e8f0;
+  font-weight: 650;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+}
+
+.btn--secondary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 30px rgba(30,41,59,.45);
+  background: rgba(30,41,59,.92);
+}
+
+.btn--secondary:active {
+  transform: translateY(0);
+  box-shadow: 0 8px 20px rgba(30,41,59,.4);
+}
+
+/* QR Lightbox Styles */
+.qr-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5,10,20,.8);
+  backdrop-filter: blur(12px);
+}
+
+.qr-lightbox__wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+  border-radius: 20px;
+  background: rgba(18,22,34,.9);
+  border: 1px solid rgba(59,130,246,.35);
+  box-shadow: 0 25px 60px rgba(15,23,42,.65), 0 0 45px rgba(59,130,246,.35);
+  position: relative;
+}
+
+.qr-lightbox__canvas {
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(0,0,0,.3);
+}
+
+.qr-lightbox__close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.2);
+  padding: 8px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  color: #e2e8f0;
+  font-size: 1.2rem;
+  transition: all 0.25s ease;
+}
+
+.qr-lightbox__close:hover {
+  background: rgba(255,255,255,.2);
+  border-color: rgba(255,255,255,.3);
+}
+
+.qr-lightbox__actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.qr-lightbox__btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(148,163,184,.6);
+  background: rgba(15,23,42,.85);
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.qr-lightbox__btn:hover {
+  background: rgba(30,41,59,.92);
+  border-color: rgba(96,165,250,.6);
+}
 
 --------------------------------------------------
 File End
@@ -1397,6 +1846,7 @@ Dette dokumentet definerer de grunnleggende prinsippene for hvordan kode skal sk
 - **Race condition-patches** - redesign for å eliminere racet
 - **Timing-avhengig kode** - bruk promises/callbacks i stedet
 - **Cross-module koordinering** - reduser avhengigheter
+- **Jallakode** - retry-logikk, multiple fallbacks, bandasjer over åpenbare problemer
 
 ---
 
@@ -1481,6 +1931,46 @@ if (result?.then) {
 setTimeout(onSuccess, 200); // Hva hvis det tar lengre tid?
 ```
 
+### **Anti-Pattern: Jallakode**
+```javascript
+// ❌ Jallakode: Retry-logikk og multiple fallbacks
+function showSplash() {
+  if (!elementsReady()) {
+    setTimeout(showSplash, 100); // Retry-logikk
+    return;
+  }
+  // Multiple fallbacks
+  try {
+    showSplashInternal();
+  } catch (error) {
+    setTimeout(() => {
+      try {
+        showSplashInternal();
+      } catch (retryError) {
+        console.error('Retry failed:', retryError);
+      }
+    }, 200);
+  }
+}
+
+// ✅ Elegant: Fiks rotårsaken
+function showSplash() {
+  // Remove CSS hiding that prevents splash from showing
+  splashMask.style.display = '';
+  document.body.classList.remove('no-splash');
+  document.body.removeAttribute('data-match-mode');
+  
+  splashMask.classList.add('show');
+}
+```
+
+**Jallakode-indikatorer:**
+- **Retry-logikk** med setTimeout/retry loops
+- **Multiple fallbacks** som prøver samme ting på nytt
+- **Error swallowing** med tomme catch-blokker
+- **Timing-patches** som prøver å "få timing til å fungere"
+- **Bandasjer** over åpenbare problemer i stedet for å fikse årsaken
+
 ---
 
 ## 📋 Code Review Checklist
@@ -1491,6 +1981,7 @@ Ved code review, spør:
 - [ ] Er dette den enkleste løsningen som fungerer?
 - [ ] Kan kompleksiteten reduseres uten å miste funksjonalitet?
 - [ ] Er årsak-virkning-forholdet tydelig?
+- [ ] Er det jallakode? (retry-logikk, multiple fallbacks, bandasjer)
 
 ### **Robusthet**
 - [ ] Håndteres edge cases og feil eksplisitt?
@@ -1524,6 +2015,27 @@ if(elA?.classList.contains('pop') || elB?.classList.contains('pop')) return;
 
 // Etter (elegant): Global flag
 if(_bumpInProgress) return;
+```
+
+### **Bra refaktorering: "Til start" jallakode → elegant løsning**
+```javascript
+// Før (jallakode): Retry-logikk og multiple fallbacks
+function showSplash() {
+  if (!ensureElements()) {
+    setTimeout(showSplash, 100); // Retry-logikk
+    return;
+  }
+  // Multiple fallbacks og error handling...
+}
+
+// Etter (elegant): Fiks rotårsaken
+function showSplash() {
+  // Remove CSS hiding that prevents splash from showing
+  splashMask.style.display = '';
+  document.body.classList.remove('no-splash');
+  document.body.removeAttribute('data-match-mode');
+  splashMask.classList.add('show');
+}
 ```
 
 ---
@@ -2734,13 +3246,50 @@ export function $(selector){
   return document.querySelector(selector);
 }
 
-export function toast(msg){
+export function toast(msg, type){
   var t = document.getElementById('toast');
-  if(!t) return;
+  if(!t) {
+    console.warn('[TOAST] Toast element not found');
+    return;
+  }
+  
+  console.log('[TOAST] Showing toast:', msg, 'type:', type);
   t.textContent = msg;
   t.style.display = 'block';
-  setTimeout(function(){ t.style.display = 'none'; }, 1400);
+  
+  // Add type-specific styling - matching site design
+  if(type === 'success') {
+    t.style.background = 'rgba(30,64,175,.95)';
+    t.style.borderColor = 'rgba(96,165,250,.9)';
+    t.style.color = '#dbeafe';
+    t.style.boxShadow = '0 10px 30px rgba(37,99,235,.45), 0 0 25px rgba(96,165,250,.55)';
+  } else if(type === 'error') {
+    t.style.background = 'rgba(127,29,29,.95)';
+    t.style.borderColor = 'rgba(239,68,68,.9)';
+    t.style.color = '#fecaca';
+    t.style.boxShadow = '0 10px 30px rgba(220,38,38,.45), 0 0 25px rgba(239,68,68,.55)';
+  } else {
+    // Default styling
+    t.style.background = '#111827';
+    t.style.borderColor = '#233454';
+    t.style.color = '#e5e7eb';
+    t.style.boxShadow = 'none';
+  }
+  
+  setTimeout(function(){ 
+    console.log('[TOAST] Hiding toast after timeout');
+    t.style.display = 'none';
+    // Reset to default styling after hide
+    t.style.background = '#111827';
+    t.style.borderColor = '#233454';
+    t.style.color = '#e5e7eb';
+    t.style.boxShadow = 'none';
+  }, 1400);
 }
+
+// Convenience methods
+toast.success = function(msg) { toast(msg, 'success'); };
+toast.error = function(msg) { toast(msg, 'error'); };
 
 export function qs(name){
   try{
@@ -2769,6 +3318,7 @@ import { hasActiveMatchState, getContinueLabel } from './ui/session.js';
 import { setupStatsModal } from './ui/statsView.js';
 import { bindDashboardHandlers, ensureGameId } from './services/firebase.js';
 import { renderTournamentOverviewFromSnapshot } from './ui/tournamentOverview.js';
+import { initHeader } from './ui/header.js';
 
 // Felles helper for å gå til start uten å slette state
 export function goToStart(options){
@@ -2837,6 +3387,7 @@ function parseQuery(){
 function boot(){
   mount();
   setupStatsModal();
+  initHeader();
 
   const params = parseQuery();
   
@@ -2880,6 +3431,7 @@ function bootDashboard(params) {
 
 // Match mode boot (spectator/counter/cocounter)
 function bootMatch(params) {
+  console.log('[BOOT] bootMatch called with params:', params);
   if (!params.game) {
     console.warn('Match mode requires game ID, redirecting to splash');
     return bootSplash();
@@ -2899,14 +3451,82 @@ function bootMatch(params) {
         });
       } else {
         console.error('Firebase not ready, redirecting to splash');
-        showSplash(); // Show splash if Firebase fails
-        bootSplash();
+        console.log('[BOOT] Checking mode for offline handling:', params.mode);
+        // Check if this is an offline situation (cocounter trying to join)
+        if (params.mode === 'cocounter' || params.mode === 'spectator') {
+          console.log('[BOOT] Attempting to show offline modal for:', params.mode);
+          // Show offline choice modal for cocounter/spectator
+          import('./ui/modal.js').then(({ openModal }) => {
+            console.log('[BOOT] Modal module loaded, attempting to open modal');
+            const modal = document.querySelector('#offlineChoiceMask');
+            console.log('[BOOT] Modal element found:', !!modal);
+            console.log('[BOOT] Modal classes before open:', modal?.className);
+            console.log('[BOOT] Modal display before open:', modal?.style.display);
+            // Remove hidden class before opening modal
+            modal?.classList.remove('hidden');
+            openModal('#offlineChoiceMask');
+            console.log('[BOOT] Modal classes after open:', modal?.className);
+            console.log('[BOOT] Modal display after open:', modal?.style.display);
+            // Update modal text for cocounter/spectator
+            const title = modal?.querySelector('h2');
+            const description = modal?.querySelector('p');
+            const retryBtn = modal?.querySelector('[data-retry]');
+            const localBtn = modal?.querySelector('[data-local]');
+            
+            if (title) title.textContent = 'Får ikke kontakt med server';
+            if (description) description.textContent = 'Vi kan ikke koble til kampen. Sjekk nettverksforbindelsen din.';
+            if (localBtn) localBtn.textContent = 'Avbryt';
+            
+            retryBtn?.addEventListener('click', () => {
+              window.location.reload(); // Simple retry
+            }, { once: true });
+            
+            localBtn?.addEventListener('click', () => {
+              // Go to splash (avbryt)
+              showSplash();
+              bootSplash();
+            }, { once: true });
+          }).catch(err => {
+            console.error('[BOOT] Failed to load modal module:', err);
+          });
+        } else {
+          showSplash(); // Show splash if Firebase fails for counter
+          bootSplash();
+        }
       }
     }, 1000);
   }).catch(function(error) {
     console.error('Failed to load Firebase:', error);
-    showSplash(); // Show splash if Firebase fails
-    bootSplash();
+    // Check if this is an offline situation (cocounter trying to join)
+    if (params.mode === 'cocounter' || params.mode === 'spectator') {
+      // Show offline choice modal for cocounter/spectator
+      import('./ui/modal.js').then(({ openModal }) => {
+        openModal('#offlineChoiceMask');
+        // Update modal text for cocounter/spectator
+        const modal = document.querySelector('#offlineChoiceMask');
+        const title = modal?.querySelector('h2');
+        const description = modal?.querySelector('p');
+        const retryBtn = modal?.querySelector('[data-retry]');
+        const localBtn = modal?.querySelector('[data-local]');
+        
+        if (title) title.textContent = 'Får ikke kontakt med server';
+        if (description) description.textContent = 'Vi kan ikke koble til kampen. Sjekk nettverksforbindelsen din.';
+        if (localBtn) localBtn.textContent = 'Avbryt';
+        
+        retryBtn?.addEventListener('click', () => {
+          window.location.reload(); // Simple retry
+        }, { once: true });
+        
+        localBtn?.addEventListener('click', () => {
+          // Go to splash (avbryt)
+          showSplash();
+          bootSplash();
+        }, { once: true });
+      });
+    } else {
+      showSplash(); // Show splash if Firebase fails for counter
+      bootSplash();
+    }
   });
 }
 
@@ -3051,12 +3671,17 @@ export function setupFirebase(options){
     .then(() => loadScript('https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js'))
     .then(() => loadScript('https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js'))
     .then(afterSDK)
-    .catch(err => console.error('Firebase SDK load error:', err));
+    .catch(err => {
+      console.error('Firebase SDK load error:', err);
+      // Enable local-only mode when Firebase SDK can't load
+      enableLocalOnlyMode(err);
+    });
 }
 
 function afterSDK(){
   if(!window.firebase){
     console.warn('Firebase ikke tilgjengelig - lokal modus');
+    enableLocalOnlyMode(new Error('Firebase SDK not available'));
     return;
   }
 
@@ -3254,6 +3879,7 @@ export function spectatorShareUrl(){
   }
 }
 
+
 // Generate share URL for any mode
 export function generateShareUrl(mode, gameId) {
   mode = mode || 'spectator';
@@ -3272,12 +3898,22 @@ export function generateShareUrl(mode, gameId) {
 /**
  * Enable local-only mode when Firebase permissions fail
  */
-function enableLocalOnlyMode(error) {
+export function enableLocalOnlyMode(error) {
   if (isLocalOnlyMode) return; // Already enabled
   
   isLocalOnlyMode = true;
   window._badmintonLocalOnlyMode = true; // Global flag for other modules
   console.warn('[FIREBASE] Enabling local-only mode due to permission error:', error);
+  
+  // Show toast notification
+  import('../dom.js').then(({ toast }) => {
+    toast('Lokal modus: lagring kun på denne enheten', 'info');
+  });
+  
+  // Update badge immediately
+  import('../ui/header.js').then(({ renderBadge }) => {
+    renderBadge();
+  });
   
   // Replace push functions with no-ops
   pushStateThrottled = function() {
@@ -3404,6 +4040,34 @@ export function reportFirebaseWriteError(error) {
   _suppressReadsUntil = Date.now() + suppressDuration;
   
   console.log('[FIREBASE SYNC] Suppressing reads for', suppressDuration, 'ms');
+  
+  // Show offline modal after 3 consecutive write errors
+  if (_writeErrorCount >= 3) {
+    import('../ui/modal.js').then(({ openModal, closeModal }) => {
+      const modalId = '#offlineChoiceMask';
+      openModal(modalId);
+      const el = document.querySelector(modalId);
+      const retryBtn = el?.querySelector('[data-retry]');
+      const localBtn = el?.querySelector('[data-local]');
+      
+      retryBtn?.addEventListener('click', () => {
+        closeModal(modalId);
+        _writeErrorCount = 0;
+        try {
+          if (typeof requireImmediatePush === 'function') {
+            requireImmediatePush();
+          } else if (typeof pushStateNow === 'function') {
+            pushStateNow();
+          }
+        } catch (_) {}
+      }, { once: true });
+      
+      localBtn?.addEventListener('click', () => {
+        closeModal(modalId);
+        import('./firebase.js').then(m => m.enableLocalOnlyMode && m.enableLocalOnlyMode());
+      }, { once: true });
+    });
+  }
 }
 
 /**
@@ -3506,7 +4170,28 @@ export function bindFirebaseSync(options){
       state.nameA = v.names.A;
       state.nameB = v.names.B;
     }
-    if (v.format) state.format = v.format;
+    if (v.format) {
+      state.format = v.format;
+      // Update match discipline and play mode from format data
+      if (v.format.discipline && v.format.discipline !== state.matchDiscipline) {
+        console.log('[FIREBASE SYNC] Updating matchDiscipline from', state.matchDiscipline, 'to', v.format.discipline);
+        state.matchDiscipline = v.format.discipline;
+        // Update UI to reflect discipline change - use setTimeout to avoid timing issues
+        if (typeof window.updateModalLayout === 'function') {
+          setTimeout(() => {
+            try {
+              window.updateModalLayout();
+            } catch(error) {
+              console.warn('[FIREBASE SYNC] Failed to update modal layout:', error);
+            }
+          }, 100);
+        }
+      }
+      if (v.format.playMode && v.format.playMode !== state.playMode) {
+        console.log('[FIREBASE SYNC] Updating playMode from', state.playMode, 'to', v.format.playMode);
+        state.playMode = v.format.playMode;
+      }
+    }
     if (typeof v.msg !== 'undefined') state.msg = v.msg;
     
     // Update current writer (for counter/cocounter roles)
@@ -3524,11 +4209,11 @@ export function bindFirebaseSync(options){
       try { _setSidesDomTo(nextIsALeft); } catch(_){}
     } else if(prev.isALeft !== nextIsALeft){
       // Side swap detected
+      
       if (role === 'spectator') {
         try { _startVisualSwap(); } catch(_){}
-      } else if ((role === 'counter' || role === 'cocounter') && !_swapInProgress) {
+      } else if ((role === 'counter' || role === 'cocounter') && !_swapInProgress && !state.swapping && !state._justCompletedLocalSwap) {
         // Counter role: use disable/enable pattern to prevent loops
-        console.log('[SWAP DEBUG] Side swap detected - executing with disable/enable pattern');
         _swapInProgress = true;
         
         // Temporarily disable Firebase reads during swap
@@ -3537,12 +4222,10 @@ export function bindFirebaseSync(options){
         try { 
           _startVisualSwap(() => {
             // Re-enable Firebase reads AFTER swap animation AND score reset is complete
-            console.log('[SWAP DEBUG] Re-enabling Firebase reads after swap completion');
             _swapInProgress = false;
             // Note: Rebinding should be handled by calling code
           });
         } catch(error) {
-          console.warn('[SWAP DEBUG] Swap failed, re-enabling reads:', error);
           _swapInProgress = false;
           // Don't rebind on error to avoid loops
         }
@@ -4792,6 +5475,49 @@ File End
 --------------------------------------------------
 
 
+js\ui\header.js
+File type: .js
+/**
+ * Local mode badge management for BadmintonTeller
+ */
+
+export function renderBadge() {
+  const badge = document.getElementById('localModeBadge');
+  
+  if (badge) {
+    if (window._badmintonLocalOnlyMode) {
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+  }
+}
+
+/**
+ * Initialize badge management
+ */
+export function initHeader() {
+  // Watch for changes to window._badmintonLocalOnlyMode
+  if (window._badmintonLocalOnlyMode !== undefined) {
+    Object.defineProperty(window, '_badmintonLocalOnlyMode', {
+      get() { return this._localMode; },
+      set(value) { 
+        this._localMode = value; 
+        renderBadge();
+      }
+    });
+  }
+  
+  // Initial render
+  renderBadge();
+}
+
+
+--------------------------------------------------
+File End
+--------------------------------------------------
+
+
 js\ui\layout.js
 File type: .js
 import { state, getDisplayName } from '../state/matchState.js';
@@ -4944,6 +5670,9 @@ export function setSidesDomTo(isALeftTarget){
 export function startVisualSwap(done){
   if(state.swapping) return;
   state.swapping = true;
+  
+  // Disable click areas during swap to prevent race conditions
+  document.body.classList.remove('areas-active');
 
   var namesBefore = readABFromModalInputs();
   var wrap = $('#wrap');
@@ -4988,6 +5717,17 @@ export function startVisualSwap(done){
     state.swapping = false;
     saveLiveStateBound();
     if(typeof pushStateNow === 'function') pushStateNow();
+    
+    // Mark that we just completed a local swap to prevent Firebase sync from triggering another one
+    state._justCompletedLocalSwap = true;
+    setTimeout(() => {
+      state._justCompletedLocalSwap = false;
+    }, 500);
+
+    // Re-enable click areas after swap is complete (unless spectator)
+    if(!state.IS_SPECTATOR && state.allowScoring){
+      document.body.classList.add('areas-active');
+    }
 
     if(typeof done === 'function'){
       try{ done(); }catch(_){ }
@@ -5262,7 +6002,7 @@ export function mount(){
   menuHandlers = buildMenuHandlers();
   renderMenu(state.VIEW_MODE, menuHandlers);
 
-  if(!shareInitialized){
+  if(!shareInitialized && !window._badmintonLocalOnlyMode){
     initShare({ getShareUrl: spectatorShareUrl });
     shareInitialized = true;
   }
@@ -5440,9 +6180,38 @@ function bindCoreEvents(){
   }
 }
 
+function handleNameModalCancel(){
+  // Check if we're in "start new match" mode vs "edit names" mode
+  var startBtn = $('#btnStart');
+  var isStartMode = startBtn && startBtn.style.display !== 'none';
+  
+  if(isStartMode){
+    // Starting new match - cancel should abort the match entirely
+    console.log('[NAME MODAL] Canceling new match start');
+    
+    // Clear any partial state
+    state.allowScoring = false;
+    state.nameEditMode = false;
+    
+    // Clear any saved state from the aborted match
+    clearLiveState();
+    
+    // Return to splash
+    hideNameModal();
+    import('./splash.js').then(function(module) {
+      module.showSplash();
+    });
+    
+  } else {
+    // Editing existing names - just close modal and continue
+    console.log('[NAME MODAL] Canceling name edit');
+    hideNameModal();
+  }
+}
+
 function bindModalEvents(){
   const cancel = $('#btnCancelNames');
-  if(cancel) on(cancel, 'click', hideNameModal);
+  if(cancel) on(cancel, 'click', handleNameModalCancel);
 
   const saveBtn = $('#btnSaveNames');
   if(saveBtn) on(saveBtn, 'click', function(){
@@ -5681,13 +6450,31 @@ function updateScores(){
 
   const counterA = document.getElementById('setCounterA');
   const counterB = document.getElementById('setCounterB');
-  if(counterA){
-    counterA.textContent = String(state.setsA);
-    counterA.style.display = state.setsA > 0 ? 'flex' : 'none';
-  }
-  if(counterB){
-    counterB.textContent = String(state.setsB);
-    counterB.style.display = state.setsB > 0 ? 'flex' : 'none';
+  
+  if(counterA && counterB){
+    if (state.matchDiscipline === 'double') {
+      // In double matches, determine which player is on which side
+      const aLeft = isALeft();
+      if (aLeft) {
+        // A is on left, B is on right - show sets correctly
+        counterA.textContent = String(state.setsA);
+        counterA.style.display = state.setsA > 0 ? 'flex' : 'none';
+        counterB.textContent = String(state.setsB);
+        counterB.style.display = state.setsB > 0 ? 'flex' : 'none';
+      } else {
+        // A is on right, B is on left - swap the display
+        counterA.textContent = String(state.setsB);  // Left counter shows B's sets
+        counterA.style.display = state.setsB > 0 ? 'flex' : 'none';
+        counterB.textContent = String(state.setsA);  // Right counter shows A's sets
+        counterB.style.display = state.setsA > 0 ? 'flex' : 'none';
+      }
+    } else {
+      // Single matches - direct mapping
+      counterA.textContent = String(state.setsA);
+      counterA.style.display = state.setsA > 0 ? 'flex' : 'none';
+      counterB.textContent = String(state.setsB);
+      counterB.style.display = state.setsB > 0 ? 'flex' : 'none';
+    }
   }
 
   const setsEl = document.getElementById('sets');
@@ -5814,8 +6601,11 @@ function removePoint(side){
 }
 
 function addPointByPosition(pos){
+  if(state.swapping) return;
+  
   const aLeft = isALeft();
-  addPoint((pos === 'left') ? (aLeft ? 'A' : 'B') : (aLeft ? 'B' : 'A'));
+  const side = (pos === 'left') ? (aLeft ? 'A' : 'B') : (aLeft ? 'B' : 'A');
+  addPoint(side);
 }
 
 function removePointByPosition(pos){
@@ -5900,17 +6690,24 @@ function renderSummary(finalWinnerName){
 
 
 function checkSetEnd(){
+  // Don't check set end if match is already finished or between sets
+  if(state.locked || state.betweenSets) return;
+  
   const leadOk = Math.abs(state.scoreA - state.scoreB) >= 2 || state.scoreA === state.cap || state.scoreB === state.cap;
   if((state.scoreA >= state.target || state.scoreB >= state.target) && leadOk){
     const winner = (state.scoreA > state.scoreB) ? 'A' : 'B';
     pushSetToHistory(state.scoreA, state.scoreB);
 
+    // Best of 3 sets - first to 2 sets wins
     const willFinish = (winner === 'A') ? (state.setsA + 1 >= 2) : (state.setsB + 1 >= 2);
     if(willFinish){
       if(winner === 'A') state.setsA++; else state.setsB++;
       state.locked = true;
       state.betweenSets = false;
       state.pendingSetWinner = null;
+      
+      // Immediately disable click areas to prevent further scoring
+      document.body.classList.remove('areas-active');
 
       const { aDisplay, bDisplay } = getCurrentDisplayNames();
       const winnerName = winner === 'A' ? aDisplay : bDisplay;
@@ -5944,6 +6741,9 @@ function checkSetEnd(){
     state.betweenSets = true;
     state.locked = true;
 
+    // Immediately disable click areas to prevent further scoring
+    document.body.classList.remove('areas-active');
+
     const nextSetBtn = document.getElementById('nextSetBtn');
     if(nextSetBtn && !state.IS_SPECTATOR) nextSetBtn.style.display = 'block';
 
@@ -5965,6 +6765,7 @@ function checkSetEnd(){
 
 function advanceToNextSet(){
   if(!state.betweenSets) return;
+  
   state.locked = true;
   const nextSetBtn = document.getElementById('nextSetBtn');
   if(nextSetBtn) nextSetBtn.style.display = 'none';
@@ -6011,12 +6812,12 @@ function startNewMatch(opts){
   });
   
   // Generate new game ID for new match to avoid permission conflicts
-  generateNewGameId();
+  const newGameId = generateNewGameId();
   
   // Navigate to match URL for refresh support
   try {
     import('../services/firebase.js').then(function(firebaseModule) {
-      const matchUrl = firebaseModule.generateShareUrl('counter', firebaseModule.ensureGameId());
+      const matchUrl = firebaseModule.generateShareUrl('counter', newGameId);
       window.history.replaceState({}, '', matchUrl);
       console.log('[NEW MATCH] Navigated to match URL:', matchUrl);
     });
@@ -6367,6 +7168,10 @@ function buildMenuHandlers(){
       // Oppdater "valgknappene" på splash til dagens mode/disciplin
       syncSplashButtons();
       if (typeof window.updateModalLayout === 'function') window.updateModalLayout();
+      
+      // Rydd URL for match-parametere
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
       showSplash();
     },
     onResetSet: resetSet,
@@ -6532,19 +7337,28 @@ export function renderMenu(mode, handlers){
 
   kebab.style.display = 'block';
 
+  // Check if we're in local-only mode
+  const isLocal = !!window._badmintonLocalOnlyMode;
+
   var html = '';
   if(mode === 'match'){
     html += menuItem('miNewMatch', '🏠 Til start', menuHandlers.onNewMatch);
-    html += menuItem('miShare', '🔗 Del…', menuHandlers.onShare);
-    html += menuItem('miOpenCounter', '📱 Åpne teller i ny fane', menuHandlers.onOpenCounter);
-    html += menuItem('miTournamentOverview', '📋 Kampoversikt', menuHandlers.onTournamentOverview);
-    html += menuItem('miOpenDashboard', '📺 Åpne kampoversikt i ny fane', menuHandlers.onOpenDashboard);
+    
+    // Only show sharing/tournament/control features when online
+    if (!isLocal) {
+      html += menuItem('miShare', '🔗 Del…', menuHandlers.onShare);
+      html += menuItem('miOpenCounter', '📱 Åpne teller i ny fane', menuHandlers.onOpenCounter);
+      html += menuItem('miTournamentOverview', '📋 Kampoversikt', menuHandlers.onTournamentOverview);
+      html += menuItem('miOpenDashboard', '📺 Åpne kampoversikt i ny fane', menuHandlers.onOpenDashboard);
+      html += '<div class="menuHR"></div>';
+      html += menuItem('miClaimWrite', '✋ Ta kontroll', menuHandlers.onClaimWrite);
+      html += menuItem('miReleaseWrite', '🤝 Frigi kontroll', menuHandlers.onReleaseWrite);
+      html += '<div class="menuHR"></div>';
+    }
+    
     html += menuItem('miFinishMatch', '✅ Ferdigstill kamp', menuHandlers.onFinishMatch);
     html += menuItem('miResetSet', '♻️ Nullstill sett', menuHandlers.onResetSet);
     html += menuItem('miSwap', '⇄ Bytt side', menuHandlers.onSwap);
-    html += '<div class="menuHR"></div>';
-    html += menuItem('miClaimWrite', '✋ Ta kontroll', menuHandlers.onClaimWrite);
-    html += menuItem('miReleaseWrite', '🤝 Frigi kontroll', menuHandlers.onReleaseWrite);
     html += '<div class="menuHR"></div>';
     html += menuItem('miEditNames', '✏️ Rediger spillernavn', menuHandlers.onEditNames);
     html += menuItem('miClearStorage', '🗑️ Nullstill lagret data', menuHandlers.onClear);
@@ -6965,14 +7779,47 @@ export function initShare(options){
 }
 
 function setupRoleToggle(){
-  var roleInputs = document.querySelectorAll('input[name="shareRole"]');
-  roleInputs.forEach(function(input){
-    input.addEventListener('change', function(){
-      if(this.checked){
-        currentRole = this.value;
-        updateShareContent();
+  var segments = document.querySelectorAll('.role-segment');
+  
+  segments.forEach(function(segment){
+    segment.addEventListener('click', function(){
+      var role = this.dataset.role;
+      currentRole = role;
+      
+      // Update active state
+      segments.forEach(function(s) {
+        s.classList.remove('active');
+      });
+      this.classList.add('active');
+      
+      updateShareContent();
+    });
+    
+    // Keyboard navigation
+    segment.addEventListener('keydown', function(e){
+      if(e.key === 'ArrowLeft' || e.key === 'ArrowRight'){
+        e.preventDefault();
+        var currentIndex = Array.from(segments).indexOf(this);
+        var nextIndex;
+        
+        if(e.key === 'ArrowLeft'){
+          nextIndex = currentIndex > 0 ? currentIndex - 1 : segments.length - 1;
+        } else {
+          nextIndex = currentIndex < segments.length - 1 ? currentIndex + 1 : 0;
+        }
+        
+        segments[nextIndex].click();
+        segments[nextIndex].focus();
       }
     });
+  });
+  
+  // Initialize active state based on current role
+  segments.forEach(function(segment){
+    segment.classList.remove('active');
+    if(segment.dataset.role === currentRole){
+      segment.classList.add('active');
+    }
   });
 }
 
@@ -6988,17 +7835,18 @@ function getCurrentShareUrl(){
 
 function updateShareContent(){
   var url = getCurrentShareUrl();
-  var urlEl = document.getElementById('shareUrl');
+  var urlInput = document.getElementById('shareUrlInput');
   var openBtn = document.getElementById('btnOpenSpectator');
   
-  if(urlEl) urlEl.textContent = url;
-  
-  // Update button text based on role
-  if(openBtn) {
-    var btnText = currentRole === 'spectator' ? 'Åpne tilskuer' : 
-                  currentRole === 'cocounter' ? 'Åpne medteller' : 'Åpne teller';
-    openBtn.textContent = btnText;
+  // Update URL input field
+  if(urlInput) {
+    urlInput.value = url;
+    urlInput.placeholder = url ? '' : 'Genererer lenke...';
   }
+  
+  // Button text updates removed - no longer needed
+  
+  // Localhost warning removed - no longer needed
   
   // Regenerate QR code with new URL
   var box = document.getElementById('qrBox');
@@ -7017,20 +7865,33 @@ function updateShareContent(){
   }
 }
 
+// checkLocalhostWarning function removed - no longer needed
+
 export function openShare(){
   // Reset to default role when opening
   currentRole = 'spectator';
-  var spectatorRadio = document.querySelector('input[name="shareRole"][value="spectator"]');
-  if(spectatorRadio) spectatorRadio.checked = true;
+  
+  // Update segmented control
+  var segments = document.querySelectorAll('.role-segment');
+  segments.forEach(function(segment){
+    segment.classList.remove('active');
+    if(segment.dataset.role === currentRole){
+      segment.classList.add('active');
+    }
+  });
   
   updateShareContent();
   
   var box = document.getElementById('qrBox');
   if(box) box.innerHTML = '';
 
+  // Setup Web Share button
+  setupWebShareButton();
+
   ensureQrLib(function(err){
     if(!err && window.QRCode){
       updateShareContent(); // This will generate QR code
+      setupQrClickable(); // Make QR clickable for lightbox
     }else if(box){
       box.innerHTML = '<div style="color:#fbbf24;text-align:center">QR utilgjengelig ? bruk lenken under.</div>';
     }
@@ -7038,8 +7899,280 @@ export function openShare(){
   });
 }
 
+function setupWebShareButton(){
+  var webShareBtn = document.getElementById('btnWebShare');
+  if(!webShareBtn) return;
+  
+  if(navigator.share){
+    webShareBtn.style.display = 'block';
+    webShareBtn.addEventListener('click', async function(){
+      try {
+        var url = getCurrentShareUrl();
+        var title = currentRole === 'spectator' ? 'Tilskuervy' : 'Medteller';
+        await navigator.share({
+          title: title,
+          text: 'Badminton teller',
+          url: url
+        });
+      } catch(err) {
+        if(err.name !== 'AbortError') {
+          console.warn('Web Share failed:', err);
+          // Fallback to copy
+          copyLink();
+          toast.info('Lenke kopiert – lim inn der du vil dele.');
+        }
+      }
+    });
+  } else {
+    webShareBtn.style.display = 'none';
+  }
+}
+
 export function closeShare(){
   closeModal('#shareMask');
+}
+
+// QR Lightbox functionality
+function setupQrClickable(){
+  var qrBox = document.getElementById('qrBox');
+  if(!qrBox) return;
+  
+  // Make QR clickable
+  qrBox.classList.add('is-clickable');
+  qrBox.setAttribute('role', 'button');
+  qrBox.setAttribute('tabindex', '0');
+  qrBox.setAttribute('aria-label', 'Åpne QR i fullskjerm');
+  
+  qrBox.addEventListener('click', function(){
+    var url = getCurrentShareUrl();
+    openQrLightbox(url);
+  });
+  
+  qrBox.addEventListener('keydown', function(e){
+    if(e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      var url = getCurrentShareUrl();
+      openQrLightbox(url);
+    }
+  });
+}
+
+function openQrLightbox(url) {
+  console.log('[QR LIGHTBOX] Opening lightbox for URL:', url);
+  
+  var overlay = document.createElement('div');
+  overlay.className = 'qr-lightbox';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.tabIndex = -1;
+
+  var wrap = document.createElement('div');
+  wrap.className = 'qr-lightbox__wrap';
+  
+  var canvas = document.createElement('canvas');
+  canvas.className = 'qr-lightbox__canvas';
+
+  // Calculate optimal size for high DPI
+  var sizeCss = Math.min(window.innerWidth, window.innerHeight) - 80; // padding
+  sizeCss = Math.max(300, Math.min(sizeCss, 700)); // bounds
+  var dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+  
+  canvas.width = sizeCss * dpr;
+  canvas.height = sizeCss * dpr;
+  canvas.style.width = sizeCss + 'px';
+  canvas.style.height = sizeCss + 'px';
+
+  var closeBtn = document.createElement('button');
+  closeBtn.className = 'qr-lightbox__close';
+  closeBtn.setAttribute('aria-label', 'Lukk');
+  closeBtn.textContent = '✕';
+
+  // Actions section
+  var actions = document.createElement('div');
+  actions.className = 'qr-lightbox__actions';
+  
+  var dlBtn = document.createElement('button');
+  dlBtn.className = 'qr-lightbox__btn';
+  dlBtn.textContent = 'Last ned PNG';
+  
+  var shareBtn = document.createElement('button');
+  shareBtn.className = 'qr-lightbox__btn';
+  shareBtn.textContent = 'Del via...';
+  
+  actions.appendChild(dlBtn);
+  actions.appendChild(shareBtn);
+  
+  wrap.appendChild(canvas);
+  wrap.appendChild(actions);
+  overlay.appendChild(wrap);
+  overlay.appendChild(closeBtn);
+  document.body.appendChild(overlay);
+
+  // Lock body scroll
+  var prevOverflow = document.documentElement.style.overflow;
+  document.documentElement.style.overflow = 'hidden';
+
+  function close() {
+    console.log('[QR LIGHTBOX] Closing lightbox');
+    document.documentElement.style.overflow = prevOverflow || '';
+    document.body.removeChild(overlay);
+    // Return focus to QR element in modal
+    var qrBox = document.getElementById('qrBox');
+    if(qrBox) qrBox.focus();
+  }
+
+  // Event listeners
+  overlay.addEventListener('click', function(e){
+    if(e.target === overlay) close();
+  });
+  
+  closeBtn.addEventListener('click', close);
+  
+  var keyHandler = function(e){
+    if(e.key === 'Escape') {
+      document.removeEventListener('keydown', keyHandler);
+      close();
+    }
+  };
+  document.addEventListener('keydown', keyHandler);
+
+  // Download PNG
+  dlBtn.addEventListener('click', function(){
+    try {
+      var a = document.createElement('a');
+      a.download = 'kamp-qr.png';
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+      toast.success('QR-kode lastet ned!');
+    } catch(err) {
+      console.warn('[QR LIGHTBOX] Download failed:', err);
+      toast.error('Kunne ikke laste ned QR-kode');
+    }
+  });
+
+  // Web Share
+  shareBtn.addEventListener('click', function(){
+    var urlToShare = url;
+    if(navigator.share) {
+      navigator.share({
+        title: 'Del kamp',
+        url: urlToShare
+      }).catch(function(err){
+        if(err.name !== 'AbortError') {
+          console.warn('[QR LIGHTBOX] Share failed:', err);
+          copyTextRobust(urlToShare, function(){
+            toast.success('Lenke kopiert!');
+          }, function(){
+            toast.error('Kunne ikke kopiere lenken');
+          });
+        }
+      });
+    } else {
+      copyTextRobust(urlToShare, function(){
+        toast.success('Lenke kopiert!');
+      }, function(){
+        toast.error('Kunne ikke kopiere lenken');
+      });
+    }
+  });
+
+  // Generate QR after DOM is ready
+  setTimeout(function(){
+    generateQrToCanvas(canvas, url, dpr);
+    overlay.focus();
+  }, 0);
+}
+
+function generateQrToCanvas(canvas, url, dpr) {
+  if(!window.QRCode) {
+    console.warn('[QR LIGHTBOX] QRCode library not available');
+    return;
+  }
+  
+  try {
+    // Create a temporary container for QRCode library
+    var tempContainer = document.createElement('div');
+    tempContainer.style.position = 'absolute';
+    tempContainer.style.left = '-9999px';
+    tempContainer.style.top = '-9999px';
+    tempContainer.style.width = '280px';
+    tempContainer.style.height = '280px';
+    document.body.appendChild(tempContainer);
+    
+    // Generate QR code using the library
+    var qr = new QRCode(tempContainer, {
+      text: url,
+      width: 280,
+      height: 280,
+      colorDark: '#000000',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+    
+    // Wait for QR to be generated, then copy to canvas
+    var attempts = 0;
+    var maxAttempts = 10;
+    
+    var checkForQR = function() {
+      attempts++;
+      var qrImg = tempContainer.querySelector('img');
+      var qrCanvas = tempContainer.querySelector('canvas');
+      
+      if(qrImg || qrCanvas) {
+        var ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        if(qrImg) {
+          // Handle img element
+          if(qrImg.complete) {
+            ctx.drawImage(qrImg, 0, 0, canvas.width, canvas.height);
+            document.body.removeChild(tempContainer);
+            console.log('[QR LIGHTBOX] QR generated successfully from img');
+          } else {
+            qrImg.onload = function() {
+              ctx.drawImage(qrImg, 0, 0, canvas.width, canvas.height);
+              document.body.removeChild(tempContainer);
+              console.log('[QR LIGHTBOX] QR generated successfully from img (onload)');
+            };
+            qrImg.onerror = function() {
+              throw new Error('Failed to load QR image');
+            };
+          }
+        } else if(qrCanvas) {
+          // Handle canvas element
+          ctx.drawImage(qrCanvas, 0, 0, canvas.width, canvas.height);
+          document.body.removeChild(tempContainer);
+          console.log('[QR LIGHTBOX] QR generated successfully from canvas');
+        }
+      } else if(attempts < maxAttempts) {
+        // Try again after a short delay
+        setTimeout(checkForQR, 50);
+      } else {
+        throw new Error('QR generation timeout');
+      }
+    };
+    
+    // Start checking for QR generation
+    setTimeout(checkForQR, 100);
+    
+  } catch(err) {
+    console.error('[QR LIGHTBOX] QR generation failed:', err);
+    // Fallback: draw error message
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#000000';
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('QR-kode kunne ikke genereres', canvas.width/2, canvas.height/2);
+    
+    // Clean up temp container if it exists
+    var tempContainer = document.querySelector('div[style*="-9999px"]');
+    if(tempContainer) {
+      document.body.removeChild(tempContainer);
+    }
+  }
 }
 
 function ensureQrLib(cb){
@@ -7074,29 +8207,73 @@ function ensureQrLib(cb){
 
 function copyLink(){
   var url = getCurrentShareUrl();
-  if(navigator.clipboard && window.isSecureContext){
-    navigator.clipboard.writeText(url).then(function(){ 
-      var toastMsg = currentRole === 'spectator' ? 'Tilskuer-lenke kopiert' : 
-                     currentRole === 'cocounter' ? 'Medteller-lenke kopiert' : 'Teller-lenke kopiert';
-      toast(toastMsg); 
-    });
-  }else{
-    try{
-      var ta = document.createElement('textarea');
-      ta.value = url;
-      ta.style.position = 'fixed';
-      ta.style.top = '-1000px';
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-      var toastMsg = currentRole === 'spectator' ? 'Tilskuer-lenke kopiert' : 
-                     currentRole === 'cocounter' ? 'Medteller-lenke kopiert' : 'Teller-lenke kopiert';
-      toast(toastMsg);
-    }catch(_){
-      toast('Kopier mislyktes');
+  var copyBtn = document.getElementById('btnCopy');
+  
+  console.log('[COPY] Starting copy process for URL:', url);
+  
+  // Set busy state
+  setCopyBusy(true);
+  
+  copyTextRobust(url, function(){
+    console.log('[COPY] Copy successful');
+    toast.success('Lenke kopiert!');
+    setCopyBusy(false);
+  }, function(err){
+    console.warn('[COPY] Copy failed:', err);
+    toast.error('Kunne ikke kopiere lenken');
+    setCopyBusy(false);
+  });
+}
+
+function setCopyBusy(isBusy) {
+  var copyBtn = document.getElementById('btnCopy');
+  if(!copyBtn) return;
+  
+  copyBtn.disabled = !!isBusy;
+  // Keep original text - don't change button text
+  // copyBtn.textContent = isBusy ? 'Kopierer...' : 'Kopier lenke';
+}
+
+// Robust copy function with fallback
+function copyTextRobust(text, onSuccess, onError) {
+  try {
+    // Primær: moderne API (krever HTTPS eller localhost)
+    if (window.isSecureContext && navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        if (onSuccess) onSuccess();
+      }).catch(function (err) {
+        // Fallback ved feil i moderne API
+        legacyCopy(text, onSuccess, onError, err);
+      });
+    } else {
+      // Fallback direkte
+      legacyCopy(text, onSuccess, onError);
     }
+  } catch (err) {
+    legacyCopy(text, onSuccess, onError, err);
+  }
+}
+
+function legacyCopy(text, onSuccess, onError, originalErr) {
+  try {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    var ok = document.execCommand('copy'); // deprec, men fungerer bredt
+    document.body.removeChild(ta);
+    if (ok) {
+      if (onSuccess) onSuccess();
+    } else {
+      if (onError) onError(originalErr || new Error('execCommand copy returned false'));
+    }
+  } catch (err) {
+    if (onError) onError(err);
   }
 }
 
@@ -7286,7 +8463,16 @@ export function syncSplashButtons(){
 }
 
 export function showSplash(){
-  if(!ensureElements()) return;
+  if(!ensureElements()) {
+    console.error('[SPLASH] Critical error: splashMask element not found in DOM');
+    return;
+  }
+  
+  // Remove any CSS hiding that might be applied from match mode
+  splashMask.style.display = '';
+  document.body.classList.remove('no-splash');
+  document.body.removeAttribute('data-match-mode');
+  
   splashMask.classList.add('show');
   splashMask.setAttribute('aria-hidden', 'false');
   document.body.classList.add('splash-open');
